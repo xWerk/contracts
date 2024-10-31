@@ -57,8 +57,8 @@ contract WithdrawERC20_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         space.withdrawERC20({ asset: IERC20(address(usdt)), amount: 10e6 });
 
         // Assert the USDT balance of the {Space} contract
-        uint256 actualBalanceOfWorkspace = usdt.balanceOf(address(space));
-        assertEq(actualBalanceOfWorkspace, 90e6);
+        uint256 actualBalanceOfSpace = usdt.balanceOf(address(space));
+        assertEq(actualBalanceOfSpace, 90e6);
 
         // Assert the USDT balance of Eve
         uint256 actualBalanceOfEve = usdt.balanceOf(users.eve);

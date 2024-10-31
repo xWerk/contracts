@@ -47,7 +47,7 @@ abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
         _;
     }
 
-    modifier whenCompliantWorkspace() {
+    modifier whenCompliantSpace() {
         _;
     }
 
@@ -189,7 +189,7 @@ abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
         if (user == users.eve) {
             Space(space).execute({ module: address(invoiceModule), value: 0, data: data });
         } else {
-            MockBadSpace(badWorkspace).execute({ module: address(invoiceModule), value: 0, data: data });
+            MockBadSpace(badSpace).execute({ module: address(invoiceModule), value: 0, data: data });
         }
 
         // Stop the active prank

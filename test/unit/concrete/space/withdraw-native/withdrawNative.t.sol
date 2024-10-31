@@ -9,19 +9,19 @@ import { Events } from "../../../../utils/Events.sol";
 
 contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     address badReceiver;
-    Space badWorkspace;
+    Space badSpace;
 
     function setUp() public virtual override {
         Space_Unit_Concrete_Test.setUp();
 
-        // Create a bad receiver contract as the owner of the `badWorkspace` to test for the `NativeWithdrawFailed` error
+        // Create a bad receiver contract as the owner of the `badSpace` to test for the `NativeWithdrawFailed` error
         badReceiver = address(new MockBadReceiver());
         vm.deal({ account: badReceiver, newBalance: 100 ether });
 
-        // Deploy the `badWorkspace` space
+        // Deploy the `badSpace` space
         address[] memory modules = new address[](1);
         modules[0] = address(mockModule);
-        badWorkspace = deploySpace({ _owner: address(badReceiver), _spaceId: 0, _initialModules: modules });
+        badSpace = deploySpace({ _owner: address(badReceiver), _spaceId: 0, _initialModules: modules });
     }
 
     function test_RevertWhen_CallerNotOwner() external {
@@ -59,13 +59,13 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     function test_RevertWhen_NativeWithdrawFailed()
         external
         whenCallerOwner(badReceiver)
-        whenSufficientNativeToWithdraw(badWorkspace)
+        whenSufficientNativeToWithdraw(badSpace)
     {
         // Expect the next call to revert with the {NativeWithdrawFailed} error
         vm.expectRevert(Errors.NativeWithdrawFailed.selector);
 
         // Run the test
-        badWorkspace.withdrawNative({ amount: 1 ether });
+        badSpace.withdrawNative({ amount: 1 ether });
     }
 
     modifier whenNativeWithdrawSucceeds() {
@@ -79,7 +79,7 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         whenNativeWithdrawSucceeds
     {
         // Store the ETH balance of Eve and {Space} contract before withdrawal
-        uint256 balanceOfWorkspaceBefore = address(space).balance;
+        uint256 balanceOfSpaceBefore = address(space).balance;
         uint256 balanceOfEveBefore = address(users.eve).balance;
         uint256 ethToWithdraw = 1 ether;
 
@@ -91,8 +91,8 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         space.withdrawNative({ amount: ethToWithdraw });
 
         // Assert the ETH balance of the {Space} contract
-        uint256 actualBalanceOfWorkspace = address(space).balance;
-        assertEq(actualBalanceOfWorkspace, balanceOfWorkspaceBefore - ethToWithdraw);
+        uint256 actualBalanceOfSpace = address(space).balance;
+        assertEq(actualBalanceOfSpace, balanceOfSpaceBefore - ethToWithdraw);
 
         // Assert the ETH balance of Eve
         uint256 actualBalanceOfEve = address(users.eve).balance;

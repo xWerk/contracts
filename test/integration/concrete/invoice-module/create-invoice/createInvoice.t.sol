@@ -17,8 +17,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         // Make Bob the caller in this test suite which is an EOA
         vm.startPrank({ msgSender: users.bob });
 
-        // Expect the call to revert with the {WorkspaceZeroCodeSize} error
-        vm.expectRevert(Errors.WorkspaceZeroCodeSize.selector);
+        // Expect the call to revert with the {SpaceZeroCodeSize} error
+        vm.expectRevert(Errors.SpaceZeroCodeSize.selector);
 
         // Create an one-off transfer invoice
         invoice = createInvoiceWithOneOffTransfer({ asset: address(usdt) });
@@ -27,7 +27,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         invoiceModule.createInvoice(invoice);
     }
 
-    function test_RevertWhen_NonCompliantWorkspace() external whenCallerContract {
+    function test_RevertWhen_NonCompliantSpace() external whenCallerContract {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
@@ -39,14 +39,14 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
             "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
         );
 
-        // Expect the call to revert with the {WorkspaceUnsupportedInterface} error
-        vm.expectRevert(Errors.WorkspaceUnsupportedInterface.selector);
+        // Expect the call to revert with the {SpaceUnsupportedInterface} error
+        vm.expectRevert(Errors.SpaceUnsupportedInterface.selector);
 
         // Run the test
-        mockNonCompliantWorkspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        mockNonCompliantSpace.execute({ module: address(invoiceModule), value: 0, data: data });
     }
 
-    function test_RevertWhen_ZeroPaymentAmount() external whenCallerContract whenCompliantWorkspace {
+    function test_RevertWhen_ZeroPaymentAmount() external whenCallerContract whenCompliantSpace {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
@@ -71,7 +71,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_RevertWhen_StartTimeGreaterThanEndTime()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
     {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
@@ -99,7 +99,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_RevertWhen_EndTimeInThePast()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
     {
@@ -132,7 +132,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_CreateInvoice_PaymentMethodOneOffTransfer()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
@@ -187,7 +187,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_RevertWhen_PaymentMethodRecurringTransfer_PaymentIntervalTooShortForSelectedRecurrence()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
@@ -218,7 +218,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_CreateInvoice_RecurringTransfer()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
@@ -273,7 +273,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_RevertWhen_PaymentMethodTranchedStream_RecurrenceSetToOneOff()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
@@ -303,7 +303,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_RevertWhen_PaymentMethodTranchedStream_PaymentIntervalTooShortForSelectedRecurrence()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
@@ -334,7 +334,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_RevertWhen_PaymentMethodTranchedStream_PaymentAssetNativeToken()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
@@ -366,7 +366,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_CreateInvoice_Tranched()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
@@ -421,7 +421,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_RevertWhen_PaymentMethodLinearStream_PaymentAssetNativeToken()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
@@ -451,7 +451,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     function test_CreateInvoice_LinearStream()
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture

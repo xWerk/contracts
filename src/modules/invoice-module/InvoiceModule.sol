@@ -60,15 +60,15 @@ contract InvoiceModule is IInvoiceModule, StreamManager, ERC721 {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Allow only calls from contracts implementing the {ISpace} interface
-    modifier onlyWorkspace() {
+    modifier onlySpace() {
         // Checks: the sender is a valid non-zero code size contract
         if (msg.sender.code.length == 0) {
-            revert Errors.WorkspaceZeroCodeSize();
+            revert Errors.SpaceZeroCodeSize();
         }
 
         // Checks: the sender implements the ERC-165 interface required by {ISpace}
         bytes4 interfaceId = type(ISpace).interfaceId;
-        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert Errors.WorkspaceUnsupportedInterface();
+        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert Errors.SpaceUnsupportedInterface();
         _;
     }
 
@@ -86,7 +86,7 @@ contract InvoiceModule is IInvoiceModule, StreamManager, ERC721 {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IInvoiceModule
-    function createInvoice(Types.Invoice calldata invoice) external onlyWorkspace returns (uint256 invoiceId) {
+    function createInvoice(Types.Invoice calldata invoice) external onlySpace returns (uint256 invoiceId) {
         // Checks: the amount is non-zero
         if (invoice.payment.amount == 0) {
             revert Errors.ZeroPaymentAmount();

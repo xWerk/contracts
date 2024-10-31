@@ -14,7 +14,7 @@ library Errors {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when `msg.sender` is not the {Space} contract owner
-    error CallerNotWorkspaceOwner();
+    error CallerNotSpaceOwner();
 
     /// @notice Thrown when a native token (ETH) withdrawal fails
     error NativeWithdrawFailed();
@@ -64,10 +64,10 @@ library Errors {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when the caller is an invalid zero code contract or EOA
-    error WorkspaceZeroCodeSize();
+    error SpaceZeroCodeSize();
 
     /// @notice Thrown when the caller is a contract that does not implement the {ISpace} interface
-    error WorkspaceUnsupportedInterface();
+    error SpaceUnsupportedInterface();
 
     /// @notice Thrown when the end time of an invoice is in the past
     error EndTimeInThePast();

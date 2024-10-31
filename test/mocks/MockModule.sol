@@ -15,19 +15,19 @@ contract MockModule {
     event ModuleItemCreated(uint256 indexed id);
 
     /// @dev Allow only calls from contracts implementing the {ISpace} interface
-    modifier onlyWorkspace() {
+    modifier onlySpace() {
         // Checks: the sender is a valid non-zero code size contract
         if (msg.sender.code.length == 0) {
-            revert Errors.WorkspaceZeroCodeSize();
+            revert Errors.SpaceZeroCodeSize();
         }
 
         // Checks: the sender implements the ERC-165 interface required by {ISpace}
         bytes4 interfaceId = type(ISpace).interfaceId;
-        if (!IERC165(msg.sender).supportsInterface(interfaceId)) revert Errors.WorkspaceUnsupportedInterface();
+        if (!IERC165(msg.sender).supportsInterface(interfaceId)) revert Errors.SpaceUnsupportedInterface();
         _;
     }
 
-    function createModuleItem() external onlyWorkspace returns (uint256 id) {
+    function createModuleItem() external onlySpace returns (uint256 id) {
         // Get the next module item ID
         id = _nextItemIf;
 

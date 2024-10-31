@@ -21,7 +21,7 @@ abstract contract Integration_Test is Base_Test {
     SablierV2LockupLinear internal sablierV2LockupLinear;
     SablierV2LockupTranched internal sablierV2LockupTranched;
     MockStreamManager internal mockStreamManager;
-    MockBadSpace internal badWorkspace;
+    MockBadSpace internal badSpace;
 
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
@@ -41,7 +41,7 @@ abstract contract Integration_Test is Base_Test {
         space = deploySpace({ _owner: users.eve, _spaceId: 0, _initialModules: modules });
 
         // Deploy a "bad" {Space} with the `mockBadReceiver` as the owner
-        badWorkspace = deployBadWorkspace({ _owner: address(mockBadReceiver), _spaceId: 0, _initialModules: modules });
+        badSpace = deployBadSpace({ _owner: address(mockBadReceiver), _spaceId: 0, _initialModules: modules });
 
         // Deploy the mock {StreamManager}
         mockStreamManager = new MockStreamManager(sablierV2LockupLinear, sablierV2LockupTranched, users.admin);
@@ -51,7 +51,7 @@ abstract contract Integration_Test is Base_Test {
         vm.label({ account: address(sablierV2LockupLinear), newLabel: "SablierV2LockupLinear" });
         vm.label({ account: address(sablierV2LockupTranched), newLabel: "SablierV2LockupTranched" });
         vm.label({ account: address(space), newLabel: "Eve's Space" });
-        vm.label({ account: address(badWorkspace), newLabel: "Bad receiver's Space" });
+        vm.label({ account: address(badSpace), newLabel: "Bad receiver's Space" });
     }
 
     /*//////////////////////////////////////////////////////////////////////////

@@ -5,7 +5,7 @@ import { Events } from "./utils/Events.sol";
 import { Users } from "./utils/Types.sol";
 import { Test } from "forge-std/Test.sol";
 import { MockERC20NoReturn } from "./mocks/MockERC20NoReturn.sol";
-import { MockNonCompliantWorkspace } from "./mocks/MockNonCompliantWorkspace.sol";
+import { MockNonCompliantSpace } from "./mocks/MockNonCompliantSpace.sol";
 import { MockModule } from "./mocks/MockModule.sol";
 import { MockBadReceiver } from "./mocks/MockBadReceiver.sol";
 import { Space } from "./../src/Space.sol";
@@ -34,7 +34,7 @@ abstract contract Base_Test is Test, Events {
     ModuleKeeper internal moduleKeeper;
     MockERC20NoReturn internal usdt;
     MockModule internal mockModule;
-    MockNonCompliantWorkspace internal mockNonCompliantWorkspace;
+    MockNonCompliantSpace internal mockNonCompliantSpace;
     MockBadReceiver internal mockBadReceiver;
     MockERC721Collection internal mockERC721;
     MockERC1155Collection internal mockERC1155;
@@ -65,7 +65,7 @@ abstract contract Base_Test is Test, Events {
         containerImplementation = address(new Space(entrypoint, address(stationRegistry)));
 
         mockModule = new MockModule();
-        mockNonCompliantWorkspace = new MockNonCompliantWorkspace({ _owner: users.admin });
+        mockNonCompliantSpace = new MockNonCompliantSpace({ _owner: users.admin });
         mockBadReceiver = new MockBadReceiver();
         mockERC721 = new MockERC721Collection("MockERC721Collection", "MC");
         mockERC1155 = new MockERC1155Collection("https://nft.com/0x1.json");
@@ -79,7 +79,7 @@ abstract contract Base_Test is Test, Events {
         vm.label({ account: address(moduleKeeper), newLabel: "ModuleKeeper" });
         vm.label({ account: address(usdt), newLabel: "USDT" });
         vm.label({ account: address(mockModule), newLabel: "MockModule" });
-        vm.label({ account: address(mockNonCompliantWorkspace), newLabel: "MockNonCompliantWorkspace" });
+        vm.label({ account: address(mockNonCompliantSpace), newLabel: "MockNonCompliantSpace" });
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -107,11 +107,11 @@ abstract contract Base_Test is Test, Events {
     }
 
     /// @dev Deploys a new {MockBadSpace} smart account based on the provided `owner`, `moduleKeeper` and `initialModules` input params
-    function deployBadWorkspace(
+    function deployBadSpace(
         address _owner,
         uint256 _spaceId,
         address[] memory _initialModules
-    ) internal returns (MockBadSpace _badWorkspace) {
+    ) internal returns (MockBadSpace _badSpace) {
         vm.startPrank({ msgSender: users.admin });
         for (uint256 i; i < _initialModules.length; ++i) {
             allowlistModule(_initialModules[i]);
@@ -122,7 +122,7 @@ abstract contract Base_Test is Test, Events {
             computeCreateAccountCalldata({ deployer: _owner, stationId: _spaceId, initialModules: _initialModules });
 
         vm.prank({ msgSender: _owner });
-        _badWorkspace = MockBadSpace(payable(stationRegistry.createAccount({ _admin: _owner, _data: data })));
+        _badSpace = MockBadSpace(payable(stationRegistry.createAccount({ _admin: _owner, _data: data })));
         vm.stopPrank();
     }
 

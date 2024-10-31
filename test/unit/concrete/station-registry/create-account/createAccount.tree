@@ -1,4 +1,4 @@
-createWorkspace.t.sol
+createSpace.t.sol
 ├── when station ID is zero
 │   └── it should create a new station with the caller address as the owner
 └── when station ID is non-zero

@@ -19,12 +19,6 @@ abstract contract Events {
     /// @param initialModules Array of initially enabled modules
     event SpaceCreated(address indexed owner, uint256 indexed stationId, Space space, address[] initialModules);
 
-    /// @notice Emitted when the ownership of a {Space} is transferred to a new owner
-    /// @param space The address of the {Space}
-    /// @param oldOwner The address of the current owner
-    /// @param newOwner The address of the new owner
-    event WorkspaceOwnershipTransferred(Space indexed space, address oldOwner, address newOwner);
-
     /// @notice Emitted when the ownership of a {Station} is transferred to a new owner
     /// @param stationId The address of the {Station}
     /// @param oldOwner The address of the current owner

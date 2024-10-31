@@ -16,7 +16,7 @@ library Errors {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when `msg.sender` is not the {Space} contract owner
-    error CallerNotWorkspaceOwner();
+    error CallerNotSpaceOwner();
 
     /// @notice Thrown when a native token (ETH) withdrawal fails
     error NativeWithdrawFailed();

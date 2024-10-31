@@ -25,7 +25,7 @@ contract CreateInvoice_Integration_Fuzz_Test is CreateInvoice_Integration_Shared
     )
         external
         whenCallerContract
-        whenCompliantWorkspace
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture

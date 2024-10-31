@@ -19,7 +19,7 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         // The {StationRegistry} contract deploys each new {Space} contract.
         // Therefore, we need to calculate the current nonce of the {StationRegistry}
         // to pre-compute the address of the new {Space} before deployment.
-        (address expectedWorkspace, bytes memory data) =
+        (address expectedSpace, bytes memory data) =
             computeDeploymentAddressAndCalldata({ deployer: users.bob, stationId: 0, initialModules: mockModules });
 
         // Allowlist the mock modules on the {ModuleKeeper} contract from the admin account
@@ -34,7 +34,7 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         emit Events.SpaceCreated({
             owner: users.bob,
             stationId: 1,
-            space: Space(payable(expectedWorkspace)),
+            space: Space(payable(expectedSpace)),
             initialModules: mockModules
         });
 
@@ -49,7 +49,7 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         assertEq(users.bob, actualOwnerOfStation);
 
         // Assert the expected and actual station ID of the {Space}
-        uint256 actualStationIdOfSpace = stationRegistry.stationIdOfSpace({ space: expectedWorkspace });
+        uint256 actualStationIdOfSpace = stationRegistry.stationIdOfSpace({ space: expectedSpace });
         assertEq(1, actualStationIdOfSpace);
     }
 
@@ -82,7 +82,7 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         // The {StationRegistry} contract deploys each new {Space} contract.
         // Therefore, we need to calculate the current nonce of the {StationRegistry}
         // to pre-compute the address of the new {Space} before deployment.
-        (address expectedWorkspace, bytes memory data) =
+        (address expectedSpace, bytes memory data) =
             computeDeploymentAddressAndCalldata({ deployer: users.bob, stationId: 1, initialModules: mockModules });
 
         // Allowlist the mock modules on the {ModuleKeeper} contract from the admin account
@@ -97,7 +97,7 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         emit Events.SpaceCreated({
             owner: users.bob,
             stationId: 1,
-            space: Space(payable(expectedWorkspace)),
+            space: Space(payable(expectedSpace)),
             initialModules: mockModules
         });
 
@@ -108,11 +108,11 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         stationRegistry.createAccount({ _admin: users.bob, _data: data });
 
         // Assert if the freshly deployed smart account is registered on the factory
-        bool isRegisteredOnFactory = stationRegistry.isRegistered(expectedWorkspace);
+        bool isRegisteredOnFactory = stationRegistry.isRegistered(expectedSpace);
         assertTrue(isRegisteredOnFactory);
 
         // Assert if the initial modules has been enabled on the {Space} smart account instance
-        bool isModuleEnabled = Space(payable(expectedWorkspace)).isModuleEnabled(mockModules[0]);
+        bool isModuleEnabled = Space(payable(expectedSpace)).isModuleEnabled(mockModules[0]);
         assertTrue(isModuleEnabled);
 
         // Assert the expected and actual owner of the station
@@ -120,7 +120,7 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         assertEq(users.bob, actualOwnerOfStation);
 
         // Assert the expected and actual station ID of the {Space}
-        uint256 actualStationIdOfSpace = stationRegistry.stationIdOfSpace({ space: expectedWorkspace });
+        uint256 actualStationIdOfSpace = stationRegistry.stationIdOfSpace({ space: expectedSpace });
         assertEq(1, actualStationIdOfSpace);
     }
 }
