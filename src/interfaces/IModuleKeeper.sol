@@ -22,7 +22,7 @@ interface IModuleKeeper {
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Checks if the `module` module is allowlisted to be used by a {Workspace}
+    /// @notice Checks if the `module` module is allowlisted to be used by a {Space}
     /// @param module The address of the module contract
     function isAllowlisted(address module) external view returns (bool allowlisted);
 

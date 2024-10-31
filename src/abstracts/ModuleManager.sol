@@ -19,7 +19,7 @@ abstract contract ModuleManager is IModuleManager {
                                     INITIALIZER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Initializes the initial module(s) enabled on the workspace
+    /// @dev Initializes the initial module(s) enabled on the space
     function _initializeModuleManager(ModuleKeeper moduleKeeper, address[] memory _initialModules) internal {
         _enableBatchModules(moduleKeeper, _initialModules);
     }
@@ -38,7 +38,7 @@ abstract contract ModuleManager is IModuleManager {
                                 INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Reverts if the `module` module is not enabled on the workspace
+    /// @dev Reverts if the `module` module is not enabled on the space
     function _checkIfModuleIsEnabled(address module) internal view {
         if (!isModuleEnabled[module]) {
             revert Errors.ModuleNotEnabled(module);

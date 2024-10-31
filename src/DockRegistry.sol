@@ -7,7 +7,7 @@ import { PermissionsEnumerable } from "@thirdweb/contracts/extension/Permissions
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 
 import { IDockRegistry } from "./interfaces/IDockRegistry.sol";
-import { Workspace } from "./Workspace.sol";
+import { Space } from "./Space.sol";
 import { ModuleKeeper } from "./ModuleKeeper.sol";
 import { Errors } from "./libraries/Errors.sol";
 
@@ -27,7 +27,7 @@ contract DockRegistry is IDockRegistry, BaseAccountFactory, PermissionsEnumerabl
     mapping(uint256 dockId => address owner) public override ownerOfDock;
 
     /// @inheritdoc IDockRegistry
-    mapping(address workspace => uint256 dockId) public override dockIdOfWorkspace;
+    mapping(address space => uint256 dockId) public override dockIdOfSpace;
 
     /// @dev Counter to keep track of the next dock ID
     uint256 private _dockNextId;
@@ -36,12 +36,12 @@ contract DockRegistry is IDockRegistry, BaseAccountFactory, PermissionsEnumerabl
                                     CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Initializes the {Workspace} implementation, the Entrypoint, registry admin and sets first dock ID to 1
+    /// @dev Initializes the {Space} implementation, the Entrypoint, registry admin and sets first dock ID to 1
     constructor(
         address _initialAdmin,
         IEntryPoint _entrypoint,
         ModuleKeeper _moduleKeeper
-    ) BaseAccountFactory(address(new Workspace(_entrypoint, address(this))), address(_entrypoint)) {
+    ) BaseAccountFactory(address(new Space(_entrypoint, address(this))), address(_entrypoint)) {
         _setupRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
 
         _dockNextId = 1;
@@ -82,17 +82,17 @@ contract DockRegistry is IDockRegistry, BaseAccountFactory, PermissionsEnumerabl
             }
         }
 
-        // Interactions: deploy a new {Workspace} smart account
-        address workspace = super.createAccount(_admin, _data);
+        // Interactions: deploy a new {Space} smart account
+        address space = super.createAccount(_admin, _data);
 
-        // Assign the ID of the dock to which the new workspace belongs
-        dockIdOfWorkspace[workspace] = dockId;
+        // Assign the ID of the dock to which the new space belongs
+        dockIdOfSpace[space] = dockId;
 
-        // Log the {Workspace} creation
-        emit WorkspaceCreated(_admin, dockId, workspace, initialModules);
+        // Log the {Space} creation
+        emit SpaceCreated(_admin, dockId, space, initialModules);
 
-        // Return {Workspace} smart account address
-        return workspace;
+        // Return {Space} smart account address
+        return space;
     }
 
     /// @inheritdoc IDockRegistry
@@ -134,6 +134,6 @@ contract DockRegistry is IDockRegistry, BaseAccountFactory, PermissionsEnumerabl
 
     /// @dev Called in `createAccount`. Initializes the account contract created in `createAccount`.
     function _initializeAccount(address _account, address _admin, bytes calldata _data) internal override {
-        Workspace(payable(_account)).initialize(_admin, _data);
+        Space(payable(_account)).initialize(_admin, _data);
     }
 }

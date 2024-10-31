@@ -28,7 +28,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     }
 
     function test_RevertWhen_NonCompliantWorkspace() external whenCallerContract {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create an one-off transfer invoice
@@ -47,7 +47,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
     }
 
     function test_RevertWhen_ZeroPaymentAmount() external whenCallerContract whenCompliantWorkspace {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create an one-off transfer invoice
@@ -65,7 +65,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         vm.expectRevert(Errors.ZeroPaymentAmount.selector);
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
     }
 
     function test_RevertWhen_StartTimeGreaterThanEndTime()
@@ -74,7 +74,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         whenCompliantWorkspace
         whenNonZeroPaymentAmount
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create an one-off transfer invoice
@@ -93,7 +93,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         vm.expectRevert(Errors.StartTimeGreaterThanEndTime.selector);
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
     }
 
     function test_RevertWhen_EndTimeInThePast()
@@ -103,7 +103,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create an one-off transfer invoice
@@ -126,7 +126,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         vm.expectRevert(Errors.EndTimeInThePast.selector);
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
     }
 
     function test_CreateInvoice_PaymentMethodOneOffTransfer()
@@ -138,7 +138,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         whenEndTimeInTheFuture
         givenPaymentMethodOneOffTransfer
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create a recurring transfer invoice that must be paid on a monthly basis
@@ -154,25 +154,25 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         vm.expectEmit();
         emit Events.InvoiceCreated({
             id: 1,
-            recipient: address(workspace),
+            recipient: address(space),
             status: Types.Status.Pending,
             startTime: invoice.startTime,
             endTime: invoice.endTime,
             payment: invoice.payment
         });
 
-        // Expect the {Workspace} contract to emit a {ModuleExecutionSucceded} event
+        // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
         emit Events.ModuleExecutionSucceded({ module: address(invoiceModule), value: 0, data: data });
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
 
         // Assert the actual and expected invoice state
         Types.Invoice memory actualInvoice = invoiceModule.getInvoice({ id: 1 });
         address expectedRecipient = invoiceModule.ownerOf(1);
 
-        assertEq(expectedRecipient, address(workspace));
+        assertEq(expectedRecipient, address(space));
         assertEq(uint8(actualInvoice.status), uint8(Types.Status.Pending));
         assertEq(actualInvoice.startTime, invoice.startTime);
         assertEq(actualInvoice.endTime, invoice.endTime);
@@ -193,7 +193,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         whenEndTimeInTheFuture
         givenPaymentMethodRecurringTransfer
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create a recurring transfer invoice that must be paid on a monthly basis
@@ -212,7 +212,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         vm.expectRevert(Errors.PaymentIntervalTooShortForSelectedRecurrence.selector);
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
     }
 
     function test_CreateInvoice_RecurringTransfer()
@@ -225,7 +225,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         givenPaymentMethodRecurringTransfer
         whenPaymentIntervalLongEnough
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create a recurring transfer invoice that must be paid on weekly basis
@@ -240,25 +240,25 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         vm.expectEmit();
         emit Events.InvoiceCreated({
             id: 1,
-            recipient: address(workspace),
+            recipient: address(space),
             status: Types.Status.Pending,
             startTime: invoice.startTime,
             endTime: invoice.endTime,
             payment: invoice.payment
         });
 
-        // Expect the {Workspace} contract to emit a {ModuleExecutionSucceded} event
+        // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
         emit Events.ModuleExecutionSucceded({ module: address(invoiceModule), value: 0, data: data });
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
 
         // Assert the actual and expected invoice state
         Types.Invoice memory actualInvoice = invoiceModule.getInvoice({ id: 1 });
         address expectedRecipient = invoiceModule.ownerOf(1);
 
-        assertEq(expectedRecipient, address(workspace));
+        assertEq(expectedRecipient, address(space));
         assertEq(uint8(actualInvoice.status), uint8(Types.Status.Pending));
         assertEq(actualInvoice.startTime, invoice.startTime);
         assertEq(actualInvoice.endTime, invoice.endTime);
@@ -279,7 +279,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         whenEndTimeInTheFuture
         givenPaymentMethodTranchedStream
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create a new invoice with a tranched stream payment
@@ -297,7 +297,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         );
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
     }
 
     function test_RevertWhen_PaymentMethodTranchedStream_PaymentIntervalTooShortForSelectedRecurrence()
@@ -310,7 +310,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         givenPaymentMethodTranchedStream
         whenTranchedStreamWithGoodRecurring
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create a new invoice with a tranched stream payment
@@ -328,7 +328,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         );
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
     }
 
     function test_RevertWhen_PaymentMethodTranchedStream_PaymentAssetNativeToken()
@@ -342,7 +342,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         whenTranchedStreamWithGoodRecurring
         whenPaymentIntervalLongEnough
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create a new invoice with a linear stream payment
@@ -360,7 +360,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         );
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
     }
 
     function test_CreateInvoice_Tranched()
@@ -373,7 +373,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         givenPaymentMethodTranchedStream
         whenPaymentAssetNotNativeToken
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create a new invoice with a tranched stream payment
@@ -388,25 +388,25 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         vm.expectEmit();
         emit Events.InvoiceCreated({
             id: 1,
-            recipient: address(workspace),
+            recipient: address(space),
             status: Types.Status.Pending,
             startTime: invoice.startTime,
             endTime: invoice.endTime,
             payment: invoice.payment
         });
 
-        // Expect the {Workspace} contract to emit a {ModuleExecutionSucceded} event
+        // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
         emit Events.ModuleExecutionSucceded({ module: address(invoiceModule), value: 0, data: data });
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
 
         // Assert the actual and expected invoice state
         Types.Invoice memory actualInvoice = invoiceModule.getInvoice({ id: 1 });
         address expectedRecipient = invoiceModule.ownerOf(1);
 
-        assertEq(expectedRecipient, address(workspace));
+        assertEq(expectedRecipient, address(space));
         assertEq(uint8(actualInvoice.status), uint8(Types.Status.Pending));
         assertEq(actualInvoice.startTime, invoice.startTime);
         assertEq(actualInvoice.endTime, invoice.endTime);
@@ -427,7 +427,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         whenEndTimeInTheFuture
         givenPaymentMethodLinearStream
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create a new invoice with a linear stream payment
@@ -445,7 +445,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         );
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
     }
 
     function test_CreateInvoice_LinearStream()
@@ -458,7 +458,7 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         givenPaymentMethodLinearStream
         whenPaymentAssetNotNativeToken
     {
-        // Make Eve the caller in this test suite as she's the owner of the {Workspace} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
         // Create a new invoice with a linear stream payment
@@ -473,25 +473,25 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
         vm.expectEmit();
         emit Events.InvoiceCreated({
             id: 1,
-            recipient: address(workspace),
+            recipient: address(space),
             status: Types.Status.Pending,
             startTime: invoice.startTime,
             endTime: invoice.endTime,
             payment: invoice.payment
         });
 
-        // Expect the {Workspace} contract to emit a {ModuleExecutionSucceded} event
+        // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
         emit Events.ModuleExecutionSucceded({ module: address(invoiceModule), value: 0, data: data });
 
         // Run the test
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
 
         // Assert the actual and expected invoice state
         Types.Invoice memory actualInvoice = invoiceModule.getInvoice({ id: 1 });
         address expectedRecipient = invoiceModule.ownerOf(1);
 
-        assertEq(expectedRecipient, address(workspace));
+        assertEq(expectedRecipient, address(space));
         assertEq(uint8(actualInvoice.status), uint8(Types.Status.Pending));
         assertEq(actualInvoice.startTime, invoice.startTime);
         assertEq(actualInvoice.endTime, invoice.endTime);

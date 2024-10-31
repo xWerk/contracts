@@ -5,8 +5,8 @@ createWorkspace.t.sol
     ├── when the caller IS NOT the owner of the dock
     │   └── it should revert with the {CallerNotDockOwner} error
     └── when the IS the owner of the dock
-        ├── it should deploy a new {Workspace}
-        ├── it should enabled the initial modules on the {Workspace}
-        ├── it should register the {Workspace} smart account on the {DockRegistry} factory
-        ├── it should set the dock ID to which the new deployed {Workspace} belongs
-        └── it should emit a {WorkspaceCreated} event
+        ├── it should deploy a new {Space}
+        ├── it should enabled the initial modules on the {Space}
+        ├── it should register the {Space} smart account on the {DockRegistry} factory
+        ├── it should set the dock ID to which the new deployed {Space} belongs
+        └── it should emit a {SpaceCreated} event

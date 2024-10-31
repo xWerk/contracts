@@ -12,7 +12,7 @@ contract RemoveFromAllowlist_Unit_Concrete_Test is ModuleKeeper_Unit_Concrete_Te
     }
 
     function test_RevertWhen_CallerNotOwner() external {
-        // Make Bob the caller for this test suite who is not the owner of the workspace
+        // Make Bob the caller for this test suite who is not the owner of the space
         vm.startPrank({ msgSender: users.bob });
 
         // Expect the next call to revert with the {Unauthorized} error

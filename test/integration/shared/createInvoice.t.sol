@@ -3,8 +3,8 @@ pragma solidity ^0.8.26;
 
 import { Integration_Test } from "../Integration.t.sol";
 import { Types } from "./../../../src/modules/invoice-module/libraries/Types.sol";
-import { Workspace } from "./../../../src/Workspace.sol";
-import { MockBadWorkspace } from "../../mocks/MockBadWorkspace.sol";
+import { Space } from "./../../../src/Space.sol";
+import { MockBadSpace } from "../../mocks/MockBadSpace.sol";
 
 abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
     mapping(uint256 invoiceId => Types.Invoice) invoices;
@@ -176,7 +176,7 @@ abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
     }
 
     function executeCreateInvoice(Types.Invoice memory invoice, address user) public {
-        // Make the `user` account the caller who must be the owner of the {Workspace} contract
+        // Make the `user` account the caller who must be the owner of the {Space} contract
         vm.startPrank({ msgSender: user });
 
         // Create the invoice
@@ -184,12 +184,12 @@ abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
             "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
         );
 
-        // Select the according {Workspace} of the user
+        // Select the according {Space} of the user
 
         if (user == users.eve) {
-            Workspace(workspace).execute({ module: address(invoiceModule), value: 0, data: data });
+            Space(space).execute({ module: address(invoiceModule), value: 0, data: data });
         } else {
-            MockBadWorkspace(badWorkspace).execute({ module: address(invoiceModule), value: 0, data: data });
+            MockBadSpace(badWorkspace).execute({ module: address(invoiceModule), value: 0, data: data });
         }
 
         // Stop the active prank

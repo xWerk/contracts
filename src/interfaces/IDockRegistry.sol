@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.26;
 
-import { Workspace } from "./../Workspace.sol";
+import { Space } from "./../Space.sol";
 import { IModuleKeeper } from "./IModuleKeeper.sol";
 import { ModuleKeeper } from "./../ModuleKeeper.sol";
 
 /// @title IDockRegistry
-/// @notice Contract that provides functionalities to create docks and deploy {Workspace}s from a single place
+/// @notice Contract that provides functionalities to create docks and deploy {Space}s from a single place
 interface IDockRegistry {
     /*//////////////////////////////////////////////////////////////////////////
                                        EVENTS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a new {Workspace} contract gets deployed
+    /// @notice Emitted when a new {Space} contract gets deployed
     /// @param owner The address of the owner
-    /// @param dockId The ID of the dock to which this {Workspace} belongs
-    /// @param workspace The address of the {Workspace}
+    /// @param dockId The ID of the dock to which this {Space} belongs
+    /// @param space The address of the {Space}
     /// @param initialModules Array of initially enabled modules
-    event WorkspaceCreated(address indexed owner, uint256 indexed dockId, address workspace, address[] initialModules);
+    event SpaceCreated(address indexed owner, uint256 indexed dockId, address space, address[] initialModules);
 
     /// @notice Emitted when the ownership of a {Dock} is transferred to a new owner
     /// @param dockId The address of the {Dock}
@@ -39,8 +39,8 @@ interface IDockRegistry {
     /// @notice Retrieves the owner of the given dock ID
     function ownerOfDock(uint256 dockId) external view returns (address);
 
-    /// @notice Retrieves the dock ID of the given workspace address
-    function dockIdOfWorkspace(address workspace) external view returns (uint256);
+    /// @notice Retrieves the dock ID of the given space address
+    function dockIdOfSpace(address space) external view returns (uint256);
 
     /// @notice Retrieves the total number of accounts created by the `signer` address
     function totalAccountsOfSigner(address signer) external view returns (uint256);
@@ -49,17 +49,17 @@ interface IDockRegistry {
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Creates a new {Workspace} contract and attaches it to a dock
+    /// @notice Creates a new {Space} contract and attaches it to a dock
     ///
     /// Notes:
     /// - if `dockId` equal zero, a new dock will be created
     ///
     /// Requirements:
-    /// - `msg.sender` MUST be the dock owner if a new workspace is to be attached to an existing dock
+    /// - `msg.sender` MUST be the dock owner if a new space is to be attached to an existing dock
     ///
-    /// @param _admin The ID of the dock to attach the {Workspace} to
+    /// @param _admin The ID of the dock to attach the {Space} to
     /// @param _data Array of initially enabled modules
-    function createAccount(address _admin, bytes calldata _data) external returns (address workspace);
+    function createAccount(address _admin, bytes calldata _data) external returns (address space);
 
     /// @notice Transfers the ownership of the `dockId` dock
     ///

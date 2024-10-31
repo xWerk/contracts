@@ -2,27 +2,27 @@
 pragma solidity ^0.8.26;
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import { IWorkspace } from "./../../src/interfaces/IWorkspace.sol";
+import { ISpace } from "./../../src/interfaces/ISpace.sol";
 import { Errors } from "./../../src/modules/invoice-module/libraries/Errors.sol";
 
 /// @notice A mock implementation of a boilerplate module that creates multiple items and
-/// associates them with the corresponding {Workspace} contract
+/// associates them with the corresponding {Space} contract
 contract MockModule {
-    mapping(address workspace => uint256[]) public itemsOf;
+    mapping(address space => uint256[]) public itemsOf;
 
     uint256 private _nextItemIf;
 
     event ModuleItemCreated(uint256 indexed id);
 
-    /// @dev Allow only calls from contracts implementing the {IWorkspace} interface
+    /// @dev Allow only calls from contracts implementing the {ISpace} interface
     modifier onlyWorkspace() {
         // Checks: the sender is a valid non-zero code size contract
         if (msg.sender.code.length == 0) {
             revert Errors.WorkspaceZeroCodeSize();
         }
 
-        // Checks: the sender implements the ERC-165 interface required by {IWorkspace}
-        bytes4 interfaceId = type(IWorkspace).interfaceId;
+        // Checks: the sender implements the ERC-165 interface required by {ISpace}
+        bytes4 interfaceId = type(ISpace).interfaceId;
         if (!IERC165(msg.sender).supportsInterface(interfaceId)) revert Errors.WorkspaceUnsupportedInterface();
         _;
     }

@@ -15,7 +15,7 @@ library Errors {
                                     CONTAINER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when `msg.sender` is not the {Workspace} contract owner
+    /// @notice Thrown when `msg.sender` is not the {Space} contract owner
     error CallerNotWorkspaceOwner();
 
     /// @notice Thrown when a native token (ETH) withdrawal fails
@@ -45,10 +45,10 @@ library Errors {
                                   MODULE-MANAGER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when a {Workspace} tries to execute a method on a non-enabled module
+    /// @notice Thrown when a {Space} tries to execute a method on a non-enabled module
     error ModuleNotEnabled(address module);
 
-    /// @notice Thrown when an attempt is made to enable a non-allowlisted module on a {Workspace}
+    /// @notice Thrown when an attempt is made to enable a non-allowlisted module on a {Space}
     error ModuleNotAllowlisted();
 
     /*//////////////////////////////////////////////////////////////////////////

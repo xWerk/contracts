@@ -11,7 +11,7 @@ import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISabli
 import { Types } from "./libraries/Types.sol";
 import { Errors } from "./libraries/Errors.sol";
 import { IInvoiceModule } from "./interfaces/IInvoiceModule.sol";
-import { IWorkspace } from "./../../interfaces/IWorkspace.sol";
+import { ISpace } from "./../../interfaces/ISpace.sol";
 import { StreamManager } from "./sablier-v2/StreamManager.sol";
 import { Helpers } from "./libraries/Helpers.sol";
 
@@ -59,16 +59,16 @@ contract InvoiceModule is IInvoiceModule, StreamManager, ERC721 {
                                       MODIFIERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Allow only calls from contracts implementing the {IWorkspace} interface
+    /// @dev Allow only calls from contracts implementing the {ISpace} interface
     modifier onlyWorkspace() {
         // Checks: the sender is a valid non-zero code size contract
         if (msg.sender.code.length == 0) {
             revert Errors.WorkspaceZeroCodeSize();
         }
 
-        // Checks: the sender implements the ERC-165 interface required by {IWorkspace}
-        bytes4 interfaceId = type(IWorkspace).interfaceId;
-        if (!IWorkspace(msg.sender).supportsInterface(interfaceId)) revert Errors.WorkspaceUnsupportedInterface();
+        // Checks: the sender implements the ERC-165 interface required by {ISpace}
+        bytes4 interfaceId = type(ISpace).interfaceId;
+        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert Errors.WorkspaceUnsupportedInterface();
         _;
     }
 
@@ -166,7 +166,7 @@ contract InvoiceModule is IInvoiceModule, StreamManager, ERC721 {
             ++_nextInvoiceId;
         }
 
-        // Effects: mint the invoice NFT to the recipient workspace
+        // Effects: mint the invoice NFT to the recipient space
         _mint({ to: msg.sender, tokenId: invoiceId });
 
         // Log the invoice creation

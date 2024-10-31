@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import { DockRegistry_Unit_Concrete_Test } from "../DockRegistry.t.sol";
-import { Workspace } from "./../../../../../src/Workspace.sol";
+import { Space } from "./../../../../../src/Space.sol";
 import { Errors } from "../../../../utils/Errors.sol";
 import { Events } from "../../../../utils/Events.sol";
 
@@ -16,9 +16,9 @@ contract CreateAccount_Unit_Concrete_Test is DockRegistry_Unit_Concrete_Test {
     }
 
     function test_CreateAccount_DockIdZero() external whenDockIdZero {
-        // The {DockRegistry} contract deploys each new {Workspace} contract.
+        // The {DockRegistry} contract deploys each new {Space} contract.
         // Therefore, we need to calculate the current nonce of the {DockRegistry}
-        // to pre-compute the address of the new {Workspace} before deployment.
+        // to pre-compute the address of the new {Space} before deployment.
         (address expectedWorkspace, bytes memory data) =
             computeDeploymentAddressAndCalldata({ deployer: users.bob, dockId: 0, initialModules: mockModules });
 
@@ -29,12 +29,12 @@ contract CreateAccount_Unit_Concrete_Test is DockRegistry_Unit_Concrete_Test {
         }
         vm.stopPrank();
 
-        // Expect the {WorkspaceCreated} to be emitted
+        // Expect the {SpaceCreated} to be emitted
         vm.expectEmit();
-        emit Events.WorkspaceCreated({
+        emit Events.SpaceCreated({
             owner: users.bob,
             dockId: 1,
-            workspace: Workspace(payable(expectedWorkspace)),
+            space: Space(payable(expectedWorkspace)),
             initialModules: mockModules
         });
 
@@ -48,19 +48,19 @@ contract CreateAccount_Unit_Concrete_Test is DockRegistry_Unit_Concrete_Test {
         address actualOwnerOfDock = dockRegistry.ownerOfDock({ dockId: 1 });
         assertEq(users.bob, actualOwnerOfDock);
 
-        // Assert the expected and actual dock ID of the {Workspace}
-        uint256 actualDockIdOfWorkspace = dockRegistry.dockIdOfWorkspace({ workspace: expectedWorkspace });
-        assertEq(1, actualDockIdOfWorkspace);
+        // Assert the expected and actual dock ID of the {Space}
+        uint256 actualDockIdOfSpace = dockRegistry.dockIdOfSpace({ space: expectedWorkspace });
+        assertEq(1, actualDockIdOfSpace);
     }
 
     modifier whenDockIdNonZero() {
-        // Create & deploy a new workspace with Eve as the owner
-        workspace = deployWorkspace({ _owner: users.bob, _dockId: 0, _initialModules: mockModules });
+        // Create & deploy a new space with Eve as the owner
+        space = deploySpace({ _owner: users.bob, _spaceId: 0, _initialModules: mockModules });
         _;
     }
 
     function test_RevertWhen_CallerNotDockOwner() external whenDockIdNonZero {
-        // Construct the calldata to be used to initialize the {Workspace} smart account
+        // Construct the calldata to be used to initialize the {Space} smart account
         bytes memory data =
             computeCreateAccountCalldata({ deployer: users.eve, dockId: 1, initialModules: mockModules });
 
@@ -79,9 +79,9 @@ contract CreateAccount_Unit_Concrete_Test is DockRegistry_Unit_Concrete_Test {
     }
 
     function test_CreateAccount_DockIdNonZero() external whenDockIdNonZero whenCallerDockOwner {
-        // The {DockRegistry} contract deploys each new {Workspace} contract.
+        // The {DockRegistry} contract deploys each new {Space} contract.
         // Therefore, we need to calculate the current nonce of the {DockRegistry}
-        // to pre-compute the address of the new {Workspace} before deployment.
+        // to pre-compute the address of the new {Space} before deployment.
         (address expectedWorkspace, bytes memory data) =
             computeDeploymentAddressAndCalldata({ deployer: users.bob, dockId: 1, initialModules: mockModules });
 
@@ -92,12 +92,12 @@ contract CreateAccount_Unit_Concrete_Test is DockRegistry_Unit_Concrete_Test {
         }
         vm.stopPrank();
 
-        // Expect the {WorkspaceCreated} event to be emitted
+        // Expect the {SpaceCreated} event to be emitted
         vm.expectEmit();
-        emit Events.WorkspaceCreated({
+        emit Events.SpaceCreated({
             owner: users.bob,
             dockId: 1,
-            workspace: Workspace(payable(expectedWorkspace)),
+            space: Space(payable(expectedWorkspace)),
             initialModules: mockModules
         });
 
@@ -111,16 +111,16 @@ contract CreateAccount_Unit_Concrete_Test is DockRegistry_Unit_Concrete_Test {
         bool isRegisteredOnFactory = dockRegistry.isRegistered(expectedWorkspace);
         assertTrue(isRegisteredOnFactory);
 
-        // Assert if the initial modules has been enabled on the {Workspace} smart account instance
-        bool isModuleEnabled = Workspace(payable(expectedWorkspace)).isModuleEnabled(mockModules[0]);
+        // Assert if the initial modules has been enabled on the {Space} smart account instance
+        bool isModuleEnabled = Space(payable(expectedWorkspace)).isModuleEnabled(mockModules[0]);
         assertTrue(isModuleEnabled);
 
         // Assert the expected and actual owner of the dock
         address actualOwnerOfDock = dockRegistry.ownerOfDock({ dockId: 1 });
         assertEq(users.bob, actualOwnerOfDock);
 
-        // Assert the expected and actual dock ID of the {Workspace}
-        uint256 actualDockIdOfWorkspace = dockRegistry.dockIdOfWorkspace({ workspace: expectedWorkspace });
-        assertEq(1, actualDockIdOfWorkspace);
+        // Assert the expected and actual dock ID of the {Space}
+        uint256 actualDockIdOfSpace = dockRegistry.dockIdOfSpace({ space: expectedWorkspace });
+        assertEq(1, actualDockIdOfSpace);
     }
 }

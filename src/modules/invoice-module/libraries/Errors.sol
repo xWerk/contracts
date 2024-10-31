@@ -11,7 +11,7 @@ library Errors {
     /// @notice Thrown when the caller is an invalid zero code contract or EOA
     error WorkspaceZeroCodeSize();
 
-    /// @notice Thrown when the caller is a contract that does not implement the {IWorkspace} interface
+    /// @notice Thrown when the caller is a contract that does not implement the {ISpace} interface
     error WorkspaceUnsupportedInterface();
 
     /// @notice Thrown when the end time of an invoice is in the past

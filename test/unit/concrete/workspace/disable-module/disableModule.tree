@@ -1,7 +1,0 @@
-disableModule.t.sol
-├── when the caller IS NOT the workspace owner
-│   └── it should revert with the "Account: not admin or EntryPoint." error
-└── when the caller IS the workspace owner
-    └── given module enabled
-        ├── it should mark the module as disabled
-        └── it should emit a {ModuleDisabled} event

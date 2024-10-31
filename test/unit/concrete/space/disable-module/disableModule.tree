@@ -1,0 +1,7 @@
+disableModule.t.sol
+├── when the caller IS NOT the space owner
+│   └── it should revert with the "Account: not admin or EntryPoint." error
+└── when the caller IS the space owner
+    └── given module enabled
+        ├── it should mark the module as disabled
+        └── it should emit a {ModuleDisabled} event

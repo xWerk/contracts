@@ -8,13 +8,13 @@ import { MockERC20NoReturn } from "./mocks/MockERC20NoReturn.sol";
 import { MockNonCompliantWorkspace } from "./mocks/MockNonCompliantWorkspace.sol";
 import { MockModule } from "./mocks/MockModule.sol";
 import { MockBadReceiver } from "./mocks/MockBadReceiver.sol";
-import { Workspace } from "./../src/Workspace.sol";
+import { Space } from "./../src/Space.sol";
 import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
 import { DockRegistry } from "./../src/DockRegistry.sol";
 import { EntryPoint } from "@thirdweb/contracts/prebuilts/account/utils/Entrypoint.sol";
 import { MockERC721Collection } from "./mocks/MockERC721Collection.sol";
 import { MockERC1155Collection } from "./mocks/MockERC1155Collection.sol";
-import { MockBadWorkspace } from "./mocks/MockBadWorkspace.sol";
+import { MockBadSpace } from "./mocks/MockBadSpace.sol";
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 abstract contract Base_Test is Test, Events {
@@ -30,7 +30,7 @@ abstract contract Base_Test is Test, Events {
 
     EntryPoint internal entrypoint;
     DockRegistry internal dockRegistry;
-    Workspace internal workspace;
+    Space internal space;
     ModuleKeeper internal moduleKeeper;
     MockERC20NoReturn internal usdt;
     MockModule internal mockModule;
@@ -62,7 +62,7 @@ abstract contract Base_Test is Test, Events {
         moduleKeeper = new ModuleKeeper({ _initialOwner: users.admin });
 
         dockRegistry = new DockRegistry(users.admin, entrypoint, moduleKeeper);
-        containerImplementation = address(new Workspace(entrypoint, address(dockRegistry)));
+        containerImplementation = address(new Space(entrypoint, address(dockRegistry)));
 
         mockModule = new MockModule();
         mockNonCompliantWorkspace = new MockNonCompliantWorkspace({ _owner: users.admin });
@@ -86,12 +86,12 @@ abstract contract Base_Test is Test, Events {
                             DEPLOYMENT-RELATED FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Deploys a new {Workspace} smart account based on the provided `owner`, `moduleKeeper` and `initialModules` input params
-    function deployWorkspace(
+    /// @dev Deploys a new {Space} smart account based on the provided `owner`, `moduleKeeper` and `initialModules` input params
+    function deploySpace(
         address _owner,
-        uint256 _dockId,
+        uint256 _spaceId,
         address[] memory _initialModules
-    ) internal returns (Workspace _container) {
+    ) internal returns (Space _container) {
         vm.startPrank({ msgSender: users.admin });
         for (uint256 i; i < _initialModules.length; ++i) {
             allowlistModule(_initialModules[i]);
@@ -99,19 +99,19 @@ abstract contract Base_Test is Test, Events {
         vm.stopPrank();
 
         bytes memory data =
-            computeCreateAccountCalldata({ deployer: _owner, dockId: _dockId, initialModules: _initialModules });
+            computeCreateAccountCalldata({ deployer: _owner, dockId: _spaceId, initialModules: _initialModules });
 
         vm.prank({ msgSender: _owner });
-        _container = Workspace(payable(dockRegistry.createAccount({ _admin: _owner, _data: data })));
+        _container = Space(payable(dockRegistry.createAccount({ _admin: _owner, _data: data })));
         vm.stopPrank();
     }
 
-    /// @dev Deploys a new {MockBadWorkspace} smart account based on the provided `owner`, `moduleKeeper` and `initialModules` input params
+    /// @dev Deploys a new {MockBadSpace} smart account based on the provided `owner`, `moduleKeeper` and `initialModules` input params
     function deployBadWorkspace(
         address _owner,
-        uint256 _dockId,
+        uint256 _spaceId,
         address[] memory _initialModules
-    ) internal returns (MockBadWorkspace _badWorkspace) {
+    ) internal returns (MockBadSpace _badWorkspace) {
         vm.startPrank({ msgSender: users.admin });
         for (uint256 i; i < _initialModules.length; ++i) {
             allowlistModule(_initialModules[i]);
@@ -119,10 +119,10 @@ abstract contract Base_Test is Test, Events {
         vm.stopPrank();
 
         bytes memory data =
-            computeCreateAccountCalldata({ deployer: _owner, dockId: _dockId, initialModules: _initialModules });
+            computeCreateAccountCalldata({ deployer: _owner, dockId: _spaceId, initialModules: _initialModules });
 
         vm.prank({ msgSender: _owner });
-        _badWorkspace = MockBadWorkspace(payable(dockRegistry.createAccount({ _admin: _owner, _data: data })));
+        _badWorkspace = MockBadSpace(payable(dockRegistry.createAccount({ _admin: _owner, _data: data })));
         vm.stopPrank();
     }
 
@@ -171,7 +171,7 @@ abstract contract Base_Test is Test, Events {
         // dock with the same initial modules
         uint256 totalAccountsOfDeployer = dockRegistry.totalAccountsOfSigner(deployer);
 
-        // Construct the calldata to be used to initialize the {Workspace} smart account
+        // Construct the calldata to be used to initialize the {Space} smart account
         data = abi.encode(totalAccountsOfDeployer, dockId, initialModules);
     }
 }

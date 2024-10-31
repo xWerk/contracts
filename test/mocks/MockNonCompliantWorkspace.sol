@@ -4,8 +4,8 @@ pragma solidity ^0.8.26;
 import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-/// @title Workspace
-/// @notice A mock non-compliant workspace contract that do not support the {IWorkspace} interface
+/// @title Space
+/// @notice A mock non-compliant space contract that do not support the {ISpace} interface
 contract MockNonCompliantWorkspace is IERC165 {
     using ExcessivelySafeCall for address;
 

@@ -1,9 +1,0 @@
-withdrawERC1155.t.sol
-├── when the caller IS NOT the workspace owner
-│   └── it should revert with the "Account: not admin or EntryPoint." error
-└── when the caller IS the workspace owner
-    ├── when there the ERC-1155 balance IS NOT sufficient
-    │   └── it should revert with the {ERC1155InsufficientBalance} error
-    └── when there the ERC-1155 balance IS sufficient
-        ├── it should transfer the token(s) to the caller
-        └── it should emit an {ERC1155Withdrawn} event

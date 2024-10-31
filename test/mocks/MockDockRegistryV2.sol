@@ -5,7 +5,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { IDockRegistry } from "./../../src/interfaces/IDockRegistry.sol";
-import { Workspace } from "./../../src/Workspace.sol";
+import { Space } from "./../../src/Space.sol";
 import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
 
 /// @title MockDockRegistryV2
@@ -22,9 +22,9 @@ contract MockDockRegistryV2 is Initializable, OwnableUpgradeable, UUPSUpgradeabl
 
     mapping(uint256 dockId => address owner) public ownerOfDock;
 
-    mapping(address workspace => uint256 dockId) public dockIdOfWorkspace;
+    mapping(address space => uint256 dockId) public dockIdOfSpace;
 
-    mapping(address workspace => address owner) public ownerOfWorkspace;
+    mapping(address space => address owner) public ownerOfWorkspace;
 
     /// @dev Counter to keep track of the next dock ID
     uint256 private _dockNextId;

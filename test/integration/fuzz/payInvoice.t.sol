@@ -68,7 +68,7 @@ contract PayInvoice_Integration_Fuzz_Test is PayInvoice_Integration_Shared_Test 
         vm.startPrank({ msgSender: users.eve });
 
         // Create the fuzzed invoice
-        workspace.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
 
         // Mint enough USDT to the payer's address to be able to pay the invoice
         deal({ token: address(usdt), to: users.bob, give: invoice.payment.amount });
@@ -81,7 +81,7 @@ contract PayInvoice_Integration_Fuzz_Test is PayInvoice_Integration_Shared_Test 
 
         // Store the USDT balances of the payer and recipient before paying the invoice
         uint256 balanceOfPayerBefore = usdt.balanceOf(users.bob);
-        uint256 balanceOfRecipientBefore = usdt.balanceOf(address(workspace));
+        uint256 balanceOfRecipientBefore = usdt.balanceOf(address(space));
 
         uint256 streamId = paymentMethod == 0 ? 0 : 1;
         numberOfPayments = numberOfPayments > 0 ? numberOfPayments - 1 : 0;
@@ -117,9 +117,9 @@ contract PayInvoice_Integration_Fuzz_Test is PayInvoice_Integration_Shared_Test 
         // Assert the actual and expected balances of the payer and recipient
         assertEq(usdt.balanceOf(users.bob), balanceOfPayerBefore - invoice.payment.amount);
         if (invoice.payment.method == Types.Method.Transfer) {
-            assertEq(usdt.balanceOf(address(workspace)), balanceOfRecipientBefore + invoice.payment.amount);
+            assertEq(usdt.balanceOf(address(space)), balanceOfRecipientBefore + invoice.payment.amount);
         } else {
-            assertEq(usdt.balanceOf(address(workspace)), balanceOfRecipientBefore);
+            assertEq(usdt.balanceOf(address(space)), balanceOfRecipientBefore);
         }
     }
 }
