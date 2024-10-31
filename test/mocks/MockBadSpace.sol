@@ -21,7 +21,7 @@ import { ModuleManager } from "./../../src/abstracts/ModuleManager.sol";
 import { IModuleManager } from "./../../src/interfaces/IModuleManager.sol";
 import { Errors } from "./../../src/libraries/Errors.sol";
 import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
-import { DockRegistry } from "./../../src/DockRegistry.sol";
+import { StationRegistry } from "./../../src/StationRegistry.sol";
 
 /// @title MockBadSpace
 /// @notice Space that reverts when receiving native tokens (ETH)
@@ -74,7 +74,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
         uint256 value,
         bytes calldata data
     ) public onlyAdminOrEntrypoint returns (bool success) {
-        // Check and register the smart account on the {DockRegistry} factory if it is not registered yet
+        // Check and register the smart account on the {StationRegistry} factory if it is not registered yet
         _registerOnFactory();
 
         // Checks: the `module` module is enabled on the smart account
@@ -90,7 +90,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
         uint256[] calldata values,
         bytes[] calldata data
     ) external onlyAdminOrEntrypoint {
-        // Check and register the smart account on the {DockRegistry} factory if it is not registered yet
+        // Check and register the smart account on the {StationRegistry} factory if it is not registered yet
         _registerOnFactory();
 
         // Cache the length of the modules array
@@ -170,7 +170,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
 
     /// @inheritdoc IModuleManager
     function enableModule(address module) public override onlyAdminOrEntrypoint {
-        ModuleKeeper moduleKeeper = DockRegistry(factory).moduleKeeper();
+        ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
         _enableModule(moduleKeeper, module);
     }
@@ -281,7 +281,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
     /// @dev Registers the account on the factory if it hasn't been registered yet
     function _registerOnFactory() internal virtual {
         // Get the address of the factory contract
-        DockRegistry factoryContract = DockRegistry(factory);
+        StationRegistry factoryContract = StationRegistry(factory);
 
         // Check if this smart account is registered in the factory contract
         if (!factoryContract.isRegistered(address(this))) {

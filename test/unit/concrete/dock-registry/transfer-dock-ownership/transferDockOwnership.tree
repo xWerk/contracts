@@ -1,7 +1,0 @@
-transferDockOwnership.t.sol
-└── given dock created
-    ├── when the caller IS NOT the dock owner
-    │   └── it should revert with the {CallerNotDockOwner} error
-    └── when the caller IS the dock owner
-        ├── it should update the owner
-        └── it should emit a {DockOwnershipTransferred} event

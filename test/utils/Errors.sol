@@ -3,11 +3,11 @@ pragma solidity ^0.8.26;
 
 library Errors {
     /*//////////////////////////////////////////////////////////////////////////
-                                  DOCK-REGISTRY
+                                  STATION-REGISTRY
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when `msg.sender` is not the dock owner
-    error CallerNotDockOwner();
+    /// @notice Thrown when `msg.sender` is not the station owner
+    error CallerNotStationOwner();
 
     /*//////////////////////////////////////////////////////////////////////////
                                     CONTAINER

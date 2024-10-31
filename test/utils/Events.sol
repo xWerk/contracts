@@ -9,15 +9,15 @@ import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 /// @notice Abstract contract to store all the events emitted in the tested contracts
 abstract contract Events {
     /*//////////////////////////////////////////////////////////////////////////
-                                    DOCK-REGISTRY
+                                    STATION-REGISTRY
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when a new {Space} contract gets deployed
     /// @param owner The address of the owner
-    /// @param dockId The ID of the dock to which this {Space} belongs
+    /// @param stationId The ID of the station to which this {Space} belongs
     /// @param space The address of the {Space}
     /// @param initialModules Array of initially enabled modules
-    event SpaceCreated(address indexed owner, uint256 indexed dockId, Space space, address[] initialModules);
+    event SpaceCreated(address indexed owner, uint256 indexed stationId, Space space, address[] initialModules);
 
     /// @notice Emitted when the ownership of a {Space} is transferred to a new owner
     /// @param space The address of the {Space}
@@ -25,11 +25,11 @@ abstract contract Events {
     /// @param newOwner The address of the new owner
     event WorkspaceOwnershipTransferred(Space indexed space, address oldOwner, address newOwner);
 
-    /// @notice Emitted when the ownership of a {Dock} is transferred to a new owner
-    /// @param dockId The address of the {Dock}
+    /// @notice Emitted when the ownership of a {Station} is transferred to a new owner
+    /// @param stationId The address of the {Station}
     /// @param oldOwner The address of the current owner
     /// @param newOwner The address of the new owner
-    event DockOwnershipTransferred(uint256 indexed dockId, address oldOwner, address newOwner);
+    event StationOwnershipTransferred(uint256 indexed stationId, address oldOwner, address newOwner);
 
     /// @notice Emitted when the {ModuleKeeper} address is updated
     /// @param newModuleKeeper The new address of the {ModuleKeeper}

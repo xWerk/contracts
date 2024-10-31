@@ -20,7 +20,7 @@ import { ISpace } from "./interfaces/ISpace.sol";
 import { ModuleManager } from "./abstracts/ModuleManager.sol";
 import { IModuleManager } from "./interfaces/IModuleManager.sol";
 import { Errors } from "./libraries/Errors.sol";
-import { DockRegistry } from "./DockRegistry.sol";
+import { StationRegistry } from "./StationRegistry.sol";
 import { ModuleKeeper } from "./ModuleKeeper.sol";
 
 /// @title Space
@@ -44,7 +44,7 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         (,, address[] memory initialModules) = abi.decode(_data, (uint256, uint256, address[]));
 
         // Enable the initial module(s)
-        ModuleKeeper moduleKeeper = DockRegistry(factory).moduleKeeper();
+        ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
         _initializeModuleManager(moduleKeeper, initialModules);
 
         // Initialize the {Space} smart contract
@@ -179,7 +179,7 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     /// @inheritdoc IModuleManager
     function enableModule(address module) public override onlyAdminOrEntrypoint {
         // Retrieve the address of the {ModuleKeeper}
-        ModuleKeeper moduleKeeper = DockRegistry(factory).moduleKeeper();
+        ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
         // Checks, Effects: enable the module
         _enableModule(moduleKeeper, module);
@@ -292,7 +292,7 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     /// @dev Registers the account on the factory if it hasn't been registered yet
     function _registerOnFactory() internal {
         // Get the address of the factory contract
-        DockRegistry factoryContract = DockRegistry(factory);
+        StationRegistry factoryContract = StationRegistry(factory);
 
         // Checks: the smart account is registered on the factory contract
         if (!factoryContract.isRegistered(address(this))) {

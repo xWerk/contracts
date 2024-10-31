@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { DockRegistry_Unit_Concrete_Test } from "../DockRegistry.t.sol";
+import { StationRegistry_Unit_Concrete_Test } from "../StationRegistry.t.sol";
 import { ModuleKeeper } from "./../../../../../src/ModuleKeeper.sol";
 import { Events } from "../../../../utils/Events.sol";
 import { Errors } from "../../../../utils/Errors.sol";
 import { Constants } from "../../../../utils/Constants.sol";
 
-contract UpdateModuleKeeper_Unit_Concrete_Test is DockRegistry_Unit_Concrete_Test {
+contract UpdateModuleKeeper_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test {
     function setUp() public virtual override {
-        DockRegistry_Unit_Concrete_Test.setUp();
+        StationRegistry_Unit_Concrete_Test.setUp();
     }
 
     function test_RevertWhen_CallerNotRegistryOwner() external {
@@ -24,7 +24,7 @@ contract UpdateModuleKeeper_Unit_Concrete_Test is DockRegistry_Unit_Concrete_Tes
         );
 
         // Run the test
-        dockRegistry.updateModuleKeeper({ newModuleKeeper: ModuleKeeper(address(0x1)) });
+        stationRegistry.updateModuleKeeper({ newModuleKeeper: ModuleKeeper(address(0x1)) });
     }
 
     modifier whenCallerRegistryOwner() {
@@ -41,10 +41,10 @@ contract UpdateModuleKeeper_Unit_Concrete_Test is DockRegistry_Unit_Concrete_Tes
         emit Events.ModuleKeeperUpdated(newModuleKeeper);
 
         // Run the test
-        dockRegistry.updateModuleKeeper(newModuleKeeper);
+        stationRegistry.updateModuleKeeper(newModuleKeeper);
 
         // Assert the actual and expected module keeper address
-        address actualModuleKeeper = address(dockRegistry.moduleKeeper());
+        address actualModuleKeeper = address(stationRegistry.moduleKeeper());
         assertEq(actualModuleKeeper, address(newModuleKeeper));
     }
 }

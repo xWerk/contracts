@@ -5,14 +5,14 @@ pragma solidity ^0.8.26;
 /// @notice Library containing all custom errors the protocol may revert with
 library Errors {
     /*//////////////////////////////////////////////////////////////////////////
-                                  DOCK-REGISTRY
+                                  STATION-REGISTRY
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when `msg.sender` is not the dock owner
-    error CallerNotDockOwner();
+    /// @notice Thrown when `msg.sender` is not the station owner
+    error CallerNotStationOwner();
 
     /*//////////////////////////////////////////////////////////////////////////
-                                    CONTAINER
+                                        SPACE
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when `msg.sender` is not the {Space} contract owner

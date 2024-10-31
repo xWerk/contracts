@@ -46,7 +46,7 @@ contract InvoiceModule is IInvoiceModule, StreamManager, ERC721 {
         string memory _URI
     )
         StreamManager(_sablierLockupLinear, _sablierLockupTranched, _brokerAdmin)
-        ERC721("Metadock Invoice NFT", "MD-INVOICES")
+        ERC721("Metastation Invoice NFT", "MD-INVOICES")
     {
         // Start the invoice IDs from 1
         _nextInvoiceId = 1;

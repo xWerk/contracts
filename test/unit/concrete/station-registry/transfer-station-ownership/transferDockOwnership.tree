@@ -1,0 +1,7 @@
+transferStationOwnership.t.sol
+└── given station created
+    ├── when the caller IS NOT the station owner
+    │   └── it should revert with the {CallerNotStationOwner} error
+    └── when the caller IS the station owner
+        ├── it should update the owner
+        └── it should emit a {StationOwnershipTransferred} event
