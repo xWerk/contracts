@@ -1,6 +1,6 @@
 disableModule.t.sol
 ├── when the caller IS NOT the container owner
-│   └── it should revert with the {CallerNotContainerOwner} error
+│   └── it should revert with the "Account: not admin or EntryPoint." error
 └── when the caller IS the container owner
     └── given module enabled
         ├── it should mark the module as disabled

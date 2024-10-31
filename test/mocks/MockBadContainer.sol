@@ -8,7 +8,13 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
-import { ExcessivelySafeCall } from "@nomad-xyz/excessively-safe-call/src/ExcessivelySafeCall.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
+import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
+import { ERC1271 } from "@thirdweb/contracts/eip/ERC1271.sol";
+import { AccountCore } from "@thirdweb/contracts/prebuilts/account/utils/AccountCore.sol";
+import { AccountCoreStorage } from "@thirdweb/contracts/prebuilts/account/utils/AccountCoreStorage.sol";
+import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 
 import { IContainer } from "./../../src/interfaces/IContainer.sol";
 import { ModuleManager } from "./../../src/abstracts/ModuleManager.sol";
@@ -19,29 +25,28 @@ import { DockRegistry } from "./../../src/DockRegistry.sol";
 
 /// @title MockBadContainer
 /// @notice Container that reverts when receiving native tokens (ETH)
-contract MockBadContainer is IContainer, ModuleManager {
+contract MockBadContainer is IContainer, AccountCore, ERC1271, ModuleManager {
+    using ECDSA for bytes32;
     using SafeERC20 for IERC20;
-    using ExcessivelySafeCall for address;
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    bytes32 private constant MSG_TYPEHASH = keccak256("AccountMessage(bytes message)");
 
     /*//////////////////////////////////////////////////////////////////////////
                                     CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Initializes the address of the {Container} owner, {ModuleKeeper} and enables the initial module(s)
-    constructor(
-        DockRegistry _dockRegistry,
-        address[] memory _initialModules
-    ) ModuleManager(_dockRegistry, _initialModules) {
-        dockRegistry = _dockRegistry;
-    }
+    constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) { }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 RECEIVE & FALLBACK
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Revert on receiving ETH
+    /// @dev Allow container to receive native token (ETH)
     receive() external payable {
-        revert();
+        // Log the successful native token deposit
+        emit NativeReceived({ from: msg.sender, amount: msg.value });
     }
 
     /// @dev Fallback function to handle incoming calls with data
@@ -53,9 +58,9 @@ contract MockBadContainer is IContainer, ModuleManager {
                                       MODIFIERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Reverts if the `msg.sender` is not the owner of the {Container} assigned in the registry
-    modifier onlyOwner() {
-        if (msg.sender != dockRegistry.ownerOfContainer(address(this))) revert Errors.CallerNotContainerOwner();
+    /// @notice Checks whether the caller is the EntryPoint contract or the admin.
+    modifier onlyAdminOrEntrypoint() virtual {
+        require(msg.sender == address(entryPoint()) || isAdmin(msg.sender), "Account: not admin or EntryPoint.");
         _;
     }
 
@@ -67,30 +72,45 @@ contract MockBadContainer is IContainer, ModuleManager {
     function execute(
         address module,
         uint256 value,
-        bytes memory data
-    ) public onlyOwner onlyEnabledModule(module) returns (bool success) {
-        // Allocate all the gas to the executed module method
-        uint256 txGas = gasleft();
+        bytes calldata data
+    ) public onlyAdminOrEntrypoint returns (bool success) {
+        // Check and register the smart account on the {DockRegistry} factory if it is not registered yet
+        _registerOnFactory();
 
-        // Execute the call via assembly and get only the first 4 bytes of the returndata
-        // which will be the selector of the error in case of a revert in the module contract
-        // See https://github.com/nomad-xyz/ExcessivelySafeCall
-        bytes memory result;
-        (success, result) = module.excessivelySafeCall({ _gas: txGas, _value: 0, _maxCopy: 4, _calldata: data });
+        // Checks: the `module` module is enabled on the smart account
+        _checkIfModuleIsEnabled(module);
 
-        // Revert with the same error returned by the module contract if the call failed
-        if (!success) {
-            assembly {
-                revert(add(result, 0x20), 4)
-            }
-            // Otherwise log the execution success
-        } else {
-            emit ModuleExecutionSucceded(module, value, data);
+        // Execute the call on the `module` contract
+        success = _call(module, value, data);
+    }
+
+    /// @inheritdoc IContainer
+    function executeBatch(
+        address[] calldata modules,
+        uint256[] calldata values,
+        bytes[] calldata data
+    ) external onlyAdminOrEntrypoint {
+        // Check and register the smart account on the {DockRegistry} factory if it is not registered yet
+        _registerOnFactory();
+
+        // Cache the length of the modules array
+        uint256 modulesLength = modules.length;
+
+        // Checks: all arrays have the same length
+        if (!(modulesLength == data.length && modulesLength == values.length)) revert Errors.WrongArrayLengths();
+
+        // Loop through the calls to execute
+        for (uint256 i; i < modulesLength; ++i) {
+            // Checks: current module is enabled
+            _checkIfModuleIsEnabled(modules[i]);
+
+            // Effects, Interactions: execute all calls on the provided `modules` contracts
+            _call(modules[i], values[i], data[i]);
         }
     }
 
     /// @inheritdoc IContainer
-    function withdrawERC20(IERC20 asset, uint256 amount) public onlyOwner {
+    function withdrawERC20(IERC20 asset, uint256 amount) public onlyAdminOrEntrypoint {
         // Checks: the available ERC20 balance of the container is greater enough to support the withdrawal
         if (amount > asset.balanceOf(address(this))) revert Errors.InsufficientERC20ToWithdraw();
 
@@ -102,7 +122,7 @@ contract MockBadContainer is IContainer, ModuleManager {
     }
 
     /// @inheritdoc IContainer
-    function withdrawERC721(IERC721 collection, uint256 tokenId) public onlyOwner {
+    function withdrawERC721(IERC721 collection, uint256 tokenId) public onlyAdminOrEntrypoint {
         // Checks, Effects, Interactions: withdraw by transferring the token to the container owner
         // Notes:
         // - we're using `safeTransferFrom` as the owner can be an ERC-4337 smart account
@@ -114,7 +134,11 @@ contract MockBadContainer is IContainer, ModuleManager {
     }
 
     /// @inheritdoc IContainer
-    function withdrawERC1155(IERC1155 collection, uint256[] memory ids, uint256[] memory amounts) public onlyOwner {
+    function withdrawERC1155(
+        IERC1155 collection,
+        uint256[] memory ids,
+        uint256[] memory amounts
+    ) public onlyAdminOrEntrypoint {
         // Checks, Effects, Interactions: withdraw by transferring the tokens to the container owner
         // Notes:
         // - we're using `safeTransferFrom` as the owner can be an ERC-4337 smart account
@@ -131,7 +155,7 @@ contract MockBadContainer is IContainer, ModuleManager {
     }
 
     /// @inheritdoc IContainer
-    function withdrawNative(uint256 amount) public onlyOwner {
+    function withdrawNative(uint256 amount) public onlyAdminOrEntrypoint {
         // Checks: the native balance of the container minus the amount locked for operations is greater than the requested amount
         if (amount > address(this).balance) revert Errors.InsufficientNativeToWithdraw();
 
@@ -145,31 +169,72 @@ contract MockBadContainer is IContainer, ModuleManager {
     }
 
     /// @inheritdoc IModuleManager
-    function enableModule(address module) public override onlyOwner {
-        super.enableModule(module);
+    function enableModule(address module) public override onlyAdminOrEntrypoint {
+        ModuleKeeper moduleKeeper = DockRegistry(factory).moduleKeeper();
+
+        _enableModule(moduleKeeper, module);
     }
 
     /// @inheritdoc IModuleManager
-    function disableModule(address module) public override onlyOwner {
-        super.disableModule(module);
+    function disableModule(address module) public override onlyAdminOrEntrypoint {
+        _disableModule(module);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc ERC1271
+    function isValidSignature(
+        bytes32 _hash,
+        bytes memory _signature
+    ) public view override returns (bytes4 magicValue) {
+        // Compute the hash of message the should be signed
+        bytes32 targetDigest = getMessageHash(_hash);
+
+        // Recover the signer of the hash
+        address signer = targetDigest.recover(_signature);
+
+        // Check: the signer is an admin and return the magic value if so
+        if (isAdmin(signer)) {
+            return MAGICVALUE;
+        }
+
+        // Check: either `msg.sender` is an approved target or there are no restrictions for approved targets
+        EnumerableSet.AddressSet storage targets = _accountPermissionsStorage().approvedTargets[signer];
+        if (!(targets.contains(msg.sender) || (targets.length() == 1 && targets.at(0) == address(0)))) {
+            revert Errors.CallerNotApprovedTarget();
+        }
+
+        // Check: the signer is an active signer and return the magic value if so
+        if (isActiveSigner(signer)) {
+            magicValue = MAGICVALUE;
+        }
+    }
+
+    /// @inheritdoc IContainer
+    function getMessageHash(bytes32 _hash) public view returns (bytes32) {
+        bytes32 messageHash = keccak256(abi.encode(_hash));
+        bytes32 typedDataHash = keccak256(abi.encode(MSG_TYPEHASH, messageHash));
+        return keccak256(abi.encodePacked("\x19\x01", _domainSeparatorV4(), typedDataHash));
+    }
+
     /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
-        return interfaceId == type(IContainer).interfaceId || interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return interfaceId == type(IContainer).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId
+            || interfaceId == type(IERC721Receiver).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 
     /// @inheritdoc IERC721Receiver
     function onERC721Received(
-        address,
+        address operator,
         address from,
         uint256 tokenId,
-        bytes calldata
-    ) external override returns (bytes4) {
+        bytes memory
+    ) public override returns (bytes4) {
+        // Silence unused variable warning
+        operator = operator;
+
         // Log the successful ERC-721 token receipt
         emit ERC721Received(from, tokenId);
 
@@ -178,12 +243,15 @@ contract MockBadContainer is IContainer, ModuleManager {
 
     /// @inheritdoc IERC1155Receiver
     function onERC1155Received(
-        address,
+        address operator,
         address from,
         uint256 id,
         uint256 value,
-        bytes calldata
-    ) external override returns (bytes4) {
+        bytes memory
+    ) public override returns (bytes4) {
+        // Silence unused variable warning
+        operator = operator;
+
         // Log the successful ERC-1155 token receipt
         emit ERC1155Received(from, id, value);
 
@@ -194,15 +262,48 @@ contract MockBadContainer is IContainer, ModuleManager {
     function onERC1155BatchReceived(
         address,
         address from,
-        uint256[] calldata ids,
-        uint256[] calldata values,
-        bytes calldata
-    ) external override returns (bytes4) {
+        uint256[] memory ids,
+        uint256[] memory values,
+        bytes memory
+    ) public override returns (bytes4) {
         for (uint256 i; i < ids.length; ++i) {
             // Log the successful ERC-1155 token receipt
             emit ERC1155Received(from, ids[i], values[i]);
         }
 
         return this.onERC1155BatchReceived.selector;
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Registers the account on the factory if it hasn't been registered yet
+    function _registerOnFactory() internal virtual {
+        // Get the address of the factory contract
+        DockRegistry factoryContract = DockRegistry(factory);
+
+        // Check if this smart account is registered in the factory contract
+        if (!factoryContract.isRegistered(address(this))) {
+            // Otherwise register it
+            factoryContract.onRegister(AccountCoreStorage.data().creationSalt);
+        }
+    }
+
+    /// @dev Executes a low-level call on the `module` contract with the `data` data forwarding the `value` value
+    function _call(address module, uint256 value, bytes calldata data) internal returns (bool success) {
+        // Execute the call via assembly
+        bytes memory result;
+        (success, result) = module.call{ value: value }(data);
+
+        // Revert with the same error returned by the module contract if the call failed
+        if (!success) {
+            assembly {
+                revert(add(result, 0x20), mload(result))
+            }
+        } else {
+            // Otherwise log the execution success
+            emit ModuleExecutionSucceded(module, value, data);
+        }
     }
 }

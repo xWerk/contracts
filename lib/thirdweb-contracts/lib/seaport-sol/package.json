@@ -1,0 +1,20 @@
+{
+  "name": "seaport-sol",
+  "version": "1.5.3",
+  "description": "Convenience libraries for working with Seaport",
+  "main": "src/",
+  "repository": "https://github.com/ProjectOpenSea/seaport-sol.git",
+  "author": "OpenSea",
+  "license": "MIT",
+  "files": [
+    "node_modules",
+    "package.json",
+    "src",
+    "LICENSE",
+    "README.md"
+  ],
+  "dependencies": {
+    "seaport-core": "^0.0.1",
+    "seaport-types": "^0.0.1"
+  }
+}

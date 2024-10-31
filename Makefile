@@ -43,12 +43,14 @@ deploy-deterministic-container:
 # Deploy a {Container} contract
 # Update the following configs before running the script:
 #	- {INITIAL_OWNER} with the address of the initial owner
-#	- {MODULE_KEEPER_ADDRESS} with the address of the {ModuleKeeper} deployment
+#	- {DOCK_REGISTRY} with the address of the {DockRegistr} factory
+#	- {DOCK_ID} with the ID of the dock to which the new {Container} will be deployed
+# 	- {INITIAL_MODULES} with the addresses of the enabled initial modules (array)
 #	- {RPC_URL} with the network RPC used for deployment
 deploy-container: 
 					forge script script/DeployContainer.s.sol:DeployContainer \
-					 {INITIAL_OWNER} {MODULE_KEEPER_ADDRESS} [] \
-					--sig "run(address,address,address[])" --rpc-url {RPC_URL} \
+					 {INITIAL_OWNER} {DOCK_REGISTRY} {DOCK_ID} {INITIAL_MODULES} \
+					--sig "run(address,address,uint256,address[])" --rpc-url {RPC_URL} \
 					--private-key $(PRIVATE_KEY) --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify	
 
@@ -67,10 +69,11 @@ deploy-deterministic-module-keeper:
 # Update the following configs before running the script:
 #	- {INITIAL_OWNER} with the address of the initial owner
 #	- {MODULE_KEEPER} with the address of the {ModuleKeeper} deployment
+#	- {ENTRYPOINT} with the address of the {Entrypoiny} contract (currently v6)
 #	- {RPC_URL} with the network RPC used for deployment
 deploy-deterministic-dock-registry:
 					forge script script/DeployDeterministicDockRegistry.s.sol:DeployDeterministicDockRegistry \
-					$(CREATE2SALT) {INITIAL_OWNER} {MODULE_KEEPER} \
+					$(CREATE2SALT) {INITIAL_OWNER} {ENTRYPOINT} {MODULE_KEEPER} \
 					--sig "run(string,address,address)" --rpc-url {RPC_URL} \
 					--private-key $(PRIVATE_KEY) --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify

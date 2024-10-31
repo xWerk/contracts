@@ -1,6 +1,6 @@
 updateModuleKeeper.t.sol
 ├── when the caller IS NOT the registry owner
-│   └── it should revert with the {OwnableUnauthorizedAccount} error
+│   └── it should revert with the {PermissionsUnauthorizedAccount} error
 └── when the caller IS the registry owner
     ├── it should update the module keeper address
     └── it should emit a {ModuleKeeperUpdated} event

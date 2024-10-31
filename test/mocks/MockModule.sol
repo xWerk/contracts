@@ -8,9 +8,9 @@ import { Errors } from "./../../src/modules/invoice-module/libraries/Errors.sol"
 /// @notice A mock implementation of a boilerplate module that creates multiple items and
 /// associates them with the corresponding {Container} contract
 contract MockModule {
-    mapping(address container => uint256[]) private _moduleItemsOf;
+    mapping(address container => uint256[]) public itemsOf;
 
-    uint256 private _nextModuleItemId;
+    uint256 private _nextItemIf;
 
     event ModuleItemCreated(uint256 indexed id);
 
@@ -29,14 +29,23 @@ contract MockModule {
 
     function createModuleItem() external onlyContainer returns (uint256 id) {
         // Get the next module item ID
-        id = _nextModuleItemId;
+        id = _nextItemIf;
 
-        _moduleItemsOf[msg.sender].push(id);
+        itemsOf[msg.sender].push(id);
 
         unchecked {
-            _nextModuleItemId = id + 1;
+            _nextItemIf = id + 1;
         }
 
         emit ModuleItemCreated(id);
+    }
+
+    function getItemsOf(address owner) external view returns (uint256[] memory items) {
+        uint256 length = itemsOf[owner].length;
+
+        items = new uint256[](length);
+        for (uint256 i; i < length; ++i) {
+            items[i] = itemsOf[owner][i];
+        }
     }
 }

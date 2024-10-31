@@ -3,7 +3,8 @@ pragma solidity ^0.8.26;
 
 import { Integration_Test } from "../Integration.t.sol";
 import { Types } from "./../../../src/modules/invoice-module/libraries/Types.sol";
-import { IContainer } from "./../../../src/interfaces/IContainer.sol";
+import { Container } from "./../../../src/Container.sol";
+import { MockBadContainer } from "../../mocks/MockBadContainer.sol";
 
 abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
     mapping(uint256 invoiceId => Types.Invoice) invoices;
@@ -178,19 +179,18 @@ abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
         // Make the `user` account the caller who must be the owner of the {Container} contract
         vm.startPrank({ msgSender: user });
 
-        // Select the according {Container} of the user
-        IContainer _container;
-        if (user == users.eve) {
-            _container = container;
-        } else {
-            _container = badContainer;
-        }
-
         // Create the invoice
         bytes memory data = abi.encodeWithSignature(
             "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
         );
-        _container.execute({ module: address(invoiceModule), value: 0, data: data });
+
+        // Select the according {Container} of the user
+
+        if (user == users.eve) {
+            Container(container).execute({ module: address(invoiceModule), value: 0, data: data });
+        } else {
+            MockBadContainer(badContainer).execute({ module: address(invoiceModule), value: 0, data: data });
+        }
 
         // Stop the active prank
         vm.stopPrank();

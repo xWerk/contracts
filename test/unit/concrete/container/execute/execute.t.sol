@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import { Container_Unit_Concrete_Test } from "../Container.t.sol";
 import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { MockModule } from "../../../../mocks/MockModule.sol";
 
 contract Execute_Unit_Concrete_Test is Container_Unit_Concrete_Test {
     function setUp() public virtual override {
@@ -14,8 +14,8 @@ contract Execute_Unit_Concrete_Test is Container_Unit_Concrete_Test {
         // Make Bob the caller for this test suite who is not the owner of the container
         vm.startPrank({ msgSender: users.bob });
 
-        // Expect the next call to revert with the {CallerNotContainerOwner} error
-        vm.expectRevert(Errors.CallerNotContainerOwner.selector);
+        // Expect the next call to revert with the "Account: not admin or EntryPoint." error
+        vm.expectRevert("Account: not admin or EntryPoint.");
 
         // Run the test
         container.execute({ module: address(mockModule), value: 0, data: "" });
@@ -29,7 +29,7 @@ contract Execute_Unit_Concrete_Test is Container_Unit_Concrete_Test {
 
     function test_RevertWhen_ModuleNotEnabled() external whenCallerOwner {
         // Expect the next call to revert with the {ModuleNotEnabled} error
-        vm.expectRevert(Errors.ModuleNotEnabled.selector);
+        vm.expectRevert(abi.encodeWithSelector(Errors.ModuleNotEnabled.selector, address(0x1)));
 
         // Run the test by trying to execute a module at `0x0000000000000000000000000000000000000001` address
         container.execute({ module: address(0x1), value: 0, data: "" });
@@ -43,9 +43,9 @@ contract Execute_Unit_Concrete_Test is Container_Unit_Concrete_Test {
         // Create the calldata for the mock module execution
         bytes memory data = abi.encodeWithSignature("createModuleItem()", "");
 
-        // Expect the {ModuleExecutionSucceded} event to be emitted
+        // Expect the {ModuleItemCreated} event to be emitted
         vm.expectEmit();
-        emit Events.ModuleExecutionSucceded({ module: address(mockModule), value: 0, data: data });
+        emit MockModule.ModuleItemCreated({ id: 0 });
 
         // Run the test
         container.execute({ module: address(mockModule), value: 0, data: data });

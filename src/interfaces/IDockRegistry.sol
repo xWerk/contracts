@@ -65,8 +65,8 @@ interface IDockRegistry {
     ///
     /// @param dockId The ID of the dock to attach the {Container} to
     /// @param initialModules Array of initially enabled modules
-    function createContainer(uint256 dockId, address[] memory initialModules) external returns (address container);
-
+    /*     function createContainer(uint256 dockId, address[] memory initialModules) external returns (address container);
+    */
     /// @notice Transfers the ownership of the `container` container
     ///
     /// Requirements:

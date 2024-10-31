@@ -23,8 +23,8 @@ interface IModuleManager {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Returns the address of the {DockRegistry} contract
-    function dockRegistry() external view returns (DockRegistry);
-
+    /*     function dockRegistry() external view returns (DockRegistry);
+    */
     /// @notice Checks whether the `module` module is enabled on the container
     function isModuleEnabled(address module) external view returns (bool isEnabled);
 

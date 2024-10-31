@@ -1,6 +1,6 @@
 withdrawNative.t.sol
 ├── when the caller IS NOT the container owner
-│   └── it should revert with the {CallerNotContainerOwner} error
+│   └── it should revert with the "Account: not admin or EntryPoint." error
 └── when the caller IS the container owner
     ├── when container native token (ETH) balance IS INSUFFICIENT to support the withdrawal
     │   └── it should revert with the {InsufficientERC20ToWithdraw} error

@@ -1,0 +1,14 @@
+executeBatch.t.sol
+├── when the caller IS NOT the container owner
+│   └── it should revert with the "Account: not admin or EntryPoint." error
+└── when the caller IS the container owner
+    ├── when one array have a different length than the others
+    │   └── it should revert with the {WrongArrayLengths} error
+    └── when all arrays have the same length
+        ├── when the module IS NOT enabled
+        │   └── it should revert with the {ModuleNotEnabled} error
+        └── when the module IS enabled
+            ├── when the call is successfull
+            │   └── it should emit a {ModuleItemCreated} event
+            └── when the call fails
+                └── it should revert

@@ -1,0 +1,11 @@
+[profile.default]
+gas_reports = [
+    "BaseRouterBenchmark"
+]
+libs = ['lib']
+out = 'out'
+remappings = []
+src = 'src'
+test= 'test'
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config

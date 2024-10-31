@@ -58,14 +58,29 @@ interface IContainer is IERC165, IERC721Receiver, IERC1155Receiver {
     event ModuleExecutionSucceded(address indexed module, uint256 value, bytes data);
 
     /*//////////////////////////////////////////////////////////////////////////
+                                 CONSTANT FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Returns the hash of message that should be signed for EIP1271 verification
+    /// @param _hash The message hash to sign for the EIP-1271 origin verifying contract
+    /// @return messageHash The digest to sign for EIP-1271 verification
+    function getMessageHash(bytes32 _hash) external view returns (bytes32);
+
+    /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Executes a call on the `module` module, proving the `value` wei amount for the ABI-encoded `data` method
     /// @param module The address of the module to call
     /// @param value The amount of wei to provide
-    /// @param data The ABI-encode definition of the method (+inputs) to call
+    /// @param data The ABI-encoded definition of the method (+inputs) to call
     function execute(address module, uint256 value, bytes memory data) external returns (bool success);
+
+    /// @notice Executes multiple calls to one or more `modules` modules
+    /// @param modules The addesses of the modules to call
+    /// @param values THe amout of wei to provide to each call
+    /// @param data The ABI-encoded definition of the method and inputs 
+    function executeBatch(address[] calldata modules, uint256[] calldata values, bytes[] calldata data) external;
 
     /// @notice Withdraws an `amount` amount of `asset` ERC-20 token
     ///

@@ -39,25 +39,28 @@ library Errors {
     /// @notice Thrown when the balance of the sender is insufficient to perform an ERC-1155 transfer
     error ERC1155InsufficientBalance(address sender, uint256 balance, uint256 needed, uint256 tokenId);
 
+    /// @notice Thrown when the provided `modules`, `values` or `data` arrays have different lengths
+    error WrongArrayLengths();
+
     /*//////////////////////////////////////////////////////////////////////////
-                                  MODULE-MANAGER
+                                MODULE-MANAGER
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when a {Container} tries to execute a method on a non-enabled module
-    error ModuleNotEnabled();
+    error ModuleNotEnabled(address module);
 
     /// @notice Thrown when an attempt is made to enable a non-allowlisted module on a {Container}
     error ModuleNotAllowlisted();
 
     /*//////////////////////////////////////////////////////////////////////////
-                                  MODULE-KEEPER
+                                MODULE-KEEPER
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when the requested module to be allowlisted is not a valid non-zero code size contract
     error InvalidZeroCodeModule();
 
     /*//////////////////////////////////////////////////////////////////////////
-                                    INVOICE-MODULE
+                                INVOICE-MODULE
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when the caller is an invalid zero code contract or EOA
@@ -134,4 +137,11 @@ library Errors {
 
     /// @notice Thrown when `msg.sender` is not authorized to perform an operation
     error OwnableUnauthorizedAccount(address account);
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                THIRDWEB - PERMISSIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice The `account` is missing a role.
+    error PermissionsUnauthorizedAccount(address account, bytes32 neededRole);
 }
