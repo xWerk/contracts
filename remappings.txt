@@ -3,6 +3,6 @@
 @sablier/v2-core/=lib/v2-core/
 @prb/math/=lib/prb-math/
 @nomad-xyz/excessively-safe-call/=lib/nomad-xyz/excessively-safe-call/
-@thirdweb/contracts/=lib/thirdweb-contracts/contracts/
+@thirdweb/contracts/=lib/contracts/contracts/
 ds-test/=lib/openzeppelin-contracts/lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
