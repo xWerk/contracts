@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/werk/contracts/actions?query=workflow%3Atest">
+    <a href="https://github.com/xWerk/contracts/actions?query=workflow%3Atest">
         <img src="https://img.shields.io/github/actions/workflow/status/werk/contracts/test.yml?branch=main&label=Tests" alt="Tests">
     </a>
      <a href="https://getfoundry.sh/">
@@ -20,8 +20,8 @@
 </p>
 
 <p align="center">
-    <a href="https://www.werk.so/">
-        <img src="docs/images/werk_banner.jpeg" alt="Logo">
+    <a href="https://x.com/WerkSocial">
+        <img src="docs/images/werk_banner.png" alt="Logo">
     </a>
 </p>
 
