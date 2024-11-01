@@ -1,0 +1,12 @@
+createSpace.t.sol
+├── when station ID is zero
+│   └── it should create a new station with the caller address as the owner
+└── when station ID is non-zero
+    ├── when the caller IS NOT the owner of the station
+    │   └── it should revert with the {CallerNotStationOwner} error
+    └── when the IS the owner of the station
+        ├── it should deploy a new {Space}
+        ├── it should enabled the initial modules on the {Space}
+        ├── it should register the {Space} smart account on the {StationRegistry} factory
+        ├── it should set the station ID to which the new deployed {Space} belongs
+        └── it should emit a {SpaceCreated} event

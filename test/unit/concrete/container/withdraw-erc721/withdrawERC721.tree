@@ -1,9 +1,0 @@
-withdrawERC721.t.sol
-├── when the caller IS NOT the container owner
-│   └── it should revert with the "Account: not admin or EntryPoint." error
-└── when the caller IS the container owner
-    ├── when there is no existing ERC-721 token to be transferred
-    │   └── it should revert with the {ERC721WithdrawalFailed} error
-    └── when there is an existing ERC-721 token to be transferred
-        ├── it should transfer the token to the caller
-        └── it should emit an {ERC721Withdrawn} event

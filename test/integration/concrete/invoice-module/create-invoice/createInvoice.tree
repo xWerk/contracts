@@ -1,10 +1,10 @@
 createInvoice.t.sol
 ├── when the caller IS NOT a contract
-│   └── it should revert with the {ContainerZeroCodeSize} error
+│   └── it should revert with the {SpaceZeroCodeSize} error
 └── when the caller IS a contract
-    ├── when the caller contract DOES NOT implement the ERC-165 {IContainer} interface
-    │   └── it should revert with the {ContainerUnsupportedInterface} error
-    └── when the caller contract DOES implement the ERC-165 {IContainer} interface
+    ├── when the caller contract DOES NOT implement the ERC-165 {ISpace} interface
+    │   └── it should revert with the {SpaceUnsupportedInterface} error
+    └── when the caller contract DOES implement the ERC-165 {ISpace} interface
         ├── when the payment amount IS zero
         │    └── it should revert with the {ZeroPaymentAmount} error
         └── when the payment amount IS greater than zero

@@ -5,18 +5,18 @@ pragma solidity ^0.8.26;
 /// @notice Library containing all custom errors the protocol may revert with
 library Errors {
     /*//////////////////////////////////////////////////////////////////////////
-                                  DOCK-REGISTRY
+                                  STATION-REGISTRY
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when `msg.sender` is not the dock owner
-    error CallerNotDockOwner();
+    /// @notice Thrown when `msg.sender` is not the station owner
+    error CallerNotStationOwner();
 
     /*//////////////////////////////////////////////////////////////////////////
-                                    CONTAINER
+                                        SPACE
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when `msg.sender` is not the {Container} contract owner
-    error CallerNotContainerOwner();
+    /// @notice Thrown when `msg.sender` is not the {Space} contract owner
+    error CallerNotSpaceOwner();
 
     /// @notice Thrown when a native token (ETH) withdrawal fails
     error NativeWithdrawFailed();
@@ -45,10 +45,10 @@ library Errors {
                                   MODULE-MANAGER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when a {Container} tries to execute a method on a non-enabled module
+    /// @notice Thrown when a {Space} tries to execute a method on a non-enabled module
     error ModuleNotEnabled(address module);
 
-    /// @notice Thrown when an attempt is made to enable a non-allowlisted module on a {Container}
+    /// @notice Thrown when an attempt is made to enable a non-allowlisted module on a {Space}
     error ModuleNotAllowlisted();
 
     /*//////////////////////////////////////////////////////////////////////////

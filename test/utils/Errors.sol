@@ -3,18 +3,18 @@ pragma solidity ^0.8.26;
 
 library Errors {
     /*//////////////////////////////////////////////////////////////////////////
-                                  DOCK-REGISTRY
+                                  STATION-REGISTRY
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when `msg.sender` is not the dock owner
-    error CallerNotDockOwner();
+    /// @notice Thrown when `msg.sender` is not the station owner
+    error CallerNotStationOwner();
 
     /*//////////////////////////////////////////////////////////////////////////
                                     CONTAINER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when `msg.sender` is not the {Container} contract owner
-    error CallerNotContainerOwner();
+    /// @notice Thrown when `msg.sender` is not the {Space} contract owner
+    error CallerNotSpaceOwner();
 
     /// @notice Thrown when a native token (ETH) withdrawal fails
     error NativeWithdrawFailed();
@@ -46,10 +46,10 @@ library Errors {
                                 MODULE-MANAGER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when a {Container} tries to execute a method on a non-enabled module
+    /// @notice Thrown when a {Space} tries to execute a method on a non-enabled module
     error ModuleNotEnabled(address module);
 
-    /// @notice Thrown when an attempt is made to enable a non-allowlisted module on a {Container}
+    /// @notice Thrown when an attempt is made to enable a non-allowlisted module on a {Space}
     error ModuleNotAllowlisted();
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -64,10 +64,10 @@ library Errors {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when the caller is an invalid zero code contract or EOA
-    error ContainerZeroCodeSize();
+    error SpaceZeroCodeSize();
 
-    /// @notice Thrown when the caller is a contract that does not implement the {IContainer} interface
-    error ContainerUnsupportedInterface();
+    /// @notice Thrown when the caller is a contract that does not implement the {ISpace} interface
+    error SpaceUnsupportedInterface();
 
     /// @notice Thrown when the end time of an invoice is in the past
     error EndTimeInThePast();

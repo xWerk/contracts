@@ -12,7 +12,7 @@ contract CreateInvoice_Integration_Fuzz_Test is CreateInvoice_Integration_Shared
     function setUp() public virtual override {
         CreateInvoice_Integration_Shared_Test.setUp();
 
-        // Make Eve the caller in this test suite as she's the owner of the {Container} contract
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
     }
 
@@ -25,7 +25,7 @@ contract CreateInvoice_Integration_Fuzz_Test is CreateInvoice_Integration_Shared
     )
         external
         whenCallerContract
-        whenCompliantContainer
+        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
@@ -68,25 +68,25 @@ contract CreateInvoice_Integration_Fuzz_Test is CreateInvoice_Integration_Shared
         vm.expectEmit();
         emit Events.InvoiceCreated({
             id: 1,
-            recipient: address(container),
+            recipient: address(space),
             status: Types.Status.Pending,
             startTime: invoice.startTime,
             endTime: invoice.endTime,
             payment: invoice.payment
         });
 
-        // Expect the {Container} contract to emit a {ModuleExecutionSucceded} event
+        // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
         emit Events.ModuleExecutionSucceded({ module: address(invoiceModule), value: 0, data: data });
 
         // Run the test
-        container.execute({ module: address(invoiceModule), value: 0, data: data });
+        space.execute({ module: address(invoiceModule), value: 0, data: data });
 
         // Assert the actual and expected invoice state
         Types.Invoice memory actualInvoice = invoiceModule.getInvoice({ id: 1 });
         address actualRecipient = invoiceModule.ownerOf(1);
 
-        assertEq(actualRecipient, address(container));
+        assertEq(actualRecipient, address(space));
         assertEq(uint8(actualInvoice.status), uint8(Types.Status.Pending));
         assertEq(actualInvoice.startTime, invoice.startTime);
         assertEq(actualInvoice.endTime, invoice.endTime);

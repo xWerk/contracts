@@ -1,0 +1,12 @@
+withdrawNative.t.sol
+├── when the caller IS NOT the space owner
+│   └── it should revert with the "Account: not admin or EntryPoint." error
+└── when the caller IS the space owner
+    ├── when space native token (ETH) balance IS INSUFFICIENT to support the withdrawal
+    │   └── it should revert with the {InsufficientERC20ToWithdraw} error
+    └── when space native token (ETH) balance IS SUFFICIENT to support the withdrawal
+        ├── when native token transfer fails
+        │   └── it should revert with the {NativeWithdrawFailed} error
+        └── when native token transfer succeeds
+            ├── it should transfer the native tokens to the caller
+            └── it should emit an {AssetWithdrawn} event

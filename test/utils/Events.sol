@@ -2,36 +2,28 @@
 pragma solidity ^0.8.26;
 
 import { Types } from "./../../src/modules/invoice-module/libraries/Types.sol";
-import { Container } from "./../../src/Container.sol";
+import { Space } from "./../../src/Space.sol";
 import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 
 /// @notice Abstract contract to store all the events emitted in the tested contracts
 abstract contract Events {
     /*//////////////////////////////////////////////////////////////////////////
-                                    DOCK-REGISTRY
+                                    STATION-REGISTRY
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a new {Container} contract gets deployed
+    /// @notice Emitted when a new {Space} contract gets deployed
     /// @param owner The address of the owner
-    /// @param dockId The ID of the dock to which this {Container} belongs
-    /// @param container The address of the {Container}
+    /// @param stationId The ID of the station to which this {Space} belongs
+    /// @param space The address of the {Space}
     /// @param initialModules Array of initially enabled modules
-    event ContainerCreated(
-        address indexed owner, uint256 indexed dockId, Container container, address[] initialModules
-    );
+    event SpaceCreated(address indexed owner, uint256 indexed stationId, Space space, address[] initialModules);
 
-    /// @notice Emitted when the ownership of a {Container} is transferred to a new owner
-    /// @param container The address of the {Container}
+    /// @notice Emitted when the ownership of a {Station} is transferred to a new owner
+    /// @param stationId The address of the {Station}
     /// @param oldOwner The address of the current owner
     /// @param newOwner The address of the new owner
-    event ContainerOwnershipTransferred(Container indexed container, address oldOwner, address newOwner);
-
-    /// @notice Emitted when the ownership of a {Dock} is transferred to a new owner
-    /// @param dockId The address of the {Dock}
-    /// @param oldOwner The address of the current owner
-    /// @param newOwner The address of the new owner
-    event DockOwnershipTransferred(uint256 indexed dockId, address oldOwner, address newOwner);
+    event StationOwnershipTransferred(uint256 indexed stationId, address oldOwner, address newOwner);
 
     /// @notice Emitted when the {ModuleKeeper} address is updated
     /// @param newModuleKeeper The new address of the {ModuleKeeper}
@@ -47,35 +39,35 @@ abstract contract Events {
                                     CONTAINER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when an `amount` amount of `asset` native tokens (ETH) is deposited on the container
+    /// @notice Emitted when an `amount` amount of `asset` native tokens (ETH) is deposited on the space
     /// @param from The address of the depositor
     /// @param amount The amount of the deposited ERC-20 token
     event NativeReceived(address indexed from, uint256 amount);
 
-    /// @notice Emitted when an ERC-721 token is received by the container
+    /// @notice Emitted when an ERC-721 token is received by the space
     /// @param from The address of the depositor
     /// @param tokenId The ID of the received token
     event ERC721Received(address indexed from, uint256 indexed tokenId);
 
-    /// @notice Emitted when an ERC-1155 token is received by the container
+    /// @notice Emitted when an ERC-1155 token is received by the space
     /// @param from The address of the depositor
     /// @param id The ID of the received token
     /// @param value The amount of tokens received
     event ERC1155Received(address indexed from, uint256 indexed id, uint256 value);
 
-    /// @notice Emitted when an `amount` amount of `asset` ERC-20 asset or native ETH is withdrawn from the container
+    /// @notice Emitted when an `amount` amount of `asset` ERC-20 asset or native ETH is withdrawn from the space
     /// @param to The address to which the tokens were transferred
     /// @param asset The address of the ERC-20 token or zero-address for native ETH
     /// @param amount The withdrawn amount
     event AssetWithdrawn(address indexed to, address indexed asset, uint256 amount);
 
-    /// @notice Emitted when an ERC-721 token is withdrawn from the container
+    /// @notice Emitted when an ERC-721 token is withdrawn from the space
     /// @param to The address to which the token was transferred
     /// @param collection The address of the ERC-721 collection
     /// @param tokenId The ID of the token
     event ERC721Withdrawn(address indexed to, address indexed collection, uint256 tokenId);
 
-    /// @notice Emitted when an ERC-1155 token is withdrawn from the container
+    /// @notice Emitted when an ERC-1155 token is withdrawn from the space
     /// @param to The address to which the tokens were transferred
     /// @param ids The IDs of the tokens
     /// @param amounts The amounts of the tokens
@@ -91,11 +83,11 @@ abstract contract Events {
                                 MODULE-MANAGER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a module is enabled on the container
+    /// @notice Emitted when a module is enabled on the space
     /// @param module The address of the enabled module
     event ModuleEnabled(address indexed module, address indexed owner);
 
-    /// @notice Emitted when a module is disabled on the container
+    /// @notice Emitted when a module is disabled on the space
     /// @param module The address of the disabled module
     event ModuleDisabled(address indexed module, address indexed owner);
 

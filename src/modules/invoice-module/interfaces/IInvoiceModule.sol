@@ -52,10 +52,10 @@ interface IInvoiceModule {
     /// @notice Creates a new invoice
     ///
     /// Requirements:
-    /// - `msg.sender` must be a contract implementing the {IContainer} interface
+    /// - `msg.sender` must be a contract implementing the {ISpace} interface
     ///
     /// Notes:
-    /// - `recipient` is not checked because the call is enforced to be made through a {Container} contract
+    /// - `recipient` is not checked because the call is enforced to be made through a {Space} contract
     ///
     /// @param invoice The details of the invoice following the {Invoice} struct format
     /// @return id The on-chain ID of the invoice

@@ -1,9 +1,0 @@
-withdrawERC20.t.sol
-├── when the caller IS NOT the container owner
-│   └── it should revert with the "Account: not admin or EntryPoint." error
-└── when the caller IS the container owner
-    ├── when container ERC-20 token balance IS INSUFFICIENT to support the withdrawal
-    │   └── it should revert with the {InsufficientERC20ToWithdraw} error
-    └── when container ERC-20 token balance IS SUFFICIENT to support the withdrawal
-        ├── it should transfer the tokens to the caller
-        └── it should emit an {AssetWithdrawn} event

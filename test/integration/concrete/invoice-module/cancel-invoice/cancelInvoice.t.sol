@@ -35,8 +35,8 @@ contract CancelInvoice_Integration_Concret_Test is CancelInvoice_Integration_Sha
         // Set the one-off ETH transfer invoice as current one
         uint256 invoiceId = 2;
 
-        // Make Eve's container the caller which is the recipient of the invoice
-        vm.startPrank({ msgSender: address(container) });
+        // Make Eve's space the caller which is the recipient of the invoice
+        vm.startPrank({ msgSender: address(space) });
 
         // Cancel the invoice first
         invoiceModule.cancelInvoice({ id: invoiceId });
@@ -77,8 +77,8 @@ contract CancelInvoice_Integration_Concret_Test is CancelInvoice_Integration_Sha
         // Set the one-off ETH transfer invoice as current one
         uint256 invoiceId = 2;
 
-        // Make Eve's container the caller which is the recipient of the invoice
-        vm.startPrank({ msgSender: address(container) });
+        // Make Eve's space the caller which is the recipient of the invoice
+        vm.startPrank({ msgSender: address(space) });
 
         // Expect the {InvoiceCanceled} event to be emitted
         vm.expectEmit();
@@ -123,8 +123,8 @@ contract CancelInvoice_Integration_Concret_Test is CancelInvoice_Integration_Sha
         // Set current invoice as a linear stream-based one
         uint256 invoiceId = 5;
 
-        // Make Eve's container the caller which is the recipient of the invoice
-        vm.startPrank({ msgSender: address(container) });
+        // Make Eve's space the caller which is the recipient of the invoice
+        vm.startPrank({ msgSender: address(space) });
 
         // Expect the {InvoiceCanceled} event to be emitted
         vm.expectEmit();
@@ -232,8 +232,8 @@ contract CancelInvoice_Integration_Concret_Test is CancelInvoice_Integration_Sha
         // Set current invoice as a tranched stream-based one
         uint256 invoiceId = 5;
 
-        // Make Eve's container the caller which is the recipient of the invoice
-        vm.startPrank({ msgSender: address(container) });
+        // Make Eve's space the caller which is the recipient of the invoice
+        vm.startPrank({ msgSender: address(space) });
 
         // Expect the {InvoiceCanceled} event to be emitted
         vm.expectEmit();
