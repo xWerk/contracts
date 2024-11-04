@@ -163,7 +163,9 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     }
 
     /// @inheritdoc ISpace
-    function withdrawNative(uint256 amount) public onlyAdminOrEntrypoint {
+    function withdrawNative(
+        uint256 amount
+    ) public onlyAdminOrEntrypoint {
         // Checks: the native balance of the space minus the amount locked for operations is greater than the requested amount
         if (amount > address(this).balance) revert Errors.InsufficientNativeToWithdraw();
 
@@ -177,7 +179,9 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     }
 
     /// @inheritdoc IModuleManager
-    function enableModule(address module) public override onlyAdminOrEntrypoint {
+    function enableModule(
+        address module
+    ) public override onlyAdminOrEntrypoint {
         // Retrieve the address of the {ModuleKeeper}
         ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
@@ -186,7 +190,9 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     }
 
     /// @inheritdoc IModuleManager
-    function disableModule(address module) public override onlyAdminOrEntrypoint {
+    function disableModule(
+        address module
+    ) public override onlyAdminOrEntrypoint {
         // Effects: disable the module
         _disableModule(module);
     }
@@ -224,14 +230,18 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     }
 
     /// @inheritdoc ISpace
-    function getMessageHash(bytes32 _hash) public view returns (bytes32) {
+    function getMessageHash(
+        bytes32 _hash
+    ) public view returns (bytes32) {
         bytes32 messageHash = keccak256(abi.encode(_hash));
         bytes32 typedDataHash = keccak256(abi.encode(MSG_TYPEHASH, messageHash));
         return keccak256(abi.encodePacked("\x19\x01", _domainSeparatorV4(), typedDataHash));
     }
 
     /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public pure returns (bool) {
         return interfaceId == type(ISpace).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId
             || interfaceId == type(IERC721Receiver).interfaceId || interfaceId == type(IERC165).interfaceId;
     }

@@ -11,11 +11,11 @@ import { MockBadReceiver } from "./mocks/MockBadReceiver.sol";
 import { Space } from "./../src/Space.sol";
 import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
 import { StationRegistry } from "./../src/StationRegistry.sol";
-import { EntryPoint } from "@thirdweb/contracts/prebuilts/account/utils/Entrypoint.sol";
 import { MockERC721Collection } from "./mocks/MockERC721Collection.sol";
 import { MockERC1155Collection } from "./mocks/MockERC1155Collection.sol";
 import { MockBadSpace } from "./mocks/MockBadSpace.sol";
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 
 abstract contract Base_Test is Test, Events {
     /*//////////////////////////////////////////////////////////////////////////
@@ -28,7 +28,7 @@ abstract contract Base_Test is Test, Events {
                                    TEST CONTRACTS
     //////////////////////////////////////////////////////////////////////////*/
 
-    EntryPoint internal entrypoint;
+    address internal entrypoint;
     StationRegistry internal stationRegistry;
     Space internal space;
     ModuleKeeper internal moduleKeeper;
@@ -58,11 +58,11 @@ abstract contract Base_Test is Test, Events {
         users = Users({ admin: createUser("admin"), eve: createUser("eve"), bob: createUser("bob") });
 
         // Deploy test contracts
-        entrypoint = new EntryPoint();
+        //entrypoint = new EntryPoint();
         moduleKeeper = new ModuleKeeper({ _initialOwner: users.admin });
 
-        stationRegistry = new StationRegistry(users.admin, entrypoint, moduleKeeper);
-        containerImplementation = address(new Space(entrypoint, address(stationRegistry)));
+        stationRegistry = new StationRegistry(users.admin, IEntryPoint(entrypoint), moduleKeeper);
+        containerImplementation = address(new Space(IEntryPoint(entrypoint), address(stationRegistry)));
 
         mockModule = new MockModule();
         mockNonCompliantSpace = new MockNonCompliantSpace({ _owner: users.admin });
@@ -126,7 +126,9 @@ abstract contract Base_Test is Test, Events {
         vm.stopPrank();
     }
 
-    function allowlistModule(address _module) internal {
+    function allowlistModule(
+        address _module
+    ) internal {
         moduleKeeper.addToAllowlist({ module: _module });
     }
 
@@ -135,7 +137,9 @@ abstract contract Base_Test is Test, Events {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Generates a user, labels its address, and funds it with test assets
-    function createUser(string memory name) internal returns (address payable) {
+    function createUser(
+        string memory name
+    ) internal returns (address payable) {
         address payable user = payable(makeAddr(name));
         vm.deal({ account: user, newBalance: 100 ether });
         deal({ token: address(usdt), to: user, give: 10_000_000e18 });
