@@ -1,6 +1,7 @@
-# Compiler files
+# Directories
 cache/
 out/
+node_modules
 
 # Coverage
 coverage/
@@ -15,4 +16,9 @@ coverage/
 
 # Others
 .npmrc
+.DS_Store
+.pnp.*
 *lcov.info
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

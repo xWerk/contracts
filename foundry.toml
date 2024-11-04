@@ -1,11 +1,11 @@
 [profile.default]
 src = "src"
 out = "out"
-libs = ["lib"]
+script = "script"
+test = "test"
 optimizer = true
 optimizer_runs = 1000
 gas_reports = ["ModuleKeeper", "DockRegistry", "Container"]
-ffi = true
 ast = true
 build_info = true
 extra_output = ["storageLayout"]
