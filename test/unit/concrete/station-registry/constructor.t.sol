@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import { StationRegistry } from "./../../../../src/StationRegistry.sol";
 import { Base_Test } from "../../../Base.t.sol";
 import { Constants } from "../../../utils/Constants.sol";
+import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 
 contract Constructor_StationRegistry_Test is Base_Test {
     function setUp() public virtual override {
@@ -12,7 +13,11 @@ contract Constructor_StationRegistry_Test is Base_Test {
 
     function test_Constructor() external {
         // Run the test
-        new StationRegistry({ _initialAdmin: users.admin, _entrypoint: entrypoint, _moduleKeeper: moduleKeeper });
+        new StationRegistry({
+            _initialAdmin: users.admin,
+            _entrypoint: IEntryPoint(entrypoint),
+            _moduleKeeper: moduleKeeper
+        });
 
         // Assert the actual and expected {ModuleKeeper} address
         address actualModuleKeeper = address(stationRegistry.moduleKeeper());

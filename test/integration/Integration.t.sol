@@ -5,7 +5,7 @@ import { Base_Test } from "../Base.t.sol";
 import { InvoiceModule } from "./../../src/modules/invoice-module/InvoiceModule.sol";
 import { SablierV2LockupLinear } from "@sablier/v2-core/src/SablierV2LockupLinear.sol";
 import { SablierV2LockupTranched } from "@sablier/v2-core/src/SablierV2LockupTranched.sol";
-import { NFTDescriptorMock } from "@sablier/v2-core/test/mocks/NFTDescriptorMock.sol";
+import { MockNFTDescriptor } from "../mocks/MockNFTDescriptor.sol";
 import { MockStreamManager } from "../mocks/MockStreamManager.sol";
 import { MockBadSpace } from "../mocks/MockBadSpace.sol";
 import { Space } from "./../../src/Space.sol";
@@ -17,7 +17,7 @@ abstract contract Integration_Test is Base_Test {
 
     InvoiceModule internal invoiceModule;
     // Sablier V2 related test contracts
-    NFTDescriptorMock internal mockNFTDescriptor;
+    MockNFTDescriptor internal mockNFTDescriptor;
     SablierV2LockupLinear internal sablierV2LockupLinear;
     SablierV2LockupTranched internal sablierV2LockupTranched;
     MockStreamManager internal mockStreamManager;
@@ -60,7 +60,7 @@ abstract contract Integration_Test is Base_Test {
 
     /// @dev Deploys the {InvoiceModule} module by initializing the Sablier v2-required contracts first
     function deployInvoiceModule() internal {
-        mockNFTDescriptor = new NFTDescriptorMock();
+        mockNFTDescriptor = new MockNFTDescriptor();
         sablierV2LockupLinear =
             new SablierV2LockupLinear({ initialAdmin: users.admin, initialNFTDescriptor: mockNFTDescriptor });
         sablierV2LockupTranched = new SablierV2LockupTranched({

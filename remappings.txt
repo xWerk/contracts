@@ -1,8 +1,5 @@
-@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
-@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
-@sablier/v2-core/=lib/v2-core/
-@prb/math/=lib/prb-math/
-@nomad-xyz/excessively-safe-call/=lib/nomad-xyz/excessively-safe-call/
-@thirdweb/contracts/=lib/contracts/contracts/
-ds-test/=lib/openzeppelin-contracts/lib/forge-std/lib/ds-test/src/
-forge-std/=lib/forge-std/src/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+@sablier/v2-core/=node_modules/@sablier/v2-core/
+@prb/math/=node_modules/@prb/math/
+@thirdweb/contracts/=node_modules/@thirdweb-dev/contracts/
+forge-std/=node_modules/forge-std/src/

@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import { BaseScript } from "./Base.s.sol";
 import { StationRegistry } from "./../src/StationRegistry.sol";
 import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
-import { EntryPoint } from "@thirdweb/contracts/prebuilts/account/utils/Entrypoint.sol";
+import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 
 /// @notice Deploys at deterministic addresses across chains an instance of {StationRegistry}
 /// @dev Reverts if any contract has already been deployed
@@ -14,7 +14,7 @@ contract DeployDeterministicStationRegistry is BaseScript {
     function run(
         string memory create2Salt,
         address initialAdmin,
-        EntryPoint entrypoint,
+        IEntryPoint entrypoint,
         ModuleKeeper moduleKeeper
     ) public virtual broadcast returns (StationRegistry stationRegistry) {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));

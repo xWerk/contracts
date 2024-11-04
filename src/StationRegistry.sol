@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.26;
 
-import { BaseAccountFactory } from "@thirdweb/contracts/prebuilts/account/utils/BaseAccountFactory.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { PermissionsEnumerable } from "@thirdweb/contracts/extension/PermissionsEnumerable.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 
-import { IStationRegistry } from "./interfaces/IStationRegistry.sol";
 import { Space } from "./Space.sol";
 import { ModuleKeeper } from "./ModuleKeeper.sol";
 import { Errors } from "./libraries/Errors.sol";
+import { IStationRegistry } from "./interfaces/IStationRegistry.sol";
+import { BaseAccountFactory } from "./utils/BaseAccountFactory.sol";
 
 /// @title StationRegistry
 /// @notice See the documentation in {IStationRegistry}
@@ -111,7 +111,9 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, PermissionsEnu
     }
 
     /// @inheritdoc IStationRegistry
-    function updateModuleKeeper(ModuleKeeper newModuleKeeper) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateModuleKeeper(
+        ModuleKeeper newModuleKeeper
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         // Effects: update the {ModuleKeeper} address
         moduleKeeper = newModuleKeeper;
 
@@ -124,7 +126,9 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, PermissionsEnu
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IStationRegistry
-    function totalAccountsOfSigner(address signer) public view returns (uint256) {
+    function totalAccountsOfSigner(
+        address signer
+    ) public view returns (uint256) {
         return accountsOfSigner[signer].length();
     }
 
