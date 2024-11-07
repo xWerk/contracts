@@ -208,8 +208,10 @@ abstract contract StreamManager is IStreamManager {
         // Create the tranches array
         params.tranches = new LockupTranched.Tranche[](numberOfTranches);
         for (uint256 i; i < numberOfTranches; ++i) {
-            params.tranches[i] =
-                LockupTranched.Tranche({ amount: amountPerTranche, timestamp: startTime + durationPerTranche });
+            params.tranches[i] = LockupTranched.Tranche({
+                amount: amountPerTranche,
+                timestamp: startTime + durationPerTranche
+            });
 
             // Jump to the next tranche by adding the duration per tranche timestamp to the start time
             startTime += durationPerTranche;

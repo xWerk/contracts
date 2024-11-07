@@ -62,10 +62,7 @@ interface IStreamManager {
     /// @notice See the documentation in {ISablierV2Lockup-streamedAmountOf}
     /// Notes:
     /// - `streamType` parameter has been added to retrieve from the according {ISablierV2Lockup} contract
-    function streamedAmountOf(
-        Types.Method streamType,
-        uint256 streamId
-    ) external view returns (uint128 streamedAmount);
+    function streamedAmountOf(Types.Method streamType, uint256 streamId) external view returns (uint128 streamedAmount);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS

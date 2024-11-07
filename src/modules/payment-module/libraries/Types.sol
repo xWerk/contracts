@@ -15,7 +15,7 @@ library Types {
         Yearly
     }
 
-    /// @notice Enum representing the different payment methods an invoice can have
+    /// @notice Enum representing the different payment methods
     /// @custom:value Transfer Payment method must be made through a transfer
     /// @custom:value LinearStream Payment method must be made through a linear stream
     /// @custom:value TranchedStream Payment method must be made through a tranched stream
@@ -25,14 +25,14 @@ library Types {
         TranchedStream
     }
 
-    /// @notice Struct encapsulating the different values describing a payment
+    /// @notice Struct encapsulating the different values describing a payment config
     /// @param method The payment method
     /// @param recurrence The payment recurrence
     /// @param paymentsLeft The number of payments required to fully settle the invoice (only for transfer or tranched stream based invoices)
     /// @param asset The address of the payment asset
     /// @param amount The amount that must be paid
     /// @param streamId The ID of the linear or tranched stream if payment method is either `LinearStream` or `TranchedStream`, otherwise 0
-    struct Payment {
+    struct Config {
         // slot 0
         Method method;
         Recurrence recurrence;
@@ -44,30 +44,31 @@ library Types {
         uint256 streamId;
     }
 
-    /// @notice Enum representing the different statuses an invoice can have
-    /// @custom:value Pending Invoice waiting to be paid
-    /// @custom:value Ongoing Invoice is being paid; if the payment method is a One-Off Transfer, the invoice status will
-    /// automatically be set to `Paid`. Otherwise, it will remain `Ongoing` until the invoice is fully paid.
-    /// @custom:value Canceled Invoice cancelled by the recipient (if Transfer-based) or stream sender
+    /// @notice Enum representing the different statuses a payment request can have
+    /// @custom:value Pending Payment request waiting to be accepted by the payer
+    /// @custom:value Accepted Payment request has been accepted and is being paid; if the payment method is a One-Off Transfer,
+    /// the payment request status will automatically be set to `Completed`. Otherwise, it will remain `Accepted` until it is fully paid
+    /// @custom:value Canceled Payment request canceled by declined by the recipient (if Transfer-based) or stream sender
     enum Status {
         Pending,
-        Ongoing,
-        Paid,
+        Accepted,
+        Completed,
         Canceled
     }
 
-    /// @notice Struct encapsulating the different values describing an invoice
-    /// @param recipient The address of the payee
+    /// @notice Struct encapsulating the different values describing a payment request
     /// @param status The status of the invoice
-    /// @param startTime The unix timestamp indicating when the invoice payment starts
-    /// @param endTime The unix timestamp indicating when the invoice payment ends
-    /// @param payment The payment struct describing the invoice payment
-    struct Invoice {
+    /// @param startTime The unix timestamp indicating when the payment starts
+    /// @param endTime The unix timestamp indicating when the payment ends
+    /// @param recipient The address to which the payment is made
+    /// @param payment The payment configurations
+    struct PaymentRequest {
         // slot 0
         Status status;
         uint40 startTime;
         uint40 endTime;
+        address recipient;
         // slot 1, 2 and 3
-        Payment payment;
+        Config config;
     }
 }
