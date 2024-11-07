@@ -92,35 +92,27 @@ abstract contract Events {
     event ModuleDisabled(address indexed module, address indexed owner);
 
     /*//////////////////////////////////////////////////////////////////////////
-                                    INVOICE
+                                PAYMENT-MODULE
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a regular or recurring invoice is created
-    /// @param id The ID of the invoice
+    /// @notice Emitted when a payment request is created
+    /// @param id The ID of the payment request
     /// @param recipient The address receiving the payment
-    /// @param status The status of the invoice
-    /// @param startTime The timestamp when the invoice takes effect
-    /// @param endTime The timestamp by which the invoice must be paid
-    /// @param payment Struct representing the payment details associated with the invoice
-    event InvoiceCreated(
-        uint256 id,
-        address indexed recipient,
-        Types.Status status,
-        uint40 startTime,
-        uint40 endTime,
-        Types.Payment payment
-    );
+    /// @param startTime The timestamp when the payment request takes effect
+    /// @param endTime The timestamp by which the payment request must be paid
+    /// @param config Struct representing the payment details associated with the payment request
+    event RequestCreated(uint256 id, address indexed recipient, uint40 startTime, uint40 endTime, Types.Config config);
 
-    /// @notice Emitted when an invoice is paid
-    /// @param id The ID of the invoice
+    /// @notice Emitted when a payment is made for a payment request
+    /// @param id The ID of the payment request
     /// @param payer The address of the payer
-    /// @param status The status of the invoice
-    /// @param payment Struct representing the payment details associated with the invoice
-    event InvoicePaid(uint256 indexed id, address indexed payer, Types.Status status, Types.Payment payment);
+    /// @param status The status of the payment request
+    /// @param config Struct representing the payment details
+    event RequestPaid(uint256 indexed id, address indexed payer, Types.Status status, Types.Config config);
 
-    /// @notice Emitted when an invoice is canceled
-    /// @param id The ID of the invoice
-    event InvoiceCanceled(uint256 indexed id);
+    /// @notice Emitted when a payment request is canceled
+    /// @param id The ID of the payment request
+    event RequestCanceled(uint256 indexed id);
 
     /// @notice Emitted when the broker fee is updated
     /// @param oldFee The old broker fee

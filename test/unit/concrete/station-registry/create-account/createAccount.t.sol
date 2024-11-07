@@ -19,8 +19,11 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         // The {StationRegistry} contract deploys each new {Space} contract.
         // Therefore, we need to calculate the current nonce of the {StationRegistry}
         // to pre-compute the address of the new {Space} before deployment.
-        (address expectedSpace, bytes memory data) =
-            computeDeploymentAddressAndCalldata({ deployer: users.bob, stationId: 0, initialModules: mockModules });
+        (address expectedSpace, bytes memory data) = computeDeploymentAddressAndCalldata({
+            deployer: users.bob,
+            stationId: 0,
+            initialModules: mockModules
+        });
 
         // Allowlist the mock modules on the {ModuleKeeper} contract from the admin account
         vm.startPrank({ msgSender: users.admin });
@@ -61,8 +64,11 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
 
     function test_RevertWhen_CallerNotStationOwner() external whenStationIdNonZero {
         // Construct the calldata to be used to initialize the {Space} smart account
-        bytes memory data =
-            computeCreateAccountCalldata({ deployer: users.eve, stationId: 1, initialModules: mockModules });
+        bytes memory data = computeCreateAccountCalldata({
+            deployer: users.eve,
+            stationId: 1,
+            initialModules: mockModules
+        });
 
         // Make Eve the caller in this test suite
         vm.prank({ msgSender: users.eve });
@@ -82,8 +88,11 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         // The {StationRegistry} contract deploys each new {Space} contract.
         // Therefore, we need to calculate the current nonce of the {StationRegistry}
         // to pre-compute the address of the new {Space} before deployment.
-        (address expectedSpace, bytes memory data) =
-            computeDeploymentAddressAndCalldata({ deployer: users.bob, stationId: 1, initialModules: mockModules });
+        (address expectedSpace, bytes memory data) = computeDeploymentAddressAndCalldata({
+            deployer: users.bob,
+            stationId: 1,
+            initialModules: mockModules
+        });
 
         // Allowlist the mock modules on the {ModuleKeeper} contract from the admin account
         vm.startPrank({ msgSender: users.admin });

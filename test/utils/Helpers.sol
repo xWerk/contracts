@@ -6,19 +6,20 @@ import { Helpers as InvoiceHelpers } from "./../../src/modules/invoice-module/li
 
 library Helpers {
     function createInvoiceDataType() public view returns (Types.Invoice memory) {
-        return Types.Invoice({
-            status: Types.Status.Pending,
-            startTime: 0,
-            endTime: uint40(block.timestamp) + 1 weeks,
-            payment: Types.Payment({
-                method: Types.Method.Transfer,
-                recurrence: Types.Recurrence.OneOff,
-                paymentsLeft: 1,
-                asset: address(0),
-                amount: uint128(1 ether),
-                streamId: 0
-            })
-        });
+        return
+            Types.Invoice({
+                status: Types.Status.Pending,
+                startTime: 0,
+                endTime: uint40(block.timestamp) + 1 weeks,
+                payment: Types.Payment({
+                    method: Types.Method.Transfer,
+                    recurrence: Types.Recurrence.OneOff,
+                    paymentsLeft: 1,
+                    asset: address(0),
+                    amount: uint128(1 ether),
+                    streamId: 0
+                })
+            });
     }
 
     /// @dev Calculates the number of payments that must be done based on a Recurring invoice

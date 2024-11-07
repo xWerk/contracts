@@ -75,9 +75,7 @@ abstract contract BaseAccountFactory is IAccountFactory, Multicall {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Callback function for an Account to register itself on the factory.
-    function onRegister(
-        bytes32 _salt
-    ) external {
+    function onRegister(bytes32 _salt) external {
         address account = msg.sender;
         require(_isAccountOfFactory(account, _salt), "AccountFactory: not an account.");
 
@@ -112,9 +110,7 @@ abstract contract BaseAccountFactory is IAccountFactory, Multicall {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Returns whether an account is registered on this factory.
-    function isRegistered(
-        address _account
-    ) external view returns (bool) {
+    function isRegistered(address _account) external view returns (bool) {
         return allAccounts.contains(_account);
     }
 
@@ -147,9 +143,7 @@ abstract contract BaseAccountFactory is IAccountFactory, Multicall {
     }
 
     /// @notice Returns all accounts that the given address is a signer of.
-    function getAccountsOfSigner(
-        address signer
-    ) external view returns (address[] memory accounts) {
+    function getAccountsOfSigner(address signer) external view returns (address[] memory accounts) {
         return accountsOfSigner[signer].values();
     }
 
@@ -163,9 +157,7 @@ abstract contract BaseAccountFactory is IAccountFactory, Multicall {
         return _account == predicted;
     }
 
-    function _getImplementation(
-        address cloneAddress
-    ) internal view returns (address) {
+    function _getImplementation(address cloneAddress) internal view returns (address) {
         bytes memory code = cloneAddress.code;
         return BytesLib.toAddress(code, 10);
     }

@@ -21,7 +21,11 @@ contract DeployDeterministicInvoiceModule is BaseScript {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));
 
         // Deterministically deploy the {InvoiceModule} contracts
-        invoiceModule =
-            new InvoiceModule{ salt: salt }(sablierLockupLinear, sablierLockupTranched, brokerAdmin, baseURI);
+        invoiceModule = new InvoiceModule{ salt: salt }(
+            sablierLockupLinear,
+            sablierLockupTranched,
+            brokerAdmin,
+            baseURI
+        );
     }
 }

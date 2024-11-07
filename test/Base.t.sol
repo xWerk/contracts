@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.22;
 
 import { Events } from "./utils/Events.sol";
 import { Users } from "./utils/Types.sol";
@@ -98,8 +98,11 @@ abstract contract Base_Test is Test, Events {
         }
         vm.stopPrank();
 
-        bytes memory data =
-            computeCreateAccountCalldata({ deployer: _owner, stationId: _spaceId, initialModules: _initialModules });
+        bytes memory data = computeCreateAccountCalldata({
+            deployer: _owner,
+            stationId: _spaceId,
+            initialModules: _initialModules
+        });
 
         vm.prank({ msgSender: _owner });
         _container = Space(payable(stationRegistry.createAccount({ _admin: _owner, _data: data })));
@@ -118,17 +121,18 @@ abstract contract Base_Test is Test, Events {
         }
         vm.stopPrank();
 
-        bytes memory data =
-            computeCreateAccountCalldata({ deployer: _owner, stationId: _spaceId, initialModules: _initialModules });
+        bytes memory data = computeCreateAccountCalldata({
+            deployer: _owner,
+            stationId: _spaceId,
+            initialModules: _initialModules
+        });
 
         vm.prank({ msgSender: _owner });
         _badSpace = MockBadSpace(payable(stationRegistry.createAccount({ _admin: _owner, _data: data })));
         vm.stopPrank();
     }
 
-    function allowlistModule(
-        address _module
-    ) internal {
+    function allowlistModule(address _module) internal {
         moduleKeeper.addToAllowlist({ module: _module });
     }
 
@@ -137,9 +141,7 @@ abstract contract Base_Test is Test, Events {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Generates a user, labels its address, and funds it with test assets
-    function createUser(
-        string memory name
-    ) internal returns (address payable) {
+    function createUser(string memory name) internal returns (address payable) {
         address payable user = payable(makeAddr(name));
         vm.deal({ account: user, newBalance: 100 ether });
         deal({ token: address(usdt), to: user, give: 10_000_000e18 });
@@ -160,8 +162,11 @@ abstract contract Base_Test is Test, Events {
         bytes32 salt = keccak256(abi.encode(deployer, data));
 
         // Use {Clones} library to predict the smart account address based on the smart account implementation, salt and account factory
-        expectedAddress =
-            Clones.predictDeterministicAddress(stationRegistry.accountImplementation(), salt, address(stationRegistry));
+        expectedAddress = Clones.predictDeterministicAddress(
+            stationRegistry.accountImplementation(),
+            salt,
+            address(stationRegistry)
+        );
     }
 
     /// @dev Constructs the calldata passed to the {StationRegistry}.createAccount method

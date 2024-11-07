@@ -38,8 +38,12 @@ contract PayInvoice_Integration_Fuzz_Test is PayInvoice_Integration_Shared_Test 
         vm.assume(amount > 0);
 
         // Calculate the number of payments if this is a transfer-based invoice
-        (bool valid, uint40 numberOfPayments) =
-            Helpers.checkFuzzedPaymentMethod(paymentMethod, recurrence, startTime, endTime);
+        (bool valid, uint40 numberOfPayments) = Helpers.checkFuzzedPaymentMethod(
+            paymentMethod,
+            recurrence,
+            startTime,
+            endTime
+        );
         if (!valid) return;
 
         // Create a new invoice with the fuzzed payment method
@@ -59,7 +63,8 @@ contract PayInvoice_Integration_Fuzz_Test is PayInvoice_Integration_Shared_Test 
 
         // Create the calldata for the {InvoiceModule} execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         uint256 invoiceId = _nextInvoiceId;

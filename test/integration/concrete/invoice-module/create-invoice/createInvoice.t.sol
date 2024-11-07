@@ -36,7 +36,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the call to revert with the {SpaceUnsupportedInterface} error
@@ -58,7 +59,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the call to revert with the {ZeroPaymentAmount} error
@@ -86,7 +88,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the call to revert with the {StartTimeGreaterThanEndTime} error
@@ -119,7 +122,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the call to revert with the {EndTimeInThePast} error
@@ -147,7 +151,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the module call to emit an {InvoiceCreated} event
@@ -205,7 +210,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the call to revert with the {PaymentIntervalTooShortForSelectedRecurrence} error
@@ -233,7 +239,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the module call to emit an {InvoiceCreated} event
@@ -293,7 +300,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Run the test
@@ -324,7 +332,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Run the test
@@ -356,7 +365,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Run the test
@@ -381,7 +391,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the module call to emit an {InvoiceCreated} event
@@ -441,7 +452,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Run the test
@@ -466,7 +478,8 @@ contract CreateInvoice_Integration_Concret_Test is CreateInvoice_Integration_Sha
 
         // Create the calldata for the Invoice Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the module call to emit an {InvoiceCreated} event

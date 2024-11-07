@@ -61,8 +61,10 @@ abstract contract Integration_Test is Base_Test {
     /// @dev Deploys the {InvoiceModule} module by initializing the Sablier v2-required contracts first
     function deployInvoiceModule() internal {
         mockNFTDescriptor = new MockNFTDescriptor();
-        sablierV2LockupLinear =
-            new SablierV2LockupLinear({ initialAdmin: users.admin, initialNFTDescriptor: mockNFTDescriptor });
+        sablierV2LockupLinear = new SablierV2LockupLinear({
+            initialAdmin: users.admin,
+            initialNFTDescriptor: mockNFTDescriptor
+        });
         sablierV2LockupTranched = new SablierV2LockupTranched({
             initialAdmin: users.admin,
             initialNFTDescriptor: mockNFTDescriptor,

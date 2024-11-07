@@ -42,8 +42,10 @@ contract TransferFrom_Integration_Concret_Test is TransferFrom_Integration_Share
         uint256 balanceOfBefore = usdt.balanceOf(address(space));
 
         // Get the maximum withdrawable amount from the stream before transferring the stream NFT
-        uint128 maxWithdrawableAmount =
-            invoiceModule.withdrawableAmountOf({ streamType: Types.Method.LinearStream, streamId: streamId });
+        uint128 maxWithdrawableAmount = invoiceModule.withdrawableAmountOf({
+            streamType: Types.Method.LinearStream,
+            streamId: streamId
+        });
 
         // Make Eve's space the caller which is the recipient of the invoice
         vm.startPrank({ msgSender: address(space) });

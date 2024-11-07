@@ -93,9 +93,6 @@ library Errors {
     /// @notice Thrown when a payer attempts to pay a canceled invoice
     error InvoiceCanceled();
 
-    /// @notice Thrown when the invoice ID references a null invoice
-    error InvoiceNull();
-
     /// @notice Thrown when `msg.sender` is not the creator (recipient) of the invoice
     error OnlyInvoiceRecipient();
 

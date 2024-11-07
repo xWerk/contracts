@@ -78,7 +78,8 @@ contract PayInvoice_Integration_Concret_Test is PayInvoice_Integration_Shared_Te
         // Expect the call to be reverted with the {PaymentAmountLessThanInvoiceValue} error
         vm.expectRevert(
             abi.encodeWithSelector(
-                Errors.PaymentAmountLessThanInvoiceValue.selector, invoices[invoiceId].payment.amount
+                Errors.PaymentAmountLessThanInvoiceValue.selector,
+                invoices[invoiceId].payment.amount
             )
         );
 

@@ -106,11 +106,9 @@ abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
     }
 
     /// @dev Creates an invoice with a recurring transfer payment
-    function createInvoiceWithRecurringTransfer(Types.Recurrence recurrence)
-        internal
-        view
-        returns (Types.Invoice memory invoice)
-    {
+    function createInvoiceWithRecurringTransfer(
+        Types.Recurrence recurrence
+    ) internal view returns (Types.Invoice memory invoice) {
         invoice = _createInvoice(uint40(block.timestamp), uint40(block.timestamp) + 4 weeks);
 
         invoice.payment = Types.Payment({
@@ -138,11 +136,9 @@ abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
     }
 
     /// @dev Creates an invoice with a tranched stream-based payment
-    function createInvoiceWithTranchedStream(Types.Recurrence recurrence)
-        internal
-        view
-        returns (Types.Invoice memory invoice)
-    {
+    function createInvoiceWithTranchedStream(
+        Types.Recurrence recurrence
+    ) internal view returns (Types.Invoice memory invoice) {
         invoice = _createInvoice(uint40(block.timestamp), uint40(block.timestamp) + 4 weeks);
 
         invoice.payment = Types.Payment({
@@ -181,7 +177,8 @@ abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
 
         // Create the invoice
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Select the according {Space} of the user

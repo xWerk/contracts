@@ -40,8 +40,12 @@ contract CreateInvoice_Integration_Fuzz_Test is CreateInvoice_Integration_Shared
         vm.assume(amount > 0);
 
         // Calculate the number of payments if this is a transfer-based invoice
-        (bool valid, uint40 numberOfPayments) =
-            Helpers.checkFuzzedPaymentMethod(paymentMethod, recurrence, startTime, endTime);
+        (bool valid, uint40 numberOfPayments) = Helpers.checkFuzzedPaymentMethod(
+            paymentMethod,
+            recurrence,
+            startTime,
+            endTime
+        );
         if (!valid) return;
 
         // Create a new invoice with a transfer-based payment
@@ -61,7 +65,8 @@ contract CreateInvoice_Integration_Fuzz_Test is CreateInvoice_Integration_Shared
 
         // Create the calldata for the {InvoiceModule} execution
         bytes memory data = abi.encodeWithSignature(
-            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))", invoice
+            "createInvoice((uint8,uint40,uint40,(uint8,uint8,uint40,address,uint128,uint256)))",
+            invoice
         );
 
         // Expect the module call to emit an {InvoiceCreated} event

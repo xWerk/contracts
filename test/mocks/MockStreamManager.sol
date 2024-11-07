@@ -12,5 +12,5 @@ contract MockStreamManager is StreamManager {
         ISablierV2LockupLinear _sablierLockupLinear,
         ISablierV2LockupTranched _sablierLockupTranched,
         address _brokerAdmin
-    ) StreamManager(_sablierLockupLinear, _sablierLockupTranched, _brokerAdmin) { }
+    ) StreamManager(_sablierLockupLinear, _sablierLockupTranched, _brokerAdmin) {}
 }
