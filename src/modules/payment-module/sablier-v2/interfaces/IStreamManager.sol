@@ -6,6 +6,7 @@ import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISabli
 import { LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lockup.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Lockup } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { Types } from "./../../libraries/Types.sol";
 
@@ -57,12 +58,26 @@ interface IStreamManager {
     function withdrawableAmountOf(
         Types.Method streamType,
         uint256 streamId
-    ) external view returns (uint128 withdrawableAmount);
+    )
+        external
+        view
+        returns (uint128 withdrawableAmount);
 
     /// @notice See the documentation in {ISablierV2Lockup-streamedAmountOf}
     /// Notes:
     /// - `streamType` parameter has been added to retrieve from the according {ISablierV2Lockup} contract
-    function streamedAmountOf(Types.Method streamType, uint256 streamId) external view returns (uint128 streamedAmount);
+    function streamedAmountOf(
+        Types.Method streamType,
+        uint256 streamId
+    )
+        external
+        view
+        returns (uint128 streamedAmount);
+
+    /// @notice See the documentation in {ISablierV2Lockup-statusOf}
+    /// Notes:
+    /// - `streamType` parameter has been added to retrieve from the according {ISablierV2Lockup} contract
+    function statusOfStream(Types.Method streamType, uint256 streamId) external view returns (Lockup.Status status);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
@@ -80,7 +95,9 @@ interface IStreamManager {
         uint40 startTime,
         uint40 endTime,
         address recipient
-    ) external returns (uint256 streamId);
+    )
+        external
+        returns (uint256 streamId);
 
     /// @notice Creates a Lockup Tranched stream; See https://docs.sablier.com/concepts/protocol/stream-types#lockup-tranched
     /// @param asset The address of the ERC-20 token to be streamed
@@ -96,7 +113,9 @@ interface IStreamManager {
         address recipient,
         uint128 numberOfTranches,
         Types.Recurrence recurrence
-    ) external returns (uint256 streamId);
+    )
+        external
+        returns (uint256 streamId);
 
     /// @notice Updates the fee charged by the broker
     ///

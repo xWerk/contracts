@@ -5,7 +5,7 @@ import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablier
 import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
 import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lockup.sol";
 import { LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
-import { Broker, LockupLinear } from "@sablier/v2-core/src/types/DataTypes.sol";
+import { Broker, LockupLinear, Lockup } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ud60x18, UD60x18, ud, intoUint128 } from "@prb/math/src/UD60x18.sol";
@@ -78,13 +78,22 @@ abstract contract StreamManager is IStreamManager {
     function withdrawableAmountOf(
         Types.Method streamType,
         uint256 streamId
-    ) public view returns (uint128 withdrawableAmount) {
+    )
+        public
+        view
+        returns (uint128 withdrawableAmount)
+    {
         withdrawableAmount = _getISablierV2Lockup(streamType).withdrawableAmountOf(streamId);
     }
 
     /// @inheritdoc IStreamManager
     function streamedAmountOf(Types.Method streamType, uint256 streamId) public view returns (uint128 streamedAmount) {
         streamedAmount = _getISablierV2Lockup(streamType).streamedAmountOf(streamId);
+    }
+
+    /// @inheritdoc IStreamManager
+    function statusOfStream(Types.Method streamType, uint256 streamId) public view returns (Lockup.Status status) {
+        status = _getISablierV2Lockup(streamType).statusOf(streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -98,7 +107,10 @@ abstract contract StreamManager is IStreamManager {
         uint40 startTime,
         uint40 endTime,
         address recipient
-    ) public returns (uint256 streamId) {
+    )
+        public
+        returns (uint256 streamId)
+    {
         // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
         _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address(LOCKUP_LINEAR) });
 
@@ -117,7 +129,10 @@ abstract contract StreamManager is IStreamManager {
         address recipient,
         uint128 numberOfTranches,
         Types.Recurrence recurrence
-    ) public returns (uint256 streamId) {
+    )
+        public
+        returns (uint256 streamId)
+    {
         // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
         _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address(LOCKUP_TRANCHED) });
 
@@ -152,7 +167,10 @@ abstract contract StreamManager is IStreamManager {
         uint40 startTime,
         uint40 endTime,
         address recipient
-    ) internal returns (uint256 streamId) {
+    )
+        internal
+        returns (uint256 streamId)
+    {
         // Declare the params struct
         LockupLinear.CreateWithTimestamps memory params;
 
@@ -179,7 +197,10 @@ abstract contract StreamManager is IStreamManager {
         address recipient,
         uint128 numberOfTranches,
         Types.Recurrence recurrence
-    ) internal returns (uint256 streamId) {
+    )
+        internal
+        returns (uint256 streamId)
+    {
         // Declare the params struct
         LockupTranched.CreateWithTimestamps memory params;
 
@@ -208,10 +229,8 @@ abstract contract StreamManager is IStreamManager {
         // Create the tranches array
         params.tranches = new LockupTranched.Tranche[](numberOfTranches);
         for (uint256 i; i < numberOfTranches; ++i) {
-            params.tranches[i] = LockupTranched.Tranche({
-                amount: amountPerTranche,
-                timestamp: startTime + durationPerTranche
-            });
+            params.tranches[i] =
+                LockupTranched.Tranche({ amount: amountPerTranche, timestamp: startTime + durationPerTranche });
 
             // Jump to the next tranche by adding the duration per tranche timestamp to the start time
             startTime += durationPerTranche;
@@ -237,7 +256,10 @@ abstract contract StreamManager is IStreamManager {
         Types.Method streamType,
         uint256 streamId,
         address to
-    ) internal returns (uint128 withdrawnAmount) {
+    )
+        internal
+        returns (uint128 withdrawnAmount)
+    {
         // Set the according {ISablierV2Lockup} based on the stream type
         ISablierV2Lockup sablier = _getISablierV2Lockup(streamType);
 
@@ -252,7 +274,10 @@ abstract contract StreamManager is IStreamManager {
         Types.Method streamType,
         uint256 streamId,
         address newRecipient
-    ) internal returns (uint128 withdrawnAmount) {
+    )
+        internal
+        returns (uint128 withdrawnAmount)
+    {
         // Set the according {ISablierV2Lockup} based on the stream type
         ISablierV2Lockup sablier = _getISablierV2Lockup(streamType);
 

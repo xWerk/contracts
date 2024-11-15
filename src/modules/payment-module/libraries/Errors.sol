@@ -14,16 +14,16 @@ library Errors {
     /// @notice Thrown when the caller is a contract that does not implement the {ISpace} interface
     error SpaceUnsupportedInterface();
 
-    /// @notice Thrown when the end time of an invoice is in the past
+    /// @notice Thrown when the end time of a payment request is in the past
     error EndTimeInThePast();
 
     /// @notice Thrown when the start time is later than the end time
     error StartTimeGreaterThanEndTime();
 
-    /// @notice Thrown when the payment amount set for a new invoice is zero
+    /// @notice Thrown when the payment amount set for a new paymentRequest is zero
     error ZeroPaymentAmount();
 
-    /// @notice Thrown when the payment amount is less than the invoice value
+    /// @notice Thrown when the payment amount is less than the payment request value
     error PaymentAmountLessThanInvoiceValue(uint256 amount);
 
     /// @notice Thrown when a payment in the native token (ETH) fails
@@ -36,10 +36,13 @@ library Errors {
     error RequestCanceled();
 
     /// @notice Thrown when a payer attempts to pay a completed payment request
-    error RequestCompleted();
+    error RequestPaid();
 
     /// @notice Thrown when `msg.sender` is not the payment request recipient
     error OnlyRequestRecipient();
+
+    /// @notice Thrown when the recipient address is the zero address
+    error InvalidZeroAddressRecipient();
 
     /// @notice Thrown when the payment interval (endTime - startTime) is too short for the selected recurrence
     /// i.e. recurrence is set to weekly but interval is shorter than 1 week
@@ -50,6 +53,9 @@ library Errors {
 
     /// @notice Thrown when the caller is not the initial stream sender
     error OnlyInitialStreamSender(address initialSender);
+
+    /// @notice Thrown when the payment request is null
+    error NullRequest();
 
     /*//////////////////////////////////////////////////////////////////////////
                                     STREAM-MANAGER
