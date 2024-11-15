@@ -26,7 +26,7 @@ contract PayRequest_Integration_Fuzz_Test is PayRequest_Integration_Shared_Test 
         whenRequestNotCanceled
         givenPaymentMethodTransfer
         givenPaymentAmountInNativeToken
-        whenPaymentAmountEqualToInvoiceValue
+        whenPaymentAmountEqualToPaymentValue
         whenNativeTokenPaymentSucceeds
     {
         // Discard bad fuzz inputs
@@ -59,7 +59,7 @@ contract PayRequest_Integration_Fuzz_Test is PayRequest_Integration_Shared_Test 
             })
         });
 
-        // Create the calldata for the {InvoiceModule} execution
+        // Create the calldata for the {PaymentModule} execution
         bytes memory data = abi.encodeWithSignature(
             "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
@@ -79,7 +79,7 @@ contract PayRequest_Integration_Fuzz_Test is PayRequest_Integration_Shared_Test 
         // Make payer the caller to pay for the fuzzed paymentRequest
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the USDT tokens on payer's behalf
+        // Approve the {PaymentModule} to transfer the USDT tokens on payer's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequest.config.amount });
 
         // Store the USDT balances of the payer and recipient before paying the payment request

@@ -28,7 +28,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
 
         // Create a mock payment request with a recurring USDT transfer
         paymentRequest =
-            createInvoiceWithRecurringTransfer({ recurrence: Types.Recurrence.Weekly, recipient: address(space) });
+            createPaymentWithRecurringTransfer({ recurrence: Types.Recurrence.Weekly, recipient: address(space) });
         paymentRequests[3] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
@@ -117,7 +117,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
     }
 
     /// @dev Creates a payment request with a recurring transfer payment
-    function createInvoiceWithRecurringTransfer(
+    function createPaymentWithRecurringTransfer(
         Types.Recurrence recurrence,
         address recipient
     )

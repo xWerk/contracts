@@ -79,7 +79,7 @@ library Errors {
     error ZeroPaymentAmount();
 
     /// @notice Thrown when the payment amount is less than the payment request value
-    error PaymentAmountLessThanInvoiceValue(uint256 amount);
+    error PaymentAmountLessThanRequestedAmount(uint256 amount);
 
     /// @notice Thrown when a payment in the native token (ETH) fails
     error NativeTokenPaymentFailed();

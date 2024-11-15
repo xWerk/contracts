@@ -203,7 +203,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         // Create a recurring transfer payment request that must be paid on a monthly basis
         // Hence, the interval between the start and end time must be at least 1 month
         paymentRequest =
-            createInvoiceWithRecurringTransfer({ recurrence: Types.Recurrence.Monthly, recipient: address(space) });
+            createPaymentWithRecurringTransfer({ recurrence: Types.Recurrence.Monthly, recipient: address(space) });
 
         // Alter the end time to be 3 weeks from now
         paymentRequest.endTime = uint40(block.timestamp) + 3 weeks;
@@ -236,7 +236,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create a recurring transfer payment request that must be paid on weekly basis
         paymentRequest =
-            createInvoiceWithRecurringTransfer({ recurrence: Types.Recurrence.Weekly, recipient: address(space) });
+            createPaymentWithRecurringTransfer({ recurrence: Types.Recurrence.Weekly, recipient: address(space) });
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(

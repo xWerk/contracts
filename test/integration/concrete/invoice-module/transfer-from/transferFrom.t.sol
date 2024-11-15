@@ -28,7 +28,7 @@ contract TransferFrom_Integration_Concret_Test is TransferFrom_Integration_Share
         // Make Bob the payer for the payment request
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the USDT tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].payment.amount });
 
         // Pay the payment request
@@ -47,7 +47,7 @@ contract TransferFrom_Integration_Concret_Test is TransferFrom_Integration_Share
         // Make Eve's space the caller which is the recipient of the payment request
         vm.startPrank({ msgSender: address(space) });
 
-        // Approve the {InvoiceModule} to transfer the `streamId` stream on behalf of the Eve's space
+        // Approve the {PaymentModule} to transfer the `streamId` stream on behalf of the Eve's space
         sablierV2LockupLinear.approve({ to: address(paymentModule), tokenId: streamId });
 
         // Run the test

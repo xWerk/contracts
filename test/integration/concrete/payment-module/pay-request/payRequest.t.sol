@@ -8,7 +8,7 @@ import { Errors } from "../../../../utils/Errors.sol";
 
 import { LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
 
-contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Test {
+contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Test {
     function setUp() public virtual override {
         PayRequest_Integration_Shared_Test.setUp();
     }
@@ -28,7 +28,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         // Make Bob the payer for the default paymentRequest
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the ERC-20 token on Bob's behalf
+        // Approve the {PaymentModule} to transfer the ERC-20 token on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Pay first the payment request
@@ -61,7 +61,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         paymentModule.payRequest({ requestId: paymentRequestId });
     }
 
-    function test_RevertWhen_PaymentMethodTransfer_PaymentAmountLessThanInvoiceValue()
+    function test_RevertWhen_PaymentMethodTransfer_PaymentAmountLessThanRequestedAmount()
         external
         whenRequestNotNull
         whenRequestNotAlreadyPaid
@@ -75,10 +75,10 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         // Make Bob the payer for the default paymentRequest
         vm.startPrank({ msgSender: users.bob });
 
-        // Expect the call to be reverted with the {PaymentAmountLessThanInvoiceValue} error
+        // Expect the call to be reverted with the {PaymentAmountLessThanRequestedAmount} error
         vm.expectRevert(
             abi.encodeWithSelector(
-                Errors.PaymentAmountLessThanInvoiceValue.selector, paymentRequests[paymentRequestId].config.amount
+                Errors.PaymentAmountLessThanRequestedAmount.selector, paymentRequests[paymentRequestId].config.amount
             )
         );
 
@@ -95,7 +95,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         whenRequestNotCanceled
         givenPaymentMethodTransfer
         givenPaymentAmountInNativeToken
-        whenPaymentAmountEqualToInvoiceValue
+        whenPaymentAmountEqualToPaymentValue
     {
         // Create a mock payment request with a one-off ETH transfer from the Eve's space
         Types.PaymentRequest memory paymentRequest =
@@ -107,7 +107,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         // Make Eve's space the caller for the next call to approve & transfer the payment request NFT to a bad receiver
         //vm.startPrank({ msgSender: address(space) });
 
-        // Approve the {InvoiceModule} to transfer the token
+        // Approve the {PaymentModule} to transfer the token
         //paymentModule.approve({ to: address(paymentModule), tokenrequestId: paymentRequestId });
 
         // Transfer the payment request to a bad receiver so we can test against `NativeTokenPaymentFailed`
@@ -130,7 +130,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         whenRequestNotCanceled
         givenPaymentMethodTransfer
         givenPaymentAmountInNativeToken
-        whenPaymentAmountEqualToInvoiceValue
+        whenPaymentAmountEqualToPaymentValue
         whenNativeTokenPaymentSucceeds
     {
         // Set the one-off ETH transfer payment request as current one
@@ -182,7 +182,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         whenRequestNotCanceled
         givenPaymentMethodTransfer
         givenPaymentAmountInERC20Tokens
-        whenPaymentAmountEqualToInvoiceValue
+        whenPaymentAmountEqualToPaymentValue
     {
         // Set the recurring USDT transfer payment request as current one
         uint256 paymentRequestId = 3;
@@ -194,7 +194,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         uint256 balanceOfBobBefore = usdt.balanceOf(users.bob);
         uint256 balanceOfRecipientBefore = usdt.balanceOf(address(space));
 
-        // Approve the {InvoiceModule} to transfer the ERC-20 tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the ERC-20 tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Expect the {RequestPaid} event to be emitted
@@ -238,7 +238,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         whenRequestNotCanceled
         givenPaymentMethodLinearStream
         givenPaymentAmountInERC20Tokens
-        whenPaymentAmountEqualToInvoiceValue
+        whenPaymentAmountEqualToPaymentValue
     {
         // Set the linear USDT stream-based paymentRequest as current one
         uint256 paymentRequestId = 4;
@@ -246,7 +246,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         // Make Bob the payer for the default paymentRequest
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the ERC-20 tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the ERC-20 tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Expect the {RequestPaid} event to be emitted
@@ -293,7 +293,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         whenRequestNotCanceled
         givenPaymentMethodTranchedStream
         givenPaymentAmountInERC20Tokens
-        whenPaymentAmountEqualToInvoiceValue
+        whenPaymentAmountEqualToPaymentValue
     {
         // Set the tranched USDT stream-based paymentRequest as current one
         uint256 paymentRequestId = 5;
@@ -301,7 +301,7 @@ contract PayInvoice_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         // Make Bob the payer for the default paymentRequest
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the ERC-20 tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the ERC-20 tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Expect the {RequestPaid} event to be emitted

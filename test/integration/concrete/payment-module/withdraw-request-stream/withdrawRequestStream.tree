@@ -1,4 +1,4 @@
-withdrawStream.t.sol
+withdrawRequestStream.t.sol
 ├── given the payment method is linear stream
 │   └── given the payment request status is Ongoing
 │       └── it should allow the payment request recipient to withdraw from the stream

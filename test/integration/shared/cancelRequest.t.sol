@@ -9,19 +9,7 @@ abstract contract CancelRequest_Integration_Shared_Test is Integration_Test, Pay
         PayRequest_Integration_Shared_Test.setUp();
     }
 
-    modifier whenInvoiceStatusNotPaid() {
-        _;
-    }
-
-    modifier whenInvoiceStatusNotCanceled() {
-        _;
-    }
-
-    modifier whenSenderInvoiceRecipient() {
-        _;
-    }
-
-    modifier givenInvoiceStatusPending() {
+    modifier whenRequestSenderRecipient() {
         _;
     }
 

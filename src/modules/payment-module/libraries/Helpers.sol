@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import { Types } from "./Types.sol";
 
 /// @title Helpers
-/// @notice Library with helpers used across the {InvoiceModule} contract
+/// @notice Library with helpers used across the {PaymentModule} contract
 library Helpers {
     /// @dev Calculates the number of payments that must be done for a recurring transfer or tranched stream paymentRequest
     /// Notes:

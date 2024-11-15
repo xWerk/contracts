@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import { WithdrawLinearStream_Integration_Shared_Test } from "../../../shared/withdrawLinearStream.t.sol";
 import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
 
-contract WithdrawLinearStream_Integration_Concret_Test is WithdrawLinearStream_Integration_Shared_Test {
+contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_Integration_Shared_Test {
     function setUp() public virtual override {
         WithdrawLinearStream_Integration_Shared_Test.setUp();
     }
@@ -18,7 +18,7 @@ contract WithdrawLinearStream_Integration_Concret_Test is WithdrawLinearStream_I
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the USDT tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Pay the payment request first (status will be updated to `Accepted`)
@@ -55,7 +55,7 @@ contract WithdrawLinearStream_Integration_Concret_Test is WithdrawLinearStream_I
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the USDT tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Pay the payment request first (status will be updated to `Accepted`)

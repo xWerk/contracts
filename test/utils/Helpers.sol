@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import { Types } from "./../../src/modules/payment-module/libraries/Types.sol";
-import { Helpers as InvoiceHelpers } from "./../../src/modules/payment-module/libraries/Helpers.sol";
+import { Helpers as PaymentHelpers } from "./../../src/modules/payment-module/libraries/Helpers.sol";
 
 library Helpers {
     /// @dev Calculates the number of payments that must be done based on a Recurring paymentRequest
@@ -24,7 +24,7 @@ library Helpers {
     }
 
     /// @dev Checks if the fuzzed recurrence and payment method are valid;
-    /// Check {IInvoiceModule-createInvoice} for reference
+    /// Check {IPaymentModule-createRequest} for reference
     function checkFuzzedPaymentMethod(
         uint8 paymentMethod,
         uint8 recurrence,
@@ -47,7 +47,7 @@ library Helpers {
                 return (false, 0);
             }
 
-            numberOfPayments = InvoiceHelpers.computeNumberOfPayments({
+            numberOfPayments = PaymentHelpers.computeNumberOfPayments({
                 recurrence: Types.Recurrence(recurrence),
                 interval: endTime - startTime
             });

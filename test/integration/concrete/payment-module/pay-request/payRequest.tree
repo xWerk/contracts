@@ -11,7 +11,7 @@ payRequest.t.sol
             ├── given the payment method is transfer
             │   ├── given the payment amount is in native token (ETH)
             │   │   ├── when the payment amount is less than the payment request value
-            │   │   │   └── it should revert with the {PaymentAmountLessThanInvoiceValue} error
+            │   │   │   └── it should revert with the {PaymentAmountLessThanRequestedAmount} error
             │   │   └── when the payment amount IS equal to the payment request value
             │   │       ├── when the native token transfer fails
             │   │       │   └── it should revert with the {NativeTokenPaymentFailed} error

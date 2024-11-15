@@ -34,7 +34,7 @@ abstract contract PayRequest_Integration_Shared_Test is Integration_Test, Create
         _;
     }
 
-    modifier whenPaymentAmountEqualToInvoiceValue() {
+    modifier whenPaymentAmountEqualToPaymentValue() {
         _;
     }
 

@@ -11,7 +11,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         CancelRequest_Integration_Shared_Test.setUp();
     }
 
-    function test_RevertWhen_InvoiceIsPaid() external {
+    function test_RevertWhen_PaymentIsPaid() external {
         // Set the one-off ETH transfer payment request as current one
         uint256 paymentRequestId = 2;
 
@@ -50,7 +50,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         paymentModule.cancelRequest({ requestId: paymentRequestId });
     }
 
-    function test_RevertWhen_PaymentMethodTransfer_SenderNotInvoiceRecipient()
+    function test_RevertWhen_PaymentMethodTransfer_SenderNotPaymentRecipient()
         external
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
@@ -74,7 +74,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodTransfer
-        whenSenderInvoiceRecipient
+        whenRequestSenderRecipient
     {
         // Set the one-off ETH transfer payment request as current one
         uint256 paymentRequestId = 2;
@@ -94,12 +94,12 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Canceled));
     }
 
-    function test_RevertWhen_PaymentMethodLinearStream_StatusPending_SenderNotInvoiceRecipient()
+    function test_RevertWhen_PaymentMethodLinearStream_StatusPending_SenderNotPaymentRecipient()
         external
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodLinearStream
-        givenInvoiceStatusPending
+        givenRequestStatusPending
     {
         // Set current paymentRequest as a linear stream-based one
         uint256 paymentRequestId = 5;
@@ -119,8 +119,8 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodLinearStream
-        givenInvoiceStatusPending
-        whenSenderInvoiceRecipient
+        givenRequestStatusPending
+        whenRequestSenderRecipient
     {
         // Set current paymentRequest as a linear stream-based one
         uint256 paymentRequestId = 5;
@@ -154,7 +154,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Make Bob the payer of the payment request (also Bob will be the stream sender)
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the USDT tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Pay the payment request first (status will be updated to `Accepted`)
@@ -187,7 +187,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the USDT tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Pay the payment request first (status will be updated to `Accepted`)
@@ -210,12 +210,12 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Canceled));
     }
 
-    function test_RevertWhen_PaymentMethodTranchedStream_StatusPending_SenderNotInvoiceRecipient()
+    function test_RevertWhen_PaymentMethodTranchedStream_StatusPending_SenderNotPaymentRecipient()
         external
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodTranchedStream
-        givenInvoiceStatusPending
+        givenRequestStatusPending
     {
         // Set current paymentRequest as a tranched stream-based one
         uint256 paymentRequestId = 5;
@@ -235,8 +235,8 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodTranchedStream
-        givenInvoiceStatusPending
-        whenSenderInvoiceRecipient
+        givenRequestStatusPending
+        whenRequestSenderRecipient
     {
         // Set current paymentRequest as a tranched stream-based one
         uint256 paymentRequestId = 5;
@@ -270,7 +270,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Make Bob the payer of the payment request (also Bob will be the stream sender)
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the USDT tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Pay the payment request first (status will be updated to `Accepted`)
@@ -303,7 +303,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
-        // Approve the {InvoiceModule} to transfer the USDT tokens on Bob's behalf
+        // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
         // Pay the payment request first (status will be updated to `Accepted`)

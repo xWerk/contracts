@@ -301,7 +301,7 @@ contract PaymentModule is IPaymentModule, StreamManager {
         if (request.config.asset == address(0)) {
             // Checks: the payment amount matches the request value
             if (msg.value < request.config.amount) {
-                revert Errors.PaymentAmountLessThanInvoiceValue({ amount: request.config.amount });
+                revert Errors.PaymentAmountLessThanRequestedAmount({ amount: request.config.amount });
             }
 
             // Interactions: pay the recipient with native token (ETH)
