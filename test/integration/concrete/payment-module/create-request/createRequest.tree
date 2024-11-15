@@ -1,4 +1,4 @@
-createInvoice.t.sol
+createRequest.t.sol
 ├── when the caller IS NOT a contract
 │   └── it should revert with the {SpaceZeroCodeSize} error
 └── when the caller IS a contract
@@ -15,14 +15,14 @@ createInvoice.t.sol
                 │   └── it should revert with the {EndTimeInThePast} error
                 └── when the end time IS NOT in the past
                     ├── given the payment method is a regular transfer
-                    │   ├── it should create the invoice
-                    │   └── it should emit an {InvoiceCreated} event
+                    │   ├── it should create the payment request
+                    │   └── it should emit an {RequestCreated} event
                     ├── given the payment method is a recurring transfer
                     │   ├── when the payment interval is too short for the selected recurrence
                     │   │   └── it should revert with the {PaymentIntervalTooShortForSelectedRecurrence} error
                     │   └── when the payment interval is long enough for the selected recurrence
-                    │       ├── it should create the invoice
-                    │       └── it should emit an {InvoiceCreated} event
+                    │       ├── it should create the payment request
+                    │       └── it should emit an {RequestCreated} event
                     ├── given the payment method is a tranched stream
                     │   ├── when the recurrence IS set to one-off
                     │   │   └── it should revert with the {TranchedStreamInvalidOneOffRecurence} error
@@ -33,11 +33,11 @@ createInvoice.t.sol
                     │           ├── when the payment asset IS the native token
                     │           │   └── it should revert with the {OnlyERC20StreamsAllowed} error
                     │           └── when the payment asset IS NOT the native token
-                    │               ├── it should create the invoice
-                    │               └── it should emit an {InvoiceCreated} event
+                    │               ├── it should create the payment request
+                    │               └── it should emit an {RequestCreated} event
                     └── given the payment method is a linear stream
                         ├── when the payment asset IS the native token
                         │   └── it should revert with the {OnlyERC20StreamsAllowed} error
                         └── when the payment asset IS NOT the native token
-                            ├── it should create the invoice
-                            └── it should emit an {InvoiceCreated} event                                
+                            ├── it should create the payment request
+                            └── it should emit an {RequestCreated} event                                

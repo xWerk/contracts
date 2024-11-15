@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.26;
 
-import { StreamManager } from "./../../src/modules/invoice-module/sablier-v2/StreamManager.sol";
+import { StreamManager } from "./../../src/modules/payment-module/sablier-v2/StreamManager.sol";
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
 
@@ -12,5 +12,7 @@ contract MockStreamManager is StreamManager {
         ISablierV2LockupLinear _sablierLockupLinear,
         ISablierV2LockupTranched _sablierLockupTranched,
         address _brokerAdmin
-    ) StreamManager(_sablierLockupLinear, _sablierLockupTranched, _brokerAdmin) {}
+    )
+        StreamManager(_sablierLockupLinear, _sablierLockupTranched, _brokerAdmin)
+    { }
 }

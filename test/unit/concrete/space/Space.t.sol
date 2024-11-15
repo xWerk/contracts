@@ -10,6 +10,6 @@ contract Space_Unit_Concrete_Test is Base_Test {
         address[] memory modules = new address[](1);
         modules[0] = address(mockModule);
 
-        space = deploySpace({ _owner: users.eve, _spaceId: 0, _initialModules: modules });
+        space = deploySpace({ _owner: users.eve, _stationId: 0, _initialModules: modules });
     }
 }

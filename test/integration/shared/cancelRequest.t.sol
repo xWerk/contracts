@@ -2,12 +2,11 @@
 pragma solidity ^0.8.26;
 
 import { Integration_Test } from "../Integration.t.sol";
-import { PayInvoice_Integration_Shared_Test } from "./payInvoice.t.sol";
+import { PayRequest_Integration_Shared_Test } from "./payRequest.t.sol";
 
-abstract contract CancelInvoice_Integration_Shared_Test is Integration_Test, PayInvoice_Integration_Shared_Test {
-    function setUp() public virtual override(Integration_Test, PayInvoice_Integration_Shared_Test) {
-        PayInvoice_Integration_Shared_Test.setUp();
-        createMockInvoices();
+abstract contract CancelRequest_Integration_Shared_Test is Integration_Test, PayRequest_Integration_Shared_Test {
+    function setUp() public virtual override(Integration_Test, PayRequest_Integration_Shared_Test) {
+        PayRequest_Integration_Shared_Test.setUp();
     }
 
     modifier whenInvoiceStatusNotPaid() {
@@ -26,7 +25,7 @@ abstract contract CancelInvoice_Integration_Shared_Test is Integration_Test, Pay
         _;
     }
 
-    modifier givenInvoiceStatusOngoing() {
+    modifier givenRequestStatusPending() {
         _;
     }
 

@@ -5,6 +5,6 @@ transferFrom.t.sol
     ├── when the payment method is stream-based
     │   ├── it should withdraw the maximum withdrawable amount of the Sablier stream
     │   ├── it should transfer the Sablier stream NFT
-    │   └── it should transfer the invoice NFT
+    │   └── it should transfer the payment request NFT
     └── when the payment is transfer-based
-        └── it should transfer the invoice NFT
+        └── it should transfer the payment request NFT

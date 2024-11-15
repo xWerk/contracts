@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.26;
 
-import { Types } from "./../../src/modules/invoice-module/libraries/Types.sol";
+import { Types } from "./../../src/modules/payment-module/libraries/Types.sol";
 import { Space } from "./../../src/Space.sol";
 import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
@@ -96,23 +96,24 @@ abstract contract Events {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when a payment request is created
-    /// @param id The ID of the payment request
+    /// @param requestId The ID of the payment request
     /// @param recipient The address receiving the payment
     /// @param startTime The timestamp when the payment request takes effect
     /// @param endTime The timestamp by which the payment request must be paid
     /// @param config Struct representing the payment details associated with the payment request
-    event RequestCreated(uint256 id, address indexed recipient, uint40 startTime, uint40 endTime, Types.Config config);
+    event RequestCreated(
+        uint256 requestId, address indexed recipient, uint40 startTime, uint40 endTime, Types.Config config
+    );
 
     /// @notice Emitted when a payment is made for a payment request
-    /// @param id The ID of the payment request
+    /// @param requestId The ID of the payment request
     /// @param payer The address of the payer
-    /// @param status The status of the payment request
     /// @param config Struct representing the payment details
-    event RequestPaid(uint256 indexed id, address indexed payer, Types.Status status, Types.Config config);
+    event RequestPaid(uint256 indexed requestId, address indexed payer, Types.Config config);
 
     /// @notice Emitted when a payment request is canceled
-    /// @param id The ID of the payment request
-    event RequestCanceled(uint256 indexed id);
+    /// @param requestId The ID of the payment request
+    event RequestCanceled(uint256 indexed requestId);
 
     /// @notice Emitted when the broker fee is updated
     /// @param oldFee The old broker fee

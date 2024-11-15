@@ -2,23 +2,23 @@
 pragma solidity ^0.8.26;
 
 import { Integration_Test } from "../Integration.t.sol";
-import { CreateInvoice_Integration_Shared_Test } from "./createInvoice.t.sol";
+import { CreateRequest_Integration_Shared_Test } from "./createRequest.t.sol";
 
-abstract contract PayInvoice_Integration_Shared_Test is Integration_Test, CreateInvoice_Integration_Shared_Test {
-    function setUp() public virtual override(Integration_Test, CreateInvoice_Integration_Shared_Test) {
-        CreateInvoice_Integration_Shared_Test.setUp();
-        createMockInvoices();
+abstract contract PayRequest_Integration_Shared_Test is Integration_Test, CreateRequest_Integration_Shared_Test {
+    function setUp() public virtual override(Integration_Test, CreateRequest_Integration_Shared_Test) {
+        CreateRequest_Integration_Shared_Test.setUp();
+        createMockPaymentRequests();
     }
 
-    modifier whenInvoiceNotNull() {
+    modifier whenRequestNotNull() {
         _;
     }
 
-    modifier whenInvoiceNotAlreadyPaid() {
+    modifier whenRequestNotAlreadyPaid() {
         _;
     }
 
-    modifier whenInvoiceNotCanceled() {
+    modifier whenRequestNotCanceled() {
         _;
     }
 
