@@ -6,7 +6,7 @@ import { InvoiceModule } from "../src/modules/invoice-module/InvoiceModule.sol";
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
 
-/// @notice Deploys and initializes the {InvoiceModule} contracts at deterministic addresses across chains
+/// @notice Deploys and initializes the {InvoiceModule} contract at deterministic addresses across chains
 /// @dev Reverts if any contract has already been deployed
 contract DeployDeterministicInvoiceModule is BaseScript {
     /// @dev By using a salt, Forge will deploy the contract via a deterministic CREATE2 factory
@@ -17,15 +17,16 @@ contract DeployDeterministicInvoiceModule is BaseScript {
         ISablierV2LockupTranched sablierLockupTranched,
         address brokerAdmin,
         string memory baseURI
-    ) public virtual broadcast returns (InvoiceModule invoiceModule) {
+    )
+        public
+        virtual
+        broadcast
+        returns (InvoiceModule invoiceModule)
+    {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));
 
-        // Deterministically deploy the {InvoiceModule} contracts
-        invoiceModule = new InvoiceModule{ salt: salt }(
-            sablierLockupLinear,
-            sablierLockupTranched,
-            brokerAdmin,
-            baseURI
-        );
+        // Deterministically deploy the {InvoiceModule} contract
+        invoiceModule =
+            new InvoiceModule{ salt: salt }(sablierLockupLinear, sablierLockupTranched, brokerAdmin, baseURI);
     }
 }
