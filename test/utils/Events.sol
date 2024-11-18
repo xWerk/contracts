@@ -142,4 +142,14 @@ abstract contract Events {
     /// @param owner The address of the {ModuleKeeper} owner
     /// @param module The address of the module to be removed
     event ModuleRemovedFromAllowlist(address indexed owner, address indexed module);
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                INVOICE-COLLECTION
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when an invoice is created
+    /// @param to The address of the payment recipient of the invoice
+    /// @param tokenId The ID of the NFT representing the invoice
+    /// @param paymentRequestId The ID of the payment request associated with the invoice
+    event InvoiceMinted(address to, uint256 tokenId, string paymentRequestId);
 }
