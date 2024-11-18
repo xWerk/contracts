@@ -12,7 +12,12 @@ contract DeployDeterministicModuleKeeper is BaseScript {
     function run(
         string memory create2Salt,
         address initialOwner
-    ) public virtual broadcast returns (ModuleKeeper moduleKeeper) {
+    )
+        public
+        virtual
+        broadcast
+        returns (ModuleKeeper moduleKeeper)
+    {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));
 
         // Deterministically deploy the {ModuleKeeper} contract

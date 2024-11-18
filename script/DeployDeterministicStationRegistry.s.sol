@@ -16,7 +16,12 @@ contract DeployDeterministicStationRegistry is BaseScript {
         address initialAdmin,
         IEntryPoint entrypoint,
         ModuleKeeper moduleKeeper
-    ) public virtual broadcast returns (StationRegistry stationRegistry) {
+    )
+        public
+        virtual
+        broadcast
+        returns (StationRegistry stationRegistry)
+    {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));
 
         // Deterministically deploy the {StationRegistry} smart account factory

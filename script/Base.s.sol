@@ -19,7 +19,7 @@ contract BaseScript is Script {
             deployer = from;
         } else {
             mnemonic = vm.envOr({ name: "MNEMONIC", defaultValue: TEST_MNEMONIC });
-            (deployer, ) = deriveRememberKey(mnemonic, 0);
+            (deployer,) = deriveRememberKey(mnemonic, 0);
         }
     }
 
