@@ -83,7 +83,7 @@ contract PaymentModule is IPaymentModule, StreamManager {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IPaymentModule
-    function createRequest(Types.PaymentRequest calldata request) external onlySpace returns (uint256 requestId) {
+    function createRequest(Types.PaymentRequest calldata request) public onlySpace returns (uint256 requestId) {
         // Checks: the recipient address is not the zero address
         if (request.recipient == address(0)) {
             revert Errors.InvalidZeroAddressRecipient();
