@@ -2,8 +2,8 @@
 pragma solidity ^0.8.26;
 
 import { Base_Test } from "../../../Base.t.sol";
-import { Helpers } from "./../../../../src/modules/invoice-module/libraries/Helpers.sol";
-import { Types } from "./../../../../src/modules/invoice-module/libraries/Types.sol";
+import { Helpers } from "./../../../../src/modules/payment-module/libraries/Helpers.sol";
+import { Types } from "./../../../../src/modules/payment-module/libraries/Types.sol";
 
 contract ComputeNumberOfPayments_Helpers_Test is Base_Test {
     function setUp() public virtual override {

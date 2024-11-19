@@ -21,7 +21,7 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         // Deploy the `badSpace` space
         address[] memory modules = new address[](1);
         modules[0] = address(mockModule);
-        badSpace = deploySpace({ _owner: address(badReceiver), _spaceId: 0, _initialModules: modules });
+        badSpace = deploySpace({ _owner: address(badReceiver), _stationId: 0, _initialModules: modules });
     }
 
     function test_RevertWhen_CallerNotOwner() external {

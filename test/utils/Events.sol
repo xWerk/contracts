@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.26;
 
-import { Types } from "./../../src/modules/invoice-module/libraries/Types.sol";
+import { Types } from "./../../src/modules/payment-module/libraries/Types.sol";
 import { Space } from "./../../src/Space.sol";
 import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
@@ -92,35 +92,28 @@ abstract contract Events {
     event ModuleDisabled(address indexed module, address indexed owner);
 
     /*//////////////////////////////////////////////////////////////////////////
-                                    INVOICE
+                                PAYMENT-MODULE
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a regular or recurring invoice is created
-    /// @param id The ID of the invoice
+    /// @notice Emitted when a payment request is created
+    /// @param requestId The ID of the payment request
     /// @param recipient The address receiving the payment
-    /// @param status The status of the invoice
-    /// @param startTime The timestamp when the invoice takes effect
-    /// @param endTime The timestamp by which the invoice must be paid
-    /// @param payment Struct representing the payment details associated with the invoice
-    event InvoiceCreated(
-        uint256 id,
-        address indexed recipient,
-        Types.Status status,
-        uint40 startTime,
-        uint40 endTime,
-        Types.Payment payment
+    /// @param startTime The timestamp when the payment request takes effect
+    /// @param endTime The timestamp by which the payment request must be paid
+    /// @param config Struct representing the payment details associated with the payment request
+    event RequestCreated(
+        uint256 requestId, address indexed recipient, uint40 startTime, uint40 endTime, Types.Config config
     );
 
-    /// @notice Emitted when an invoice is paid
-    /// @param id The ID of the invoice
+    /// @notice Emitted when a payment is made for a payment request
+    /// @param requestId The ID of the payment request
     /// @param payer The address of the payer
-    /// @param status The status of the invoice
-    /// @param payment Struct representing the payment details associated with the invoice
-    event InvoicePaid(uint256 indexed id, address indexed payer, Types.Status status, Types.Payment payment);
+    /// @param config Struct representing the payment details
+    event RequestPaid(uint256 indexed requestId, address indexed payer, Types.Config config);
 
-    /// @notice Emitted when an invoice is canceled
-    /// @param id The ID of the invoice
-    event InvoiceCanceled(uint256 indexed id);
+    /// @notice Emitted when a payment request is canceled
+    /// @param requestId The ID of the payment request
+    event RequestCanceled(uint256 indexed requestId);
 
     /// @notice Emitted when the broker fee is updated
     /// @param oldFee The old broker fee
@@ -149,4 +142,14 @@ abstract contract Events {
     /// @param owner The address of the {ModuleKeeper} owner
     /// @param module The address of the module to be removed
     event ModuleRemovedFromAllowlist(address indexed owner, address indexed module);
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                INVOICE-COLLECTION
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when an invoice is created
+    /// @param to The address of the payment recipient of the invoice
+    /// @param tokenId The ID of the NFT representing the invoice
+    /// @param paymentRequestId The ID of the payment request associated with the invoice
+    event InvoiceMinted(address to, uint256 tokenId, string paymentRequestId);
 }

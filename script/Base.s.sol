@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.22;
 
 import { Script } from "forge-std/Script.sol";
 
@@ -19,7 +19,7 @@ contract BaseScript is Script {
             deployer = from;
         } else {
             mnemonic = vm.envOr({ name: "MNEMONIC", defaultValue: TEST_MNEMONIC });
-            (deployer, ) = deriveRememberKey(mnemonic, 0);
+            (deployer,) = deriveRememberKey(mnemonic, 0);
         }
     }
 

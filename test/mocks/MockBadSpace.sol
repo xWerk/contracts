@@ -37,7 +37,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Initializes the address of the {Space} owner, {ModuleKeeper} and enables the initial module(s)
-    constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) { }
+    constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) {}
 
     /*//////////////////////////////////////////////////////////////////////////
                                 RECEIVE & FALLBACK
@@ -145,9 +145,21 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
         // therefore the `onERC1155Received` hook must be implemented
         // - depending on the length of the `ids` array, we're using `safeBatchTransferFrom` or `safeTransferFrom`
         if (ids.length > 1) {
-            collection.safeBatchTransferFrom({ from: address(this), to: msg.sender, ids: ids, values: amounts, data: "" });
+            collection.safeBatchTransferFrom({
+                from: address(this),
+                to: msg.sender,
+                ids: ids,
+                values: amounts,
+                data: ""
+            });
         } else {
-            collection.safeTransferFrom({ from: address(this), to: msg.sender, id: ids[0], value: amounts[0], data: "" });
+            collection.safeTransferFrom({
+                from: address(this),
+                to: msg.sender,
+                id: ids[0],
+                value: amounts[0],
+                data: ""
+            });
         }
 
         // Log the successful ERC-1155 token withdrawal
@@ -160,7 +172,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
         if (amount > address(this).balance) revert Errors.InsufficientNativeToWithdraw();
 
         // Interactions: withdraw by transferring the amount to the sender
-        (bool success,) = msg.sender.call{ value: amount }("");
+        (bool success, ) = msg.sender.call{ value: amount }("");
         // Revert if the call failed
         if (!success) revert Errors.NativeWithdrawFailed();
 
@@ -185,10 +197,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ERC1271
-    function isValidSignature(
-        bytes32 _hash,
-        bytes memory _signature
-    ) public view override returns (bytes4 magicValue) {
+    function isValidSignature(bytes32 _hash, bytes memory _signature) public view override returns (bytes4 magicValue) {
         // Compute the hash of message the should be signed
         bytes32 targetDigest = getMessageHash(_hash);
 
@@ -221,8 +230,11 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return interfaceId == type(ISpace).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId
-            || interfaceId == type(IERC721Receiver).interfaceId || interfaceId == type(IERC165).interfaceId;
+        return
+            interfaceId == type(ISpace).interfaceId ||
+            interfaceId == type(IERC1155Receiver).interfaceId ||
+            interfaceId == type(IERC721Receiver).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
     }
 
     /// @inheritdoc IERC721Receiver

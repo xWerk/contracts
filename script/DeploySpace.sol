@@ -12,7 +12,12 @@ contract DeploySpace is BaseScript {
         StationRegistry stationRegistry,
         uint256 stationId,
         address[] memory initialModules
-    ) public virtual broadcast returns (Space space) {
+    )
+        public
+        virtual
+        broadcast
+        returns (Space space)
+    {
         // Get the number of total accounts created by the `initialAdmin` deployer
         uint256 totalAccountsOfAdmin = stationRegistry.totalAccountsOfSigner(initialAdmin);
 

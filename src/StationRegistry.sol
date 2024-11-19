@@ -111,9 +111,7 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, PermissionsEnu
     }
 
     /// @inheritdoc IStationRegistry
-    function updateModuleKeeper(
-        ModuleKeeper newModuleKeeper
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateModuleKeeper(ModuleKeeper newModuleKeeper) external onlyRole(DEFAULT_ADMIN_ROLE) {
         // Effects: update the {ModuleKeeper} address
         moduleKeeper = newModuleKeeper;
 
@@ -126,9 +124,7 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, PermissionsEnu
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IStationRegistry
-    function totalAccountsOfSigner(
-        address signer
-    ) public view returns (uint256) {
+    function totalAccountsOfSigner(address signer) public view returns (uint256) {
         return accountsOfSigner[signer].length();
     }
 

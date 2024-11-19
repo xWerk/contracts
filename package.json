@@ -1,6 +1,16 @@
 {
+    "scripts": {
+        "build": "forge build",
+        "lint": "bun run lint:sol && bun run prettier:check",
+        "lint:sol": "forge fmt --check && bun solhint \"{precompiles,script,src,test}/**/*.sol\"",
+        "prettier:check": "prettier --check --plugin=prettier-plugin-solidity \"**/*.{json,md,svg,yml}\"",
+        "prettier:write": "prettier --write --plugin=prettier-plugin-solidity \"**/*.{json,md,svg,yml,sol}\""
+    },
     "devDependencies": {
-        "forge-std": "github:foundry-rs/forge-std#v1.9.4"
+        "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+        "prettier": "^3.3.3",
+        "prettier-plugin-solidity": "^1.4.1",
+        "solhint": "^5.0.3"
     },
     "dependencies": {
         "@openzeppelin/contracts": "^5.1.0",

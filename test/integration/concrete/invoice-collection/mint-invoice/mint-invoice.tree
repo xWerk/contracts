@@ -1,0 +1,8 @@
+mintInvoice.t.sol
+├── when the caller IS NOT the authorized Relayer
+│   └── it should revert with the {Unathorized} error
+└── when the caller IS the authorized Relayer
+    ├── it should emit the {InvoiceMinted} event
+    ├── it should set the `paymentRequestId` for the `tokenId`
+    ├── it should mint the invoice NFT to the payment recipient
+    └── it should set the `tokenURI` for the `tokenId`

@@ -2,13 +2,13 @@
 pragma solidity ^0.8.26;
 
 import { Integration_Test } from "../../../Integration.t.sol";
-import { Types } from "./../../../../../src/modules/invoice-module/libraries/Types.sol";
+import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
 import { Errors } from "../../../../utils/Errors.sol";
 import { Events } from "../../../../utils/Events.sol";
 import { ud, UD60x18 } from "@prb/math/src/UD60x18.sol";
 
 contract UpdateStreamBrokerFee_Integration_Concret_Test is Integration_Test {
-    Types.Invoice invoice;
+    Types.PaymentRequest paymentRequest;
 
     function setUp() public virtual override {
         Integration_Test.setUp();

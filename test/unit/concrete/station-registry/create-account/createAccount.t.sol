@@ -55,7 +55,7 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
 
     modifier whenStationIdNonZero() {
         // Create & deploy a new space with Eve as the owner
-        space = deploySpace({ _owner: users.bob, _spaceId: 0, _initialModules: mockModules });
+        space = deploySpace({ _owner: users.bob, _stationId: 0, _initialModules: mockModules });
         _;
     }
 

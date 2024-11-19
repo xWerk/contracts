@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { ISpace } from "./../../src/interfaces/ISpace.sol";
-import { Errors } from "./../../src/modules/invoice-module/libraries/Errors.sol";
+import { Errors } from "./../../src/modules/payment-module/libraries/Errors.sol";
 
 /// @notice A mock implementation of a boilerplate module that creates multiple items and
 /// associates them with the corresponding {Space} contract
