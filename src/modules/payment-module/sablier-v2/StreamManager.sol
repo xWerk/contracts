@@ -4,24 +4,20 @@ pragma solidity >=0.8.22;
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
 import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lockup.sol";
-import { LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
-import { Broker, LockupLinear, Lockup } from "@sablier/v2-core/src/types/DataTypes.sol";
+import { Broker, Lockup, LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ud60x18, UD60x18, ud, intoUint128 } from "@prb/math/src/UD60x18.sol";
-
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { IStreamManager } from "./interfaces/IStreamManager.sol";
 import { Errors } from "./../libraries/Errors.sol";
 import { Types } from "./../libraries/Types.sol";
 
 /// @title StreamManager
 /// @dev See the documentation in {IStreamManager}
-abstract contract StreamManager is IStreamManager {
+abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
-
-    /*//////////////////////////////////////////////////////////////////////////
-                                  PUBLIC STORAGE
-    //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IStreamManager
     ISablierV2LockupLinear public immutable override LOCKUP_LINEAR;
@@ -29,40 +25,73 @@ abstract contract StreamManager is IStreamManager {
     /// @inheritdoc IStreamManager
     ISablierV2LockupTranched public immutable override LOCKUP_TRANCHED;
 
-    /// @inheritdoc IStreamManager
-    address public override brokerAdmin;
-
-    /// @inheritdoc IStreamManager
-    UD60x18 public override brokerFee;
-
     /*//////////////////////////////////////////////////////////////////////////
-                                  PRIVATE STORAGE
+                            NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Stores the initial address of the account that started the stream
-    /// By default, each stream will be created by this contract (the sender address of each stream will be address(this))
-    /// therefore this mapping is used to allow only authorized senders to execute management-related actions i.e. cancellations
-    mapping(uint256 streamId => address initialSender) private _initialStreamSender;
+    /// @custom:storage-location erc7201:werk.storage.StreamManager
+    struct StreamManagerStorage {
+        /// @notice Stores the initial address of the account that started the stream
+        /// By default, each stream will be created by this contract (the sender address of each stream will be address(this))
+        /// therefore this mapping is used to allow only authorized senders to execute management-related actions i.e. cancellations
+        mapping(uint256 streamId => address initialSender) initialStreamSender;
+        /// @notice The broker parameters charged to create Sablier V2 stream
+        Broker broker;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("werk.storage.StreamManager")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant STREAM_MANAGER_STORAGE_LOCATION =
+        0x37eb5ed31cc419f1937b308ec5ab43829484edc140a0a162efda74d20d290400;
+
+    /// @dev Retrieves the storage of the {StreamManager} contract
+    function _getStreamManagerStorage() internal pure returns (StreamManagerStorage storage $) {
+        assembly {
+            $.slot := STREAM_MANAGER_STORAGE_LOCATION
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
-                                    CONSTRUCTOR
+                            CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Initializes the address of the {SablierV2LockupLinear} and {SablierV2LockupTranched} contracts
-    /// and the address of the broker admin account or contract
-    constructor(
-        ISablierV2LockupLinear _sablierLockupLinear,
-        ISablierV2LockupTranched _sablierLockupTranched,
-        address _brokerAdmin
-    ) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(ISablierV2LockupLinear _sablierLockupLinear, ISablierV2LockupTranched _sablierLockupTranched) {
         LOCKUP_LINEAR = _sablierLockupLinear;
         LOCKUP_TRANCHED = _sablierLockupTranched;
-        brokerAdmin = _brokerAdmin;
+
+        _disableInitializers();
+    }
+
+    function __StreamManager_init(
+        address _initialAdmin,
+        address _brokerAccount,
+        UD60x18 _brokerFee
+    )
+        internal
+        onlyInitializing
+    {
+        __Ownable_init(_initialAdmin);
+
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
+        // Set the broker account and fee
+        $.broker = Broker({ account: _brokerAccount, fee: _brokerFee });
     }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IStreamManager
+    function broker() public view returns (Broker memory brokerConfig) {
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
+        // Return the broker fee
+        brokerConfig = $.broker;
+    }
 
     /// @inheritdoc IStreamManager
     function getLinearStream(uint256 streamId) public view returns (LockupLinear.StreamLL memory stream) {
@@ -117,8 +146,11 @@ abstract contract StreamManager is IStreamManager {
         // Create the Lockup Linear stream
         streamId = _createLinearStream(asset, totalAmount, startTime, endTime, recipient);
 
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
         // Set `msg.sender` as the initial stream sender to allow authenticated stream management
-        _initialStreamSender[streamId] = msg.sender;
+        $.initialStreamSender[streamId] = msg.sender;
     }
 
     /// @inheritdoc IStreamManager
@@ -139,27 +171,47 @@ abstract contract StreamManager is IStreamManager {
         // Create the Lockup Linear stream
         streamId = _createTranchedStream(asset, totalAmount, startTime, recipient, numberOfTranches, recurrence);
 
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
         // Set `msg.sender` as the initial stream sender to allow authenticated stream management
-        _initialStreamSender[streamId] = msg.sender;
+        $.initialStreamSender[streamId] = msg.sender;
     }
 
     /// @inheritdoc IStreamManager
-    function updateStreamBrokerFee(UD60x18 newBrokerFee) public {
-        // Checks: the `msg.sender` is the broker admin
-        if (msg.sender != brokerAdmin) revert Errors.OnlyBrokerAdmin();
+    function updateStreamBrokerFee(UD60x18 newBrokerFee) public onlyOwner {
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
 
         // Log the broker fee update
-        emit BrokerFeeUpdated({ oldFee: brokerFee, newFee: newBrokerFee });
+        emit BrokerFeeUpdated({ oldFee: $.broker.fee, newFee: newBrokerFee });
 
         // Update the fee charged by the broker
-        brokerFee = newBrokerFee;
+        $.broker.fee = newBrokerFee;
+    }
+
+    /// @inheritdoc IStreamManager
+    function withdrawMaxStream(
+        Types.Method streamType,
+        uint256 streamId,
+        address to
+    )
+        public
+        returns (uint128 withdrawnAmount)
+    {
+        withdrawnAmount = _withdrawMaxStream({ streamType: streamType, streamId: streamId, to: to });
+    }
+
+    /// @inheritdoc IStreamManager
+    function cancelStream(address sender, Types.Method streamType, uint256 streamId) public {
+        _cancelStream({ sender: sender, streamType: streamType, streamId: streamId });
     }
 
     /*//////////////////////////////////////////////////////////////////////////
                              INTERNAL MANAGEMENT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Creates a Lockup Linear stream
+    /// @dev Creates a Lockup Linear streams
     /// See https://docs.sablier.com/concepts/protocol/stream-types#lockup-linear
     function _createLinearStream(
         IERC20 asset,
@@ -171,6 +223,9 @@ abstract contract StreamManager is IStreamManager {
         internal
         returns (uint256 streamId)
     {
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
         // Declare the params struct
         LockupLinear.CreateWithTimestamps memory params;
 
@@ -180,9 +235,9 @@ abstract contract StreamManager is IStreamManager {
         params.totalAmount = totalAmount; // Total amount is the amount inclusive of all fees
         params.asset = asset; // The streaming asset
         params.cancelable = true; // Whether the stream will be cancelable or not
-        params.transferable = true; // Whether the stream will be transferable or not
+        params.transferable = false; // Whether the stream will be transferable or not
         params.timestamps = LockupLinear.Timestamps({ start: startTime, cliff: 0, end: endTime });
-        params.broker = Broker({ account: brokerAdmin, fee: brokerFee }); // Optional parameter for charging a fee
+        params.broker = Broker({ account: $.broker.account, fee: $.broker.fee }); // Optional parameter for charging a fee
 
         // Create the LockupLinear stream using a function that sets the start time to `block.timestamp`
         streamId = LOCKUP_LINEAR.createWithTimestamps(params);
@@ -201,6 +256,9 @@ abstract contract StreamManager is IStreamManager {
         internal
         returns (uint256 streamId)
     {
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
         // Declare the params struct
         LockupTranched.CreateWithTimestamps memory params;
 
@@ -210,14 +268,14 @@ abstract contract StreamManager is IStreamManager {
         params.totalAmount = totalAmount; // Total amount is the amount inclusive of all fees
         params.asset = asset; // The streaming asset
         params.cancelable = true; // Whether the stream will be cancelable or not
-        params.transferable = true; // Whether the stream will be transferable or not
+        params.transferable = false; // Whether the stream will be transferable or not
         params.startTime = startTime; // The timestamp when to start streaming
 
         // Calculate the duration of each tranche based on the payment recurrence
         uint40 durationPerTranche = _getDurationPerTrache(recurrence);
 
         // Calculate the broker fee amount
-        uint128 brokerFeeAmount = ud(totalAmount).mul(brokerFee).intoUint128();
+        uint128 brokerFeeAmount = ud(totalAmount).mul($.broker.fee).intoUint128();
 
         // Calculate the remaining amount to be streamed after substracting the broker fee
         uint128 deposit = totalAmount - brokerFeeAmount;
@@ -243,7 +301,7 @@ abstract contract StreamManager is IStreamManager {
         params.tranches[numberOfTranches - 1].amount += deposit - estimatedDepositAmount;
 
         // Optional parameter for charging a fee
-        params.broker = Broker({ account: brokerAdmin, fee: brokerFee });
+        params.broker = Broker({ account: $.broker.account, fee: $.broker.fee });
 
         // Create the LockupTranched stream
         streamId = LOCKUP_TRANCHED.createWithTimestamps(params);
@@ -252,7 +310,7 @@ abstract contract StreamManager is IStreamManager {
     /// @dev See the documentation in {ISablierV2Lockup-withdrawMax}
     /// Notes:
     /// - `streamType` parameter has been added to withdraw from the according {ISablierV2Lockup} contract
-    function _withdrawStream(
+    function _withdrawMaxStream(
         Types.Method streamType,
         uint256 streamId,
         address to
@@ -267,41 +325,20 @@ abstract contract StreamManager is IStreamManager {
         return sablier.withdrawMax(streamId, to);
     }
 
-    /// @dev Withdraws the maximum withdrawable amount and transfers the stream NFT to the new recipient
-    /// Notes:
-    /// - `streamType` parameter has been added to withdraw from the according {ISablierV2Lockup} contract
-    function _withdrawMaxAndTransferStream(
-        Types.Method streamType,
-        uint256 streamId,
-        address newRecipient
-    )
-        internal
-        returns (uint128 withdrawnAmount)
-    {
-        // Set the according {ISablierV2Lockup} based on the stream type
-        ISablierV2Lockup sablier = _getISablierV2Lockup(streamType);
-
-        // Checks: the caller is the current recipient. This also checks that the NFT was not burned.
-        address currentRecipient = sablier.ownerOf(streamId);
-
-        // Checks, Effects and Interactions: withdraw the maximum withdrawable amount
-        withdrawnAmount = sablier.withdrawMax(streamId, currentRecipient);
-
-        // Interactions: transfer the stream to the new recipient
-        sablier.transferFrom({ from: msg.sender, to: newRecipient, tokenId: streamId });
-    }
-
     /// @dev See the documentation in {ISablierV2Lockup-cancel}
     ///
     /// Notes:
     /// - `msg.sender` must be the initial stream creator
-    function _cancelStream(Types.Method streamType, uint256 streamId) internal {
+    function _cancelStream(address sender, Types.Method streamType, uint256 streamId) internal {
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
         // Set the according {ISablierV2Lockup} based on the stream type
         ISablierV2Lockup sablier = _getISablierV2Lockup(streamType);
 
-        // Checks: the `msg.sender` is the initial stream creator
-        address initialSender = _initialStreamSender[streamId];
-        if (msg.sender != initialSender) revert Errors.OnlyInitialStreamSender(initialSender);
+        // Checks: the `sender` is the initial stream creator
+        address initialSender = $.initialStreamSender[streamId];
+        if (sender != initialSender) revert Errors.OnlyInitialStreamSender(initialSender);
 
         // Checks, Effect, Interactions: cancel the stream
         sablier.cancel(streamId);

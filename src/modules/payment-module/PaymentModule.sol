@@ -4,48 +4,80 @@ pragma solidity ^0.8.26;
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { Lockup } from "@sablier/v2-core/src/types/DataTypes.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
-import { Lockup } from "@sablier/v2-core/src/types/DataTypes.sol";
+import { UD60x18 } from "@prb/math/src/ud60x18/ValueType.sol";
+import { StreamManager } from "./sablier-v2/StreamManager.sol";
 
 import { Types } from "./libraries/Types.sol";
 import { Errors } from "./libraries/Errors.sol";
 import { IPaymentModule } from "./interfaces/IPaymentModule.sol";
 import { ISpace } from "./../../interfaces/ISpace.sol";
-import { StreamManager } from "./sablier-v2/StreamManager.sol";
 import { Helpers } from "./libraries/Helpers.sol";
 
 /// @title PaymentModule
 /// @notice See the documentation in {IPaymentModule}
-contract PaymentModule is IPaymentModule, StreamManager {
+contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     using SafeERC20 for IERC20;
     using Strings for uint256;
 
+    /// @dev Version identifier for the current implementation of the contract
+    string public constant VERSION = "1.0.0";
+
     /*//////////////////////////////////////////////////////////////////////////
-                                  PRIVATE STORAGE
+                            NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Payment requests details mapped by the `id` payment request ID
-    mapping(uint256 id => Types.PaymentRequest) private _requests;
+    /// @custom:storage-location erc7201:werk.storage.PaymentModule
+    struct PaymentModuleStorage {
+        /// @notice Payment requests details mapped by the `id` payment request ID
+        mapping(uint256 id => Types.PaymentRequest) requests;
+        /// @notice Counter to keep track of the next ID used to create a new payment request
+        uint256 nextRequestId;
+    }
 
-    /// @dev Counter to keep track of the next ID used to create a new payment request
-    uint256 private _nextRequestId;
+    // keccak256(abi.encode(uint256(keccak256("werk.storage.PaymentModule")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant PAYMENT_MODULE_STORAGE_LOCATION =
+        0x69242e762af97d314866e2398c5d39d67197520146b0e3b1471c97ebda768e00;
+
+    /// @dev Retrieves the storage of the {StreamManager} contract
+    function _getPaymentModuleStorage() internal pure returns (PaymentModuleStorage storage $) {
+        assembly {
+            $.slot := PAYMENT_MODULE_STORAGE_LOCATION
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                     CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Initializes the {StreamManager} contract and first request  ID
+    /// @dev Deploys and locks the implementation contract
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         ISablierV2LockupLinear _sablierLockupLinear,
-        ISablierV2LockupTranched _sablierLockupTranched,
-        address _brokerAdmin
+        ISablierV2LockupTranched _sablierLockupTranched
     )
-        StreamManager(_sablierLockupLinear, _sablierLockupTranched, _brokerAdmin)
+        StreamManager(_sablierLockupLinear, _sablierLockupTranched)
     {
-        // Start the first payment request ID from 1
-        _nextRequestId = 1;
+        _disableInitializers();
     }
+
+    /// @dev Initializes the proxy and the {Ownable} contract
+    function initialize(address _initialOwner, address _brokerAccount, UD60x18 _brokerFee) public initializer {
+        __StreamManager_init(_initialOwner, _brokerAccount, _brokerFee);
+        __UUPSUpgradeable_init();
+
+        // Retrieve the contract storage
+        PaymentModuleStorage storage $ = _getPaymentModuleStorage();
+
+        // Start the first payment request ID from 1
+        $.nextRequestId = 1;
+    }
+
+    /// @dev Allows only the owner to upgrade the contract
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 
     /*//////////////////////////////////////////////////////////////////////////
                                       MODIFIERS
@@ -70,7 +102,10 @@ contract PaymentModule is IPaymentModule, StreamManager {
 
     /// @inheritdoc IPaymentModule
     function getRequest(uint256 requestId) external view returns (Types.PaymentRequest memory request) {
-        return _requests[requestId];
+        // Retrieve the contract storage
+        PaymentModuleStorage storage $ = _getPaymentModuleStorage();
+
+        return $.requests[requestId];
     }
 
     /// @inheritdoc IPaymentModule
@@ -143,11 +178,14 @@ contract PaymentModule is IPaymentModule, StreamManager {
             }
         }
 
+        // Retrieve the contract storage
+        PaymentModuleStorage storage $ = _getPaymentModuleStorage();
+
         // Get the next payment request ID
-        requestId = _nextRequestId;
+        requestId = $.nextRequestId;
 
         // Effects: create the payment request
-        _requests[requestId] = Types.PaymentRequest({
+        $.requests[requestId] = Types.PaymentRequest({
             wasCanceled: false,
             wasAccepted: false,
             startTime: request.startTime,
@@ -166,7 +204,7 @@ contract PaymentModule is IPaymentModule, StreamManager {
         // Effects: increment the next payment request ID
         // Use unchecked because the request id cannot realistically overflow
         unchecked {
-            ++_nextRequestId;
+            ++$.nextRequestId;
         }
 
         // Log the payment request creation
@@ -181,8 +219,11 @@ contract PaymentModule is IPaymentModule, StreamManager {
 
     /// @inheritdoc IPaymentModule
     function payRequest(uint256 requestId) external payable {
+        // Retrieve the contract storage
+        PaymentModuleStorage storage $ = _getPaymentModuleStorage();
+
         // Load the payment request state from storage
-        Types.PaymentRequest memory request = _requests[requestId];
+        Types.PaymentRequest memory request = $.requests[requestId];
 
         // Checks: the payment request is not null
         if (request.recipient == address(0)) {
@@ -215,7 +256,7 @@ contract PaymentModule is IPaymentModule, StreamManager {
             }
 
             // Effects: set the stream ID of the payment request
-            _requests[requestId].config.streamId = streamId;
+            $.requests[requestId].config.streamId = streamId;
         }
 
         // Effects: decrease the number of payments left
@@ -225,20 +266,23 @@ contract PaymentModule is IPaymentModule, StreamManager {
         uint40 paymentsLeft;
         unchecked {
             paymentsLeft = request.config.paymentsLeft - 1;
-            _requests[requestId].config.paymentsLeft = paymentsLeft;
+            $.requests[requestId].config.paymentsLeft = paymentsLeft;
         }
 
         // Effects: mark the payment request as accepted
-        _requests[requestId].wasAccepted = true;
+        $.requests[requestId].wasAccepted = true;
 
         // Log the payment transaction
-        emit RequestPaid({ requestId: requestId, payer: msg.sender, config: _requests[requestId].config });
+        emit RequestPaid({ requestId: requestId, payer: msg.sender, config: $.requests[requestId].config });
     }
 
     /// @inheritdoc IPaymentModule
     function cancelRequest(uint256 requestId) external {
+        // Retrieve the contract storage
+        PaymentModuleStorage storage $ = _getPaymentModuleStorage();
+
         // Load the payment request state from storage
-        Types.PaymentRequest memory request = _requests[requestId];
+        Types.PaymentRequest memory request = $.requests[requestId];
 
         // Retrieve the request status
         Types.Status requestStatus = _statusOf(requestId);
@@ -268,11 +312,11 @@ contract PaymentModule is IPaymentModule, StreamManager {
         // - A linear or tranched stream MUST be canceled by calling the `cancel` method on the according
         // {ISablierV2Lockup} contract
         else if (request.config.method != Types.Method.Transfer) {
-            _cancelStream({ streamType: request.config.method, streamId: request.config.streamId });
+            cancelStream({ sender: msg.sender, streamType: request.config.method, streamId: request.config.streamId });
         }
 
         // Effects: mark the payment request as canceled
-        _requests[requestId].wasCanceled = true;
+        $.requests[requestId].wasCanceled = true;
 
         // Log the payment request cancelation
         emit RequestCanceled(requestId);
@@ -280,11 +324,14 @@ contract PaymentModule is IPaymentModule, StreamManager {
 
     /// @inheritdoc IPaymentModule
     function withdrawRequestStream(uint256 requestId) public returns (uint128 withdrawnAmount) {
+        // Retrieve the contract storage
+        PaymentModuleStorage storage $ = _getPaymentModuleStorage();
+
         // Load the payment request state from storage
-        Types.PaymentRequest memory request = _requests[requestId];
+        Types.PaymentRequest memory request = $.requests[requestId];
 
         // Check, Effects, Interactions: withdraw from the stream
-        return _withdrawStream({
+        return withdrawMaxStream({
             streamType: request.config.method,
             streamId: request.config.streamId,
             to: request.recipient
@@ -319,7 +366,7 @@ contract PaymentModule is IPaymentModule, StreamManager {
 
     /// @dev Create the linear stream payment
     function _payByLinearStream(Types.PaymentRequest memory request) internal returns (uint256 streamId) {
-        streamId = StreamManager.createLinearStream({
+        streamId = createLinearStream({
             asset: IERC20(request.config.asset),
             totalAmount: request.config.amount,
             startTime: request.startTime,
@@ -333,7 +380,7 @@ contract PaymentModule is IPaymentModule, StreamManager {
         uint40 numberOfTranches =
             Helpers.computeNumberOfPayments(request.config.recurrence, request.endTime - request.startTime);
 
-        streamId = StreamManager.createTranchedStream({
+        streamId = createTranchedStream({
             asset: IERC20(request.config.asset),
             totalAmount: request.config.amount,
             startTime: request.startTime,
@@ -376,8 +423,11 @@ contract PaymentModule is IPaymentModule, StreamManager {
     ///   - For a stream-based payment request, by the status of the underlying stream;
     ///   - For a transfer-based payment request, by the number of payments left;
     function _statusOf(uint256 requestId) internal view returns (Types.Status status) {
+        // Retrieve the contract storage
+        PaymentModuleStorage storage $ = _getPaymentModuleStorage();
+
         // Load the payment request state from storage
-        Types.PaymentRequest memory request = _requests[requestId];
+        Types.PaymentRequest memory request = $.requests[requestId];
 
         if (!request.wasAccepted && !request.wasCanceled) {
             return Types.Status.Pending;
@@ -385,7 +435,7 @@ contract PaymentModule is IPaymentModule, StreamManager {
 
         // Check if dealing with a stream-based payment request
         if (request.config.streamId != 0) {
-            Lockup.Status statusOfStream = StreamManager.statusOfStream(request.config.method, request.config.streamId);
+            Lockup.Status statusOfStream = statusOfStream(request.config.method, request.config.streamId);
 
             if (statusOfStream == Lockup.Status.SETTLED) {
                 return Types.Status.Paid;
