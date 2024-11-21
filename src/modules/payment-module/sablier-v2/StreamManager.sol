@@ -203,8 +203,8 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     }
 
     /// @inheritdoc IStreamManager
-    function cancelStream(address sender, Types.Method streamType, uint256 streamId) public {
-        _cancelStream({ sender: sender, streamType: streamType, streamId: streamId });
+    function cancelStream(Types.Method streamType, uint256 streamId) public {
+        _cancelStream({ streamType: streamType, streamId: streamId });
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -329,16 +329,16 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     ///
     /// Notes:
     /// - `msg.sender` must be the initial stream creator
-    function _cancelStream(address sender, Types.Method streamType, uint256 streamId) internal {
+    function _cancelStream(Types.Method streamType, uint256 streamId) internal {
         // Retrieve the storage of the {StreamManager} contract
         StreamManagerStorage storage $ = _getStreamManagerStorage();
 
         // Set the according {ISablierV2Lockup} based on the stream type
         ISablierV2Lockup sablier = _getISablierV2Lockup(streamType);
 
-        // Checks: the `sender` is the initial stream creator
+        // Checks: the `msg.sender` is the initial stream creator
         address initialSender = $.initialStreamSender[streamId];
-        if (sender != initialSender) revert Errors.OnlyInitialStreamSender(initialSender);
+        if (msg.sender != initialSender) revert Errors.OnlyInitialStreamSender(initialSender);
 
         // Checks, Effect, Interactions: cancel the stream
         sablier.cancel(streamId);

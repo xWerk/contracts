@@ -135,5 +135,5 @@ interface IStreamManager {
     /// @notice See the documentation in {ISablierV2Lockup-cancel}
     /// Notes:
     /// - `streamType` parameter has been added to get the correct {ISablierV2Lockup} implementation
-    function cancelStream(address sender, Types.Method streamType, uint256 streamId) external;
+    function cancelStream(Types.Method streamType, uint256 streamId) external;
 }

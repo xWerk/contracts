@@ -312,7 +312,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // - A linear or tranched stream MUST be canceled by calling the `cancel` method on the according
         // {ISablierV2Lockup} contract
         else if (request.config.method != Types.Method.Transfer) {
-            cancelStream({ sender: msg.sender, streamType: request.config.method, streamId: request.config.streamId });
+            cancelStream({ streamType: request.config.method, streamId: request.config.streamId });
         }
 
         // Effects: mark the payment request as canceled
