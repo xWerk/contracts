@@ -1,4 +1,5 @@
 @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/
 @sablier/v2-core/=node_modules/@sablier/v2-core/
 @prb/math/=node_modules/@prb/math/
 @thirdweb/contracts/=node_modules/@thirdweb-dev/contracts/
