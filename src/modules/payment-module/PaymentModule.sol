@@ -42,7 +42,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     bytes32 private constant PAYMENT_MODULE_STORAGE_LOCATION =
         0x69242e762af97d314866e2398c5d39d67197520146b0e3b1471c97ebda768e00;
 
-    /// @dev Retrieves the storage of the {StreamManager} contract
+    /// @dev Retrieves the storage of the {PaymentModule} contract
     function _getPaymentModuleStorage() internal pure returns (PaymentModuleStorage storage $) {
         assembly {
             $.slot := PAYMENT_MODULE_STORAGE_LOCATION
