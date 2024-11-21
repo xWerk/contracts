@@ -18,6 +18,10 @@ runs = 10_000
 out = "out-optimized"
 via_ir = true
 
+# Test the optimized contracts without re-compiling them
+[profile.test-optimized]
+src = "test"
+
 [fmt]
 bracket_spacing = true
 int_types = "long"
