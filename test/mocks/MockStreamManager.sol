@@ -10,9 +10,8 @@ import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISabli
 contract MockStreamManager is StreamManager {
     constructor(
         ISablierV2LockupLinear _sablierLockupLinear,
-        ISablierV2LockupTranched _sablierLockupTranched,
-        address _brokerAdmin
+        ISablierV2LockupTranched _sablierLockupTranched
     )
-        StreamManager(_sablierLockupLinear, _sablierLockupTranched, _brokerAdmin)
+        StreamManager(_sablierLockupLinear, _sablierLockupTranched)
     { }
 }

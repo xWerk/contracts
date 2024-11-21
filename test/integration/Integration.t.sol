@@ -6,9 +6,11 @@ import { PaymentModule } from "./../../src/modules/payment-module/PaymentModule.
 import { InvoiceCollection } from "./../../src/peripherals/invoice-collection/InvoiceCollection.sol";
 import { SablierV2LockupLinear } from "@sablier/v2-core/src/SablierV2LockupLinear.sol";
 import { SablierV2LockupTranched } from "@sablier/v2-core/src/SablierV2LockupTranched.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockNFTDescriptor } from "../mocks/MockNFTDescriptor.sol";
 import { MockStreamManager } from "../mocks/MockStreamManager.sol";
 import { MockBadSpace } from "../mocks/MockBadSpace.sol";
+import { ud } from "@prb/math/src/UD60x18.sol";
 import { Space } from "./../../src/Space.sol";
 
 abstract contract Integration_Test is Base_Test {
@@ -32,11 +34,8 @@ abstract contract Integration_Test is Base_Test {
     function setUp() public virtual override {
         Base_Test.setUp();
 
-        // Deploy the {PaymentModule} module
-        deployPaymentModule();
-
-        // Deploy the {InvoiceCollection} module
-        deployInvoiceCollection();
+        // Deploy corect contracts
+        deployCoreContracts();
 
         // Enable the {PaymentModule} module on the {Space} contract
         address[] memory modules = new address[](1);
@@ -47,9 +46,6 @@ abstract contract Integration_Test is Base_Test {
 
         // Deploy a "bad" {Space} with the `mockBadReceiver` as the owner
         badSpace = deployBadSpace({ _owner: address(mockBadReceiver), _stationId: 0, _initialModules: modules });
-
-        // Deploy the mock {StreamManager}
-        mockStreamManager = new MockStreamManager(sablierV2LockupLinear, sablierV2LockupTranched, users.admin);
 
         // Label the test contracts so we can easily track them
         vm.label({ account: address(paymentModule), newLabel: "PaymentModule" });
@@ -63,15 +59,19 @@ abstract contract Integration_Test is Base_Test {
                             DEPLOYMENT-RELATED FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Deploys the {PaymentModule} module by initializing the Sablier v2-required contracts first
+    /// @dev Deploys the core contracts of the Werk Protocol
+    function deployCoreContracts() internal {
+        deployPaymentModule();
+        deployInvoiceCollection();
+    }
+
+    /// @dev Deploys the {PaymentModule} module
     function deployPaymentModule() internal {
         deploySablierContracts();
 
-        paymentModule = new PaymentModule({
-            _sablierLockupLinear: sablierV2LockupLinear,
-            _sablierLockupTranched: sablierV2LockupTranched,
-            _brokerAdmin: users.admin
-        });
+        address implementation = address(new PaymentModule(sablierV2LockupLinear, sablierV2LockupTranched));
+        bytes memory data = abi.encodeWithSelector(PaymentModule.initialize.selector, users.admin, users.admin, ud(0));
+        paymentModule = PaymentModule(address(new ERC1967Proxy(implementation, data)));
     }
 
     /// @dev Deploys the {InvoiceCollection} peripheral
