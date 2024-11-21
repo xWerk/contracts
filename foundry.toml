@@ -14,6 +14,10 @@ extra_output = ["storageLayout"]
 max_test_rejects = 500_000
 runs = 10_000
 
+[profile.optimized]
+out = "out-optimized"
+via_ir = true
+
 [fmt]
 bracket_spacing = true
 int_types = "long"
