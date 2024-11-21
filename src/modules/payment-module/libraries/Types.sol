@@ -28,7 +28,7 @@ library Types {
     /// @notice Struct encapsulating the different values describing a payment config
     /// @param method The payment method
     /// @param recurrence The payment recurrence
-    /// @param paymentsLeft The number of payments required to fully settle the payment request (only for transfer or tranched stream based paymentRequests)
+    /// @param paymentsLeft The number of payments required to fully settle the payment request (only for transfer or tranched stream based payment requests)
     /// @param asset The address of the payment asset
     /// @param amount The amount that must be paid
     /// @param streamId The ID of the linear or tranched stream if payment method is either `LinearStream` or `TranchedStream`, otherwise 0
