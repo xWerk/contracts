@@ -41,7 +41,9 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, PermissionsEnu
         address _initialAdmin,
         IEntryPoint _entrypoint,
         ModuleKeeper _moduleKeeper
-    ) BaseAccountFactory(address(new Space(_entrypoint, address(this))), address(_entrypoint)) {
+    )
+        BaseAccountFactory(address(new Space(_entrypoint, address(this))), address(_entrypoint))
+    {
         _setupRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
 
         _stationNextId = 1;
@@ -56,7 +58,11 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, PermissionsEnu
     function createAccount(
         address _admin,
         bytes calldata _data
-    ) public override(BaseAccountFactory, IStationRegistry) returns (address) {
+    )
+        public
+        override(BaseAccountFactory, IStationRegistry)
+        returns (address)
+    {
         // Get the station ID and initial modules array from the calldata
         // Note: calldata contains a salt (usually the number of accounts created by an admin),
         // station ID and an array with the initial enabled modules on the account

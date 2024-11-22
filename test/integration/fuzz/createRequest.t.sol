@@ -35,7 +35,7 @@ contract CreateRequest_Integration_Fuzz_Test is CreateRequest_Integration_Shared
         // Discard bad fuzz inputs
         // Assume recurrence is within Types.Recurrence enum values (OneOff, Weekly, Monthly, Yearly) (0, 1, 2, 3)
         vm.assume(recurrence < 4);
-        // Assume recurrence is within Types.Method enum values (Transfer, LinearStream, TranchedStream) (0, 1, 2)
+        // Assume the payment method is within Types.Method enum values (Transfer, LinearStream, TranchedStream) (0, 1, 2)
         vm.assume(paymentMethod < 3);
         vm.assume(recipient != address(0) && recipient != address(this));
         vm.assume(startTime >= uint40(block.timestamp) && startTime < endTime);

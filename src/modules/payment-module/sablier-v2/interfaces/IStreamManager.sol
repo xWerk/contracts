@@ -3,10 +3,9 @@ pragma solidity >=0.8.22;
 
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
-import { LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
+import { Broker, Lockup, LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lockup.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Lockup } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { Types } from "./../../libraries/Types.sol";
 
@@ -37,12 +36,8 @@ interface IStreamManager {
     /// See https://docs.sablier.com/contracts/v2/deployments
     function LOCKUP_TRANCHED() external view returns (ISablierV2LockupTranched);
 
-    /// @notice The address of the broker admin account or contract managing the broker fee
-    function brokerAdmin() external view returns (address);
-
-    /// @notice The broker fee charged to create Sablier V2 stream
-    /// @dev See the `UD60x18` type definition in the `@prb/math/src/ud60x18/ValueType.sol file`
-    function brokerFee() external view returns (UD60x18);
+    /// @notice The broker account andfee charged to create Sablier V2 stream
+    function broker() external view returns (Broker memory brokerConfig);
 
     /// @notice Retrieves a linear stream details according to the {LockupLinear.StreamLL} struct
     /// @param streamId The ID of the stream to be retrieved
@@ -54,7 +49,7 @@ interface IStreamManager {
 
     /// @notice See the documentation in {ISablierV2Lockup-withdrawableAmountOf}
     /// Notes:
-    /// - `streamType` parameter has been added to retrieve from the according {ISablierV2Lockup} contract
+    /// - `streamType` parameter has been added to get the correct {ISablierV2Lockup} implementation
     function withdrawableAmountOf(
         Types.Method streamType,
         uint256 streamId
@@ -65,7 +60,7 @@ interface IStreamManager {
 
     /// @notice See the documentation in {ISablierV2Lockup-streamedAmountOf}
     /// Notes:
-    /// - `streamType` parameter has been added to retrieve from the according {ISablierV2Lockup} contract
+    /// - `streamType` parameter has been added to get the correct {ISablierV2Lockup} implementation
     function streamedAmountOf(
         Types.Method streamType,
         uint256 streamId
@@ -76,7 +71,7 @@ interface IStreamManager {
 
     /// @notice See the documentation in {ISablierV2Lockup-statusOf}
     /// Notes:
-    /// - `streamType` parameter has been added to retrieve from the according {ISablierV2Lockup} contract
+    /// - `streamType` parameter has been added to get the correct {ISablierV2Lockup} implementation
     function statusOfStream(Types.Method streamType, uint256 streamId) external view returns (Lockup.Status status);
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -125,4 +120,20 @@ interface IStreamManager {
     ///
     /// @param newBrokerFee The new broker fee
     function updateStreamBrokerFee(UD60x18 newBrokerFee) external;
+
+    /// @notice See the documentation in {ISablierV2Lockup-withdrawMax}
+    /// Notes:
+    /// - `streamType` parameter has been added to get the correct {ISablierV2Lockup} implementation
+    function withdrawMaxStream(
+        Types.Method streamType,
+        uint256 streamId,
+        address to
+    )
+        external
+        returns (uint128 withdrawnAmount);
+
+    /// @notice See the documentation in {ISablierV2Lockup-cancel}
+    /// Notes:
+    /// - `streamType` parameter has been added to get the correct {ISablierV2Lockup} implementation
+    function cancelStream(Types.Method streamType, uint256 streamId) external;
 }

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 /// @title Errors
-/// @notice Library containing all custom errors the {PaymentModule} and {StreamManager} may revert with
+/// @notice Library containing all custom errors the {PaymentModule} contract may revert with
 library Errors {
     /*//////////////////////////////////////////////////////////////////////////
                                     PAYMENT-MODULE

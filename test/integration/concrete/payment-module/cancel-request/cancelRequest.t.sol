@@ -89,7 +89,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
 
-        // Assert the actual and expected paymentRequest status
+        // Assert the actual and expected payment request status
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
         assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Canceled));
     }
@@ -101,7 +101,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         givenPaymentMethodLinearStream
         givenRequestStatusPending
     {
-        // Set current paymentRequest as a linear stream-based one
+        // Set the current payment request as a linear stream-based one
         uint256 paymentRequestId = 5;
 
         // Make Bob the caller who IS NOT the recipient of the payment request
@@ -122,7 +122,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         givenRequestStatusPending
         whenRequestSenderRecipient
     {
-        // Set current paymentRequest as a linear stream-based one
+        // Set the current payment request as a linear stream-based one
         uint256 paymentRequestId = 5;
 
         // Make Eve's space the caller which is the recipient of the payment request
@@ -135,7 +135,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
 
-        // Assert the actual and expected paymentRequest status
+        // Assert the actual and expected payment request status
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
         assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Canceled));
     }
@@ -147,7 +147,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         givenPaymentMethodLinearStream
         givenRequestStatusPending
     {
-        // Set current paymentRequest as a linear stream-based one
+        // Set the current payment request as a linear stream-based one
         uint256 paymentRequestId = 5;
 
         // The payment request must be paid for its status to be updated to `Accepted`
@@ -180,7 +180,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         givenRequestStatusPending
         whenSenderInitialStreamSender
     {
-        // Set current paymentRequest as a linear stream-based one
+        // Set the current payment request as a linear stream-based one
         uint256 paymentRequestId = 5;
 
         // The payment request must be paid for its status to be updated to `Accepted`
@@ -205,7 +205,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
 
-        // Assert the actual and expected paymentRequest status
+        // Assert the actual and expected payment request status
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
         assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Canceled));
     }
@@ -217,7 +217,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         givenPaymentMethodTranchedStream
         givenRequestStatusPending
     {
-        // Set current paymentRequest as a tranched stream-based one
+        // Set the current payment request as a tranched stream-based one
         uint256 paymentRequestId = 5;
 
         // Make Bob the caller who IS NOT the recipient of the payment request
@@ -238,7 +238,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         givenRequestStatusPending
         whenRequestSenderRecipient
     {
-        // Set current paymentRequest as a tranched stream-based one
+        // Set the current payment request as a tranched stream-based one
         uint256 paymentRequestId = 5;
 
         // Make Eve's space the caller which is the recipient of the payment request
@@ -251,7 +251,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
 
-        // Assert the actual and expected paymentRequest status
+        // Assert the actual and expected payment request status
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
         assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Canceled));
     }
@@ -263,7 +263,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         givenPaymentMethodTranchedStream
         givenRequestStatusPending
     {
-        // Set current paymentRequest as a tranched stream-based one
+        // Set the current payment request as a tranched stream-based one
         uint256 paymentRequestId = 5;
 
         // The payment request must be paid for its status to be updated to `Accepted`
@@ -296,7 +296,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         givenRequestStatusPending
         whenSenderInitialStreamSender
     {
-        // Set current paymentRequest as a tranched stream-based one
+        // Set the current payment request as a tranched stream-based one
         uint256 paymentRequestId = 5;
 
         // The payment request must be paid for its status to be updated to `Accepted`
@@ -318,7 +318,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
 
-        // Assert the actual and expected paymentRequest status
+        // Assert the actual and expected payment request status
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
         assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Canceled));
     }

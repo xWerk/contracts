@@ -19,10 +19,10 @@ contract UpdateStreamBrokerFee_Integration_Concret_Test is Integration_Test {
         vm.startPrank({ msgSender: users.bob });
 
         // Expect the call to revert with the {OnlyBrokerAdmin} error
-        vm.expectRevert(Errors.OnlyBrokerAdmin.selector);
+        vm.expectRevert(abi.encodeWithSelector(Errors.OwnableUnauthorizedAccount.selector, users.bob));
 
         // Run the test
-        mockStreamManager.updateStreamBrokerFee({ newBrokerFee: ud(0.05e18) });
+        paymentModule.updateStreamBrokerFee({ newBrokerFee: ud(0.05e18) });
     }
 
     modifier whenCallerBrokerAdmin() {
@@ -40,10 +40,10 @@ contract UpdateStreamBrokerFee_Integration_Concret_Test is Integration_Test {
         emit Events.BrokerFeeUpdated({ oldFee: ud(0), newFee: newBrokerFee });
 
         // Run the test
-        mockStreamManager.updateStreamBrokerFee(newBrokerFee);
+        paymentModule.updateStreamBrokerFee(newBrokerFee);
 
         // Assert the actual and expected broker fee
-        UD60x18 actualBrokerFee = mockStreamManager.brokerFee();
+        UD60x18 actualBrokerFee = paymentModule.broker().fee;
         assertEq(UD60x18.unwrap(actualBrokerFee), UD60x18.unwrap(newBrokerFee));
     }
 }
