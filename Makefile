@@ -23,7 +23,7 @@ tests-coverage :; ./script/coverage.sh
 deploy-invoice-collection: 
 					forge script script/DeployInvoiceCollection.s.sol:DeployInvoiceCollection \
 					$(CREATE2SALT) {RELAYER} {NAME} {SYMBOL} \
-					--sig "run(address,string,string)" --rpc-url {RPC_URL} --private-key $(PRIVATE_KEY) --etherscan-api-key $(ETHERSCAN_API_KEY) 
+					--sig "run(string,address,string,string)" --rpc-url {RPC_URL} --private-key $(PRIVATE_KEY) --etherscan-api-key $(ETHERSCAN_API_KEY) 
 					--broadcast --verify
 
 # Deploys the {ModuleKeeper} contract deterministically 
@@ -40,7 +40,7 @@ deploy-deterministic-module-keeper:
 # Deploys the {StationRegistry} contract deterministically 
 # Update the following configs before running the script:
 #	- {INITIAL_OWNER} with the address of the initial owner
-#	- {ENTRYPOINT} with the address of the {Entrypoiny} contract (currently v6)
+#	- {ENTRYPOINT} with the address of the {Entrypoint} contract (currently v6)
 #	- {MODULE_KEEPER} with the address of the {ModuleKeeper} deployment
 #	- {RPC_URL} with the network RPC used for deployment
 deploy-deterministic-dock-registry:
@@ -49,3 +49,34 @@ deploy-deterministic-dock-registry:
 					--sig "run(string,address,address)" --rpc-url {RPC_URL} \
 					--private-key $(PRIVATE_KEY) --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify
+
+# Deploys the {PaymentModule} contract deterministically 
+#
+# Update the following configs before running the script:
+#	- {SABLIER_LOCKUP_LINEAR} with the according {SablierV2LockupLinear} deployment address
+#	- {SABLIER_LOCKUP_TRANCHED} with the according {SablierV2LockupTranched} deployment address
+#	- {INITIAL_OWNER} with the address of the initial admin of the {PaymentModule}
+#	- {BROKER_ACCOUNT} with the address of the account responsible for collecting the broker fees (multisig vault)
+#	- {RPC_URL} with the network RPC used for deployment
+deploy-payment-module: 
+					forge script script/DeployDeterministicPaymentModule.s.sol:DeployDeterministicPaymentModule \
+					$(CREATE2SALT) {SABLIER_LOCKUP_LINEAR} {SABLIER_LOCKUP_TRANCHED} {INITIAL_OWNER} {BROKER_ACCOUNT} \
+					--sig "run(string,address,address,address,address)" --rpc-url {RPC_URL} --private-key $(PRIVATE_KEY) --etherscan-api-key $(ETHERSCAN_API_KEY) 
+					--broadcast --verify	
+
+					# Deploys the {PaymentModule} contract deterministically 
+
+# Deploys the core contracts deterministically 
+#
+# Update the following configs before running the script:
+#	- {SABLIER_LOCKUP_LINEAR} with the according {SablierV2LockupLinear} deployment address
+#	- {SABLIER_LOCKUP_TRANCHED} with the according {SablierV2LockupTranched} deployment address
+#	- {INITIAL_OWNER} with the address of the initial admin of the {StationRegistry} and {PaymentModule}
+#	- {BROKER_ACCOUNT} with the address of the account responsible for collecting the broker fees (multisig vault)
+#	- {ENTRYPOINT} with the address of the {Entrypoint} contract (currently v6)
+#	- {RPC_URL} with the network RPC used for deployment
+deploy-core: 
+					forge script script/DeployDeterministicCore.s.sol:DeployDeterministicCore \
+					$(CREATE2SALT) {SABLIER_LOCKUP_LINEAR} {SABLIER_LOCKUP_TRANCHED} {INITIAL_OWNER} {BROKER_ACCOUNT} {ENTRYPOINT}\
+					--sig "run(string,address,address,address,address,address)" --rpc-url {RPC_URL} --private-key $(PRIVATE_KEY) --etherscan-api-key $(ETHERSCAN_API_KEY) 
+					--broadcast --verify					
