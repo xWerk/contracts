@@ -34,10 +34,6 @@ jobs:
               run: "FOUNDRY_PROFILE=optimized forge build"
               id: build
 
-            - name: "Build the test contracts"
-              run: "FOUNDRY_PROFILE=test-optimized forge build"
-              id: build-test
-
             - name: "Run the tests"
-              run: "forge test -vvv"
+              run: "FOUNDRY_PROFILE=optimized forge test -vvv"
               id: test
