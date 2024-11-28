@@ -87,34 +87,44 @@ interface ISpace is IERC165, IERC721Receiver, IERC1155Receiver {
     /// Requirements:
     /// - `msg.sender` must be the owner of the space
     ///
+    /// @param to The address to which the ERC-20 token will be transferred
     /// @param asset The address of the ERC-20 token to withdraw
     /// @param amount The amount of the ERC-20 token to withdraw
-    function withdrawERC20(IERC20 asset, uint256 amount) external;
+    function withdrawERC20(address to, IERC20 asset, uint256 amount) external;
 
     /// @notice Withdraws the `tokenId` token of the ERC-721 `collection` collection
     ///
     /// Requirements:
     /// - `msg.sender` must be the owner of the space
     ///
+    /// @param to The address to which the ERC-721 token will be transferred
     /// @param collection The address of the ERC-721 collection
     /// @param tokenId The ID of the token to withdraw
-    function withdrawERC721(IERC721 collection, uint256 tokenId) external;
+    function withdrawERC721(address to, IERC721 collection, uint256 tokenId) external;
 
     /// @notice Withdraws an `amount` amount of the ERC-1155 `id` token
     ///
     /// Requirements:
     /// - `msg.sender` must be the owner of the space
     ///
+    /// @param to The address to which the ERC-1155 tokens will be transferred
     /// @param collection The address of the ERC-1155 collection
     /// @param ids The IDs of tokens to withdraw
     /// @param amounts The amounts of tokens to withdraw
-    function withdrawERC1155(IERC1155 collection, uint256[] memory ids, uint256[] memory amounts) external;
+    function withdrawERC1155(
+        address to,
+        IERC1155 collection,
+        uint256[] memory ids,
+        uint256[] memory amounts
+    )
+        external;
 
     /// @notice Withdraws an `amount` amount of native token (ETH)
     ///
     /// Requirements:
     /// - `msg.sender` must be the owner of the space
     ///
+    /// @param to The address to which the native token will be transferred
     /// @param amount The amount of the native token to withdraw
-    function withdrawNative(uint256 amount) external;
+    function withdrawNative(address to, uint256 amount) external;
 }

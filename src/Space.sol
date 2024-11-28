@@ -125,31 +125,32 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     }
 
     /// @inheritdoc ISpace
-    function withdrawERC20(IERC20 asset, uint256 amount) public onlyAdminOrEntrypoint {
+    function withdrawERC20(address to, IERC20 asset, uint256 amount) public onlyAdminOrEntrypoint {
         // Checks: the available ERC20 balance of the space is greater enough to support the withdrawal
         if (amount > asset.balanceOf(address(this))) revert Errors.InsufficientERC20ToWithdraw();
 
-        // Interactions: withdraw by transferring the amount to the sender
-        asset.safeTransfer({ to: msg.sender, value: amount });
+        // Interactions: withdraw by transferring the `amount` to the `to` address
+        asset.safeTransfer({ to: to, value: amount });
 
         // Log the successful ERC-20 token withdrawal
-        emit AssetWithdrawn({ to: msg.sender, asset: address(asset), amount: amount });
+        emit AssetWithdrawn({ to: to, asset: address(asset), amount: amount });
     }
 
     /// @inheritdoc ISpace
-    function withdrawERC721(IERC721 collection, uint256 tokenId) public onlyAdminOrEntrypoint {
-        // Checks, Effects, Interactions: withdraw by transferring the token to the space owner
+    function withdrawERC721(address to, IERC721 collection, uint256 tokenId) public onlyAdminOrEntrypoint {
+        // Checks, Effects, Interactions: withdraw by transferring the `tokenId` token to the `to` address
         // Notes:
-        // - we're using `safeTransferFrom` as the owner can be an ERC-4337 smart account
+        // - we're using `safeTransferFrom` as the owner can be a smart contract
         // therefore the `onERC721Received` hook must be implemented
-        collection.safeTransferFrom(address(this), msg.sender, tokenId);
+        collection.safeTransferFrom({ from: address(this), to: to, tokenId: tokenId });
 
         // Log the successful ERC-721 token withdrawal
-        emit ERC721Withdrawn({ to: msg.sender, collection: address(collection), tokenId: tokenId });
+        emit ERC721Withdrawn({ to: to, collection: address(collection), tokenId: tokenId });
     }
 
     /// @inheritdoc ISpace
     function withdrawERC1155(
+        address to,
         IERC1155 collection,
         uint256[] memory ids,
         uint256[] memory amounts
@@ -157,9 +158,9 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         public
         onlyAdminOrEntrypoint
     {
-        // Checks, Effects, Interactions: withdraw by transferring the tokens to the space owner
+        // Checks, Effects, Interactions: withdraw by transferring the tokens to the `to` address
         // Notes:
-        // - we're using `safeTransferFrom` as the owner can be an ERC-4337 smart account
+        // - we're using `safeTransferFrom` as the owner can be a smart contract
         // therefore the `onERC1155Received` hook must be implemented
         // - depending on the length of the `ids` array, we're using `safeBatchTransferFrom` or `safeTransferFrom`
         if (ids.length > 1) {
@@ -169,21 +170,21 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         }
 
         // Log the successful ERC-1155 token withdrawal
-        emit ERC1155Withdrawn(msg.sender, address(collection), ids, amounts);
+        emit ERC1155Withdrawn({ to: to, collection: address(collection), ids: ids, values: amounts });
     }
 
     /// @inheritdoc ISpace
-    function withdrawNative(uint256 amount) public onlyAdminOrEntrypoint {
+    function withdrawNative(address to, uint256 amount) public onlyAdminOrEntrypoint {
         // Checks: the native balance of the space is greater enough to support the withdrawal
         if (amount > address(this).balance) revert Errors.InsufficientNativeToWithdraw();
 
-        // Interactions: withdraw by transferring the amount to the sender
-        (bool success,) = msg.sender.call{ value: amount }("");
+        // Interactions: withdraw by transferring the `amount` to the `to` address
+        (bool success,) = to.call{ value: amount }("");
         // Revert if the call failed
         if (!success) revert Errors.NativeWithdrawFailed();
 
         // Log the successful native token withdrawal
-        emit AssetWithdrawn({ to: msg.sender, asset: address(0), amount: amount });
+        emit AssetWithdrawn({ to: to, asset: address(0), amount: amount });
     }
 
     /// @inheritdoc IModuleManager
