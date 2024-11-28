@@ -21,6 +21,10 @@ abstract contract ModuleManager is IModuleManager {
 
     /// @dev Initializes the initial module(s) enabled on the space
     function _initializeModuleManager(ModuleKeeper moduleKeeper, address[] memory _initialModules) internal {
+        // Effects: enable the smart account itself as a module to allow self-execution
+        isModuleEnabled[address(this)] = true;
+
+        // Effects: enable the initial module(s)
         _enableBatchModules(moduleKeeper, _initialModules);
     }
 

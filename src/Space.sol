@@ -14,7 +14,6 @@ import { AccountCore } from "@thirdweb/contracts/prebuilts/account/utils/Account
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { ERC1271 } from "@thirdweb/contracts/eip/ERC1271.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
-import { AccountCoreStorage } from "@thirdweb/contracts/prebuilts/account/utils/AccountCoreStorage.sol";
 
 import { ISpace } from "./interfaces/ISpace.sol";
 import { ModuleManager } from "./abstracts/ModuleManager.sol";
@@ -49,8 +48,6 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
 
         // Initialize the {Space} smart contract
         super.initialize(_defaultAdmin, _data);
-
-        _registerOnFactory();
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -316,18 +313,6 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     /*//////////////////////////////////////////////////////////////////////////
                                 INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
-
-    /// @dev Registers the account on the factory if it hasn't been registered yet
-    function _registerOnFactory() internal {
-        // Get the address of the factory contract
-        StationRegistry factoryContract = StationRegistry(factory);
-
-        // Checks: the smart account is registered on the factory contract
-        if (!factoryContract.isRegistered(address(this))) {
-            // Otherwise register it
-            factoryContract.onRegister(AccountCoreStorage.data().creationSalt);
-        }
-    }
 
     /// @dev Executes a low-level call on the `module` contract with the `data` data forwarding the `value` value
     function _call(address module, uint256 value, bytes calldata data) internal returns (bool success) {
