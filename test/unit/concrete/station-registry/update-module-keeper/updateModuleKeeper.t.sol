@@ -19,9 +19,7 @@ contract UpdateModuleKeeper_Unit_Concrete_Test is StationRegistry_Unit_Concrete_
         // Expect the next call to revert with the {PermissionsUnauthorizedAccount} error
         vm.expectRevert(
             abi.encodeWithSelector(
-                Errors.PermissionsUnauthorizedAccount.selector,
-                users.bob,
-                Constants.DEFAULT_ADMIN_ROLE
+                Errors.PermissionsUnauthorizedAccount.selector, users.bob, Constants.DEFAULT_ADMIN_ROLE
             )
         );
 
