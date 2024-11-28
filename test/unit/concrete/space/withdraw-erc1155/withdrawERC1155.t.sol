@@ -30,7 +30,7 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert("Account: not admin or EntryPoint.");
 
         // Run the test
-        space.withdrawERC1155({ collection: IERC1155(address(0x0)), ids: ids, amounts: amounts });
+        space.withdrawERC1155({ to: users.bob, collection: IERC1155(address(0x0)), ids: ids, amounts: amounts });
     }
 
     modifier whenCallerOwner() {
@@ -46,7 +46,7 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         );
 
         // Run the test by attempting to withdraw a nonexistent ERC1155 token
-        space.withdrawERC1155({ collection: mockERC1155, ids: ids, amounts: amounts });
+        space.withdrawERC1155({ to: users.eve, collection: mockERC1155, ids: ids, amounts: amounts });
     }
 
     modifier whenExistingERC1155Token() {
@@ -71,7 +71,7 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         });
 
         // Run the test
-        space.withdrawERC1155({ collection: mockERC1155, ids: idsToWithdraw, amounts: amountsToWithdraw });
+        space.withdrawERC1155({ to: users.eve, collection: mockERC1155, ids: idsToWithdraw, amounts: amountsToWithdraw });
 
         // Assert the actual and expected token type 1 ERC1155 balance of Eve
         uint256 actualBalanceOfEve = mockERC1155.balanceOf(users.eve, idsToWithdraw[0]);
@@ -84,7 +84,7 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         emit Events.ERC1155Withdrawn({ to: users.eve, collection: address(mockERC1155), ids: ids, amounts: amounts });
 
         // Run the test
-        space.withdrawERC1155({ collection: mockERC1155, ids: ids, amounts: amounts });
+        space.withdrawERC1155({ to: users.eve, collection: mockERC1155, ids: ids, amounts: amounts });
 
         // Assert the actual and expected balance of any ERC1155 tokens
         uint256 numberOfTokens = ids.length;

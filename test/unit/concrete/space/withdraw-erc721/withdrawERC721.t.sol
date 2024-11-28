@@ -19,7 +19,7 @@ contract WithdrawERC721_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert("Account: not admin or EntryPoint.");
 
         // Run the test
-        space.withdrawERC721({ collection: IERC721(address(0x0)), tokenId: 1 });
+        space.withdrawERC721({ to: users.bob, collection: IERC721(address(0x0)), tokenId: 1 });
     }
 
     modifier whenCallerOwner() {
@@ -33,7 +33,7 @@ contract WithdrawERC721_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert(abi.encodeWithSelector(Errors.ERC721NonexistentToken.selector, 1));
 
         // Run the test by attempting to withdraw a nonexistent ERC721 token
-        space.withdrawERC721({ collection: mockERC721, tokenId: 1 });
+        space.withdrawERC721({ to: users.eve, collection: mockERC721, tokenId: 1 });
     }
 
     modifier whenExistingERC721Token() {
@@ -48,7 +48,7 @@ contract WithdrawERC721_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         emit Events.ERC721Withdrawn({ to: users.eve, collection: address(mockERC721), tokenId: 1 });
 
         // Run the test
-        space.withdrawERC721({ collection: mockERC721, tokenId: 1 });
+        space.withdrawERC721({ to: users.eve, collection: mockERC721, tokenId: 1 });
 
         // Assert the actual and expected owner of the ERC721 token
         address actualOwner = mockERC721.ownerOf(1);
