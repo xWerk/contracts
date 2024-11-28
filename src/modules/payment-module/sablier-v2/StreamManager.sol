@@ -20,9 +20,11 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     using SafeERC20 for IERC20;
 
     /// @inheritdoc IStreamManager
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     ISablierV2LockupLinear public immutable override LOCKUP_LINEAR;
 
     /// @inheritdoc IStreamManager
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     ISablierV2LockupTranched public immutable override LOCKUP_TRANCHED;
 
     /*//////////////////////////////////////////////////////////////////////////
