@@ -14,7 +14,6 @@ import { AccountCore } from "@thirdweb/contracts/prebuilts/account/utils/Account
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { ERC1271 } from "@thirdweb/contracts/eip/ERC1271.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
-import { AccountCoreStorage } from "@thirdweb/contracts/prebuilts/account/utils/AccountCoreStorage.sol";
 
 import { ISpace } from "./interfaces/ISpace.sol";
 import { ModuleManager } from "./abstracts/ModuleManager.sol";
@@ -37,11 +36,11 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Initializes the address of the EIP 4337 factory and EntryPoint contract
-    constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) {}
+    constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) { }
 
     /// @notice Initializes the {ModuleKeeper}, enables initial modules and configures the {Space} smart account
     function initialize(address _defaultAdmin, bytes calldata _data) public override {
-        (, , address[] memory initialModules) = abi.decode(_data, (uint256, uint256, address[]));
+        (,, address[] memory initialModules) = abi.decode(_data, (uint256, uint256, address[]));
 
         // Enable the initial module(s)
         ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
@@ -49,8 +48,6 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
 
         // Initialize the {Space} smart contract
         super.initialize(_defaultAdmin, _data);
-
-        _registerOnFactory();
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -87,7 +84,11 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         address module,
         uint256 value,
         bytes calldata data
-    ) public onlyAdminOrEntrypoint returns (bool success) {
+    )
+        public
+        onlyAdminOrEntrypoint
+        returns (bool success)
+    {
         // Checks: the `module` module is enabled on the smart account
         _checkIfModuleIsEnabled(module);
 
@@ -100,7 +101,10 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         address[] calldata modules,
         uint256[] calldata values,
         bytes[] calldata data
-    ) external onlyAdminOrEntrypoint {
+    )
+        external
+        onlyAdminOrEntrypoint
+    {
         // Cache the length of the modules array
         uint256 modulesLength = modules.length;
 
@@ -118,74 +122,66 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     }
 
     /// @inheritdoc ISpace
-    function withdrawERC20(IERC20 asset, uint256 amount) public onlyAdminOrEntrypoint {
+    function withdrawERC20(address to, IERC20 asset, uint256 amount) public onlyAdminOrEntrypoint {
         // Checks: the available ERC20 balance of the space is greater enough to support the withdrawal
         if (amount > asset.balanceOf(address(this))) revert Errors.InsufficientERC20ToWithdraw();
 
-        // Interactions: withdraw by transferring the amount to the sender
-        asset.safeTransfer({ to: msg.sender, value: amount });
+        // Interactions: withdraw by transferring the `amount` to the `to` address
+        asset.safeTransfer({ to: to, value: amount });
 
         // Log the successful ERC-20 token withdrawal
-        emit AssetWithdrawn({ to: msg.sender, asset: address(asset), amount: amount });
+        emit AssetWithdrawn({ to: to, asset: address(asset), amount: amount });
     }
 
     /// @inheritdoc ISpace
-    function withdrawERC721(IERC721 collection, uint256 tokenId) public onlyAdminOrEntrypoint {
-        // Checks, Effects, Interactions: withdraw by transferring the token to the space owner
+    function withdrawERC721(address to, IERC721 collection, uint256 tokenId) public onlyAdminOrEntrypoint {
+        // Checks, Effects, Interactions: withdraw by transferring the `tokenId` token to the `to` address
         // Notes:
-        // - we're using `safeTransferFrom` as the owner can be an ERC-4337 smart account
+        // - we're using `safeTransferFrom` as the owner can be a smart contract
         // therefore the `onERC721Received` hook must be implemented
-        collection.safeTransferFrom(address(this), msg.sender, tokenId);
+        collection.safeTransferFrom({ from: address(this), to: to, tokenId: tokenId });
 
         // Log the successful ERC-721 token withdrawal
-        emit ERC721Withdrawn({ to: msg.sender, collection: address(collection), tokenId: tokenId });
+        emit ERC721Withdrawn({ to: to, collection: address(collection), tokenId: tokenId });
     }
 
     /// @inheritdoc ISpace
     function withdrawERC1155(
+        address to,
         IERC1155 collection,
         uint256[] memory ids,
         uint256[] memory amounts
-    ) public onlyAdminOrEntrypoint {
-        // Checks, Effects, Interactions: withdraw by transferring the tokens to the space owner
+    )
+        public
+        onlyAdminOrEntrypoint
+    {
+        // Checks, Effects, Interactions: withdraw by transferring the tokens to the `to` address
         // Notes:
-        // - we're using `safeTransferFrom` as the owner can be an ERC-4337 smart account
+        // - we're using `safeTransferFrom` as the owner can be a smart contract
         // therefore the `onERC1155Received` hook must be implemented
         // - depending on the length of the `ids` array, we're using `safeBatchTransferFrom` or `safeTransferFrom`
         if (ids.length > 1) {
-            collection.safeBatchTransferFrom({
-                from: address(this),
-                to: msg.sender,
-                ids: ids,
-                values: amounts,
-                data: ""
-            });
+            collection.safeBatchTransferFrom({ from: address(this), to: msg.sender, ids: ids, values: amounts, data: "" });
         } else {
-            collection.safeTransferFrom({
-                from: address(this),
-                to: msg.sender,
-                id: ids[0],
-                value: amounts[0],
-                data: ""
-            });
+            collection.safeTransferFrom({ from: address(this), to: msg.sender, id: ids[0], value: amounts[0], data: "" });
         }
 
         // Log the successful ERC-1155 token withdrawal
-        emit ERC1155Withdrawn(msg.sender, address(collection), ids, amounts);
+        emit ERC1155Withdrawn({ to: to, collection: address(collection), ids: ids, values: amounts });
     }
 
     /// @inheritdoc ISpace
-    function withdrawNative(uint256 amount) public onlyAdminOrEntrypoint {
-        // Checks: the native balance of the space minus the amount locked for operations is greater than the requested amount
+    function withdrawNative(address to, uint256 amount) public onlyAdminOrEntrypoint {
+        // Checks: the native balance of the space is greater enough to support the withdrawal
         if (amount > address(this).balance) revert Errors.InsufficientNativeToWithdraw();
 
-        // Interactions: withdraw by transferring the amount to the sender
-        (bool success, ) = msg.sender.call{ value: amount }("");
+        // Interactions: withdraw by transferring the `amount` to the `to` address
+        (bool success,) = to.call{ value: amount }("");
         // Revert if the call failed
         if (!success) revert Errors.NativeWithdrawFailed();
 
         // Log the successful native token withdrawal
-        emit AssetWithdrawn({ to: msg.sender, asset: address(0), amount: amount });
+        emit AssetWithdrawn({ to: to, asset: address(0), amount: amount });
     }
 
     /// @inheritdoc IModuleManager
@@ -208,7 +204,15 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ERC1271
-    function isValidSignature(bytes32 _hash, bytes memory _signature) public view override returns (bytes4 magicValue) {
+    function isValidSignature(
+        bytes32 _hash,
+        bytes memory _signature
+    )
+        public
+        view
+        override
+        returns (bytes4 magicValue)
+    {
         // Compute the hash of message the should be signed
         bytes32 targetDigest = getMessageHash(_hash);
 
@@ -241,11 +245,8 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return
-            interfaceId == type(ISpace).interfaceId ||
-            interfaceId == type(IERC1155Receiver).interfaceId ||
-            interfaceId == type(IERC721Receiver).interfaceId ||
-            interfaceId == type(IERC165).interfaceId;
+        return interfaceId == type(ISpace).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId
+            || interfaceId == type(IERC721Receiver).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 
     /// @inheritdoc IERC721Receiver
@@ -254,7 +255,11 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         address from,
         uint256 tokenId,
         bytes memory
-    ) public override returns (bytes4) {
+    )
+        public
+        override
+        returns (bytes4)
+    {
         // Silence unused variable warning
         operator = operator;
 
@@ -271,7 +276,11 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         uint256 id,
         uint256 value,
         bytes memory
-    ) public override returns (bytes4) {
+    )
+        public
+        override
+        returns (bytes4)
+    {
         // Silence unused variable warning
         operator = operator;
 
@@ -288,7 +297,11 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         uint256[] memory ids,
         uint256[] memory values,
         bytes memory
-    ) public override returns (bytes4) {
+    )
+        public
+        override
+        returns (bytes4)
+    {
         for (uint256 i; i < ids.length; ++i) {
             // Log the successful ERC-1155 token receipt
             emit ERC1155Received(from, ids[i], values[i]);
@@ -300,18 +313,6 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     /*//////////////////////////////////////////////////////////////////////////
                                 INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
-
-    /// @dev Registers the account on the factory if it hasn't been registered yet
-    function _registerOnFactory() internal {
-        // Get the address of the factory contract
-        StationRegistry factoryContract = StationRegistry(factory);
-
-        // Checks: the smart account is registered on the factory contract
-        if (!factoryContract.isRegistered(address(this))) {
-            // Otherwise register it
-            factoryContract.onRegister(AccountCoreStorage.data().creationSalt);
-        }
-    }
 
     /// @dev Executes a low-level call on the `module` contract with the `data` data forwarding the `value` value
     function _call(address module, uint256 value, bytes calldata data) internal returns (bool success) {

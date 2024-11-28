@@ -102,7 +102,7 @@ abstract contract Events {
     /// @param endTime The timestamp by which the payment request must be paid
     /// @param config Struct representing the payment details associated with the payment request
     event RequestCreated(
-        uint256 requestId, address indexed recipient, uint40 startTime, uint40 endTime, Types.Config config
+        uint256 indexed requestId, address indexed recipient, uint40 startTime, uint40 endTime, Types.Config config
     );
 
     /// @notice Emitted when a payment is made for a payment request

@@ -32,7 +32,7 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert("Account: not admin or EntryPoint.");
 
         // Run the test
-        space.withdrawNative({ amount: 2 ether });
+        space.withdrawNative({ to: users.bob, amount: 2 ether });
     }
 
     modifier whenCallerOwner(address caller) {
@@ -46,7 +46,7 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert(Errors.InsufficientNativeToWithdraw.selector);
 
         // Run the test
-        space.withdrawNative({ amount: 2 ether });
+        space.withdrawNative({ to: users.eve, amount: 2 ether });
     }
 
     modifier whenSufficientNativeToWithdraw(Space space) {
@@ -65,7 +65,7 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert(Errors.NativeWithdrawFailed.selector);
 
         // Run the test
-        badSpace.withdrawNative({ amount: 1 ether });
+        badSpace.withdrawNative({ to: badReceiver, amount: 1 ether });
     }
 
     modifier whenNativeWithdrawSucceeds() {
@@ -88,7 +88,7 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         emit Events.AssetWithdrawn({ to: users.eve, asset: address(0x0), amount: ethToWithdraw });
 
         // Run the test
-        space.withdrawNative({ amount: ethToWithdraw });
+        space.withdrawNative({ to: users.eve, amount: ethToWithdraw });
 
         // Assert the ETH balance of the {Space} contract
         uint256 actualBalanceOfSpace = address(space).balance;

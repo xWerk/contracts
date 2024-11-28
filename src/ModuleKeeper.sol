@@ -20,7 +20,7 @@ contract ModuleKeeper is IModuleKeeper, Ownable {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Initializes the initial owner of the {ModuleKeeper}
-    constructor(address _initialOwner) Ownable(_initialOwner) {}
+    constructor(address _initialOwner) Ownable(_initialOwner) { }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
