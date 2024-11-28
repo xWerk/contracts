@@ -19,7 +19,7 @@ contract WithdrawERC20_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert("Account: not admin or EntryPoint.");
 
         // Run the test
-        space.withdrawERC20({ asset: IERC20(address(0x0)), amount: 100e6 });
+        space.withdrawERC20({ to: users.bob, asset: IERC20(address(0x0)), amount: 100e6 });
     }
 
     modifier whenCallerOwner() {
@@ -33,7 +33,7 @@ contract WithdrawERC20_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert(Errors.InsufficientERC20ToWithdraw.selector);
 
         // Run the test
-        space.withdrawERC20({ asset: IERC20(address(usdt)), amount: 100e6 });
+        space.withdrawERC20({ to: users.eve, asset: IERC20(address(usdt)), amount: 100e6 });
     }
 
     modifier whenSufficientERC20ToWithdraw() {
@@ -54,7 +54,7 @@ contract WithdrawERC20_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         emit Events.AssetWithdrawn({ to: users.eve, asset: address(usdt), amount: 10e6 });
 
         // Run the test
-        space.withdrawERC20({ asset: IERC20(address(usdt)), amount: 10e6 });
+        space.withdrawERC20({ to: users.eve, asset: IERC20(address(usdt)), amount: 10e6 });
 
         // Assert the USDT balance of the {Space} contract
         uint256 actualBalanceOfSpace = usdt.balanceOf(address(space));

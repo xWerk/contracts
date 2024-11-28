@@ -27,7 +27,11 @@ contract MockNFTDescriptor is SablierV2NFTDescriptor {
     function calculateStreamedPercentage_(
         uint128 streamedAmount,
         uint128 depositedAmount
-    ) external pure returns (uint256) {
+    )
+        external
+        pure
+        returns (uint256)
+    {
         return calculateStreamedPercentage(streamedAmount, depositedAmount);
     }
 
@@ -39,7 +43,11 @@ contract MockNFTDescriptor is SablierV2NFTDescriptor {
         string memory assetSymbol,
         string memory sender,
         string memory status
-    ) external pure returns (string memory) {
+    )
+        external
+        pure
+        returns (string memory)
+    {
         return generateAttributes(assetSymbol, sender, status);
     }
 
@@ -50,7 +58,11 @@ contract MockNFTDescriptor is SablierV2NFTDescriptor {
         string memory assetAddress,
         string memory streamId,
         bool isTransferable
-    ) external pure returns (string memory) {
+    )
+        external
+        pure
+        returns (string memory)
+    {
         return generateDescription(sablierModel, assetSymbol, sablierAddress, assetAddress, streamId, isTransferable);
     }
 
