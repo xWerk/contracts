@@ -69,9 +69,11 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
                                       MODIFIERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Checks whether the caller is the EntryPoint contract or the admin.
+    /// @notice Checks whether the caller is the {EntryPoint}, the admin or the contract itself (redirected through `execute()`)
     modifier onlyAdminOrEntrypoint() virtual {
-        require(msg.sender == address(entryPoint()) || isAdmin(msg.sender), "Account: not admin or EntryPoint.");
+        if (!(msg.sender == address(entryPoint()) || isAdmin(msg.sender) || msg.sender == address(this))) {
+            revert Errors.CallerNotEntryPointOrAdmin();
+        }
         _;
     }
 
@@ -314,20 +316,20 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
                                 INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Executes a low-level call on the `module` contract with the `data` data forwarding the `value` value
-    function _call(address module, uint256 value, bytes calldata data) internal returns (bool success) {
-        // Execute the call via assembly
+    /// @dev Executes a low-level call on the `target` contract with the `data` data forwarding the `value` value
+    function _call(address target, uint256 value, bytes calldata data) internal returns (bool success) {
+        // Execute the low-level call
         bytes memory result;
-        (success, result) = module.call{ value: value }(data);
+        (success, result) = target.call{ value: value }(data);
 
-        // Revert with the same error returned by the module contract if the call failed
+        // Revert with the same error returned by the target contract if the call failed
         if (!success) {
             assembly {
                 revert(add(result, 0x20), mload(result))
             }
         } else {
             // Otherwise log the execution success
-            emit ModuleExecutionSucceded(module, value, data);
+            emit ModuleExecutionSucceded(target, value, data);
         }
     }
 }
