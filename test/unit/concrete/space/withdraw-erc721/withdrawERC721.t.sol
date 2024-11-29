@@ -15,8 +15,8 @@ contract WithdrawERC721_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         // Make Bob the caller for this test suite who is not the owner of the space
         vm.startPrank({ msgSender: users.bob });
 
-        // Expect the next call to revert with the "Account: not admin or EntryPoint." error
-        vm.expectRevert("Account: not admin or EntryPoint.");
+        // Expect the next call to revert with the {CallerNotEntryPointOrAdmin} error
+        vm.expectRevert(Errors.CallerNotEntryPointOrAdmin.selector);
 
         // Run the test
         space.withdrawERC721({ to: users.bob, collection: IERC721(address(0x0)), tokenId: 1 });

@@ -18,6 +18,9 @@ library Errors {
     /// @notice Thrown when `msg.sender` is not the {Space} contract owner
     error CallerNotSpaceOwner();
 
+    /// @notice Thrown when `msg.sender` is not the {EntryPoint} or the admin
+    error CallerNotEntryPointOrAdmin();
+
     /// @notice Thrown when a native token (ETH) withdrawal fails
     error NativeWithdrawFailed();
 
