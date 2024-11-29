@@ -1,6 +1,6 @@
 withdrawERC1155.t.sol
 ├── when the caller IS NOT the space owner
-│   └── it should revert with the "Account: not admin or EntryPoint." error
+│   └── it should revert with the {CallerNotEntryPointOrAdmin} error
 └── when the caller IS the space owner
     ├── when there the ERC-1155 balance IS NOT sufficient
     │   └── it should revert with the {ERC1155InsufficientBalance} error

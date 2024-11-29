@@ -58,9 +58,11 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
                                       MODIFIERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Checks whether the caller is the EntryPoint contract or the admin.
+    /// @notice Checks whether the caller is the {EntryPoint}, the admin or the contract itself (redirected through `execute()`)
     modifier onlyAdminOrEntrypoint() virtual {
-        require(msg.sender == address(entryPoint()) || isAdmin(msg.sender), "Account: not admin or EntryPoint.");
+        if (!(msg.sender == address(entryPoint()) || isAdmin(msg.sender) || msg.sender == address(this))) {
+            revert Errors.CallerNotEntryPointOrAdmin();
+        }
         _;
     }
 

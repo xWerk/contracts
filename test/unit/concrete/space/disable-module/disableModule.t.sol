@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import { Space_Unit_Concrete_Test } from "../Space.t.sol";
 import { MockModule } from "../../../../mocks/MockModule.sol";
 import { Events } from "../../../../utils/Events.sol";
+import { Errors } from "../../../../utils/Errors.sol";
 
 contract DisableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     function setUp() public virtual override {
@@ -14,8 +15,8 @@ contract DisableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         // Make Bob the caller for this test suite who is not the owner of the space
         vm.startPrank({ msgSender: users.bob });
 
-        // Expect the next call to revert with the "Account: not admin or EntryPoint." error
-        vm.expectRevert("Account: not admin or EntryPoint.");
+        // Expect the next call to revert with the {CallerNotEntryPointOrAdmin} error
+        vm.expectRevert(Errors.CallerNotEntryPointOrAdmin.selector);
 
         // Run the test
         space.disableModule({ module: address(0x1) });
