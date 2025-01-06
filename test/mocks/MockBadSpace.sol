@@ -32,6 +32,9 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
 
     bytes32 private constant MSG_TYPEHASH = keccak256("AccountMessage(bytes message)");
 
+    /// @dev The address of the native token (ETH) this contract is deployed on following the ERC-7528 standard
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     /*//////////////////////////////////////////////////////////////////////////
                                     CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
@@ -178,7 +181,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
         if (!success) revert Errors.NativeWithdrawFailed();
 
         // Log the successful native token withdrawal
-        emit AssetWithdrawn({ to: to, asset: address(0), amount: amount });
+        emit AssetWithdrawn({ to: to, asset: NATIVE_TOKEN, amount: amount });
     }
 
     /// @inheritdoc IModuleManager

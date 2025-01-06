@@ -5,6 +5,7 @@ import { CreateRequest_Integration_Shared_Test } from "../../../shared/createReq
 import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
 import { Errors } from "../../../../utils/Errors.sol";
 import { Events } from "../../../../utils/Events.sol";
+import { Constants } from "../../../../utils/Constants.sol";
 
 contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Shared_Test {
     Types.PaymentRequest paymentRequest;
@@ -361,7 +362,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
             createPaymentRequestWithTranchedStream({ recurrence: Types.Recurrence.Weekly, recipient: address(space) });
 
         // Alter the payment asset by setting it to
-        paymentRequest.config.asset = address(0);
+        paymentRequest.config.asset = Constants.NATIVE_TOKEN;
 
         // Expect the call to revert with the {OnlyERC20StreamsAllowed} error
         vm.expectRevert(Errors.OnlyERC20StreamsAllowed.selector);
@@ -448,7 +449,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         paymentRequest = createPaymentRequestWithLinearStream({ recipient: address(space) });
 
         // Alter the payment asset by setting it to
-        paymentRequest.config.asset = address(0);
+        paymentRequest.config.asset = Constants.NATIVE_TOKEN;
 
         // Expect the call to revert with the {OnlyERC20StreamsAllowed} error
         vm.expectRevert(Errors.OnlyERC20StreamsAllowed.selector);
