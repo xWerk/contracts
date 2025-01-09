@@ -13,6 +13,7 @@
     "solhint": "^5.0.3"
   },
   "dependencies": {
+    "@ensdomains/ens-contracts": "^1.2.2",
     "@openzeppelin/contracts": "^5.1.0",
     "@openzeppelin/contracts-upgradeable": "^5.1.0",
     "@prb/math": "^4.1.0",
