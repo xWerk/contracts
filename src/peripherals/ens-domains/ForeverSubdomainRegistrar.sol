@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.26;
 
 import {
     INameWrapper,
@@ -11,12 +11,12 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { ERC1155Holder } from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import { BaseSubdomainRegistrar } from "./BaseSubdomainRegistrar.sol";
 import { IForeverSubdomainRegistrar } from "./IForeverSubdomainRegistrar.sol";
-import { ISubdomainPricer } from "./pricers/ISubdomainPricer.sol";
+import { IFixedSubdomainPricer } from "./pricers/IFixedSubdomainPricer.sol";
 
 error ParentNameNotSetup(bytes32 parentNode);
 
 contract ForeverSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder, IForeverSubdomainRegistrar {
-    constructor(address wrapper) BaseSubdomainRegistrar(wrapper) { }
+    constructor(address wrapper, address authorisedIssuer) BaseSubdomainRegistrar(wrapper, authorisedIssuer) { }
 
     bytes32 private constant ETH_NODE = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
 
@@ -25,7 +25,7 @@ contract ForeverSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder, IFo
         string calldata label,
         address newOwner,
         address resolver,
-        uint16 fuses,
+        uint32 fuses,
         bytes[] calldata records
     )
         public
@@ -47,9 +47,14 @@ contract ForeverSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder, IFo
         );
     }
 
+    /// @notice Setup a domain for subdomain registration
+    /// @param node The parent node to setup
+    /// @param pricer The pricer contract to use when registering subdomains
+    /// @param beneficiary The beneficiary of the registration fees
+    /// @param active Whether the domain is active
     function setupDomain(
         bytes32 node,
-        ISubdomainPricer pricer,
+        IFixedSubdomainPricer pricer,
         address beneficiary,
         bool active
     )

@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.26;
 
 import {
     INameWrapper,
@@ -7,7 +7,7 @@ import {
     IS_DOT_ETH
 } from "@ensdomains/ens-contracts/contracts/wrapper/INameWrapper.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { ISubdomainPricer } from "./pricers/ISubdomainPricer.sol";
+import { IFixedSubdomainPricer } from "./pricers/IFixedSubdomainPricer.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 error Unavailable();
@@ -20,27 +20,32 @@ error ParentExpired(bytes32 node);
 error ParentNotWrapped(bytes32 node);
 error DurationTooLong(bytes32 node);
 error ParentNameNotSetup(bytes32 parentNode);
+error NativeTokenPaymentFailed();
 
 struct Name {
-    ISubdomainPricer pricer;
+    IFixedSubdomainPricer pricer;
     address beneficiary;
     bool active;
 }
 
 abstract contract BaseSubdomainRegistrar {
-    mapping(bytes32 => Name) public names;
-    INameWrapper public immutable wrapper;
-
     using Address for address;
+
+    /// @dev The address of the native token (ETH) following the ERC-7528 standard
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     event NameRegistered(bytes32 node, uint256 expiry);
     event NameRenewed(bytes32 node, uint256 expiry);
     event NameSetup(bytes32 node, address pricer, address beneficiary, bool active);
 
+    mapping(bytes32 => Name) public names;
+    INameWrapper public immutable wrapper;
     uint64 internal GRACE_PERIOD = 90 days;
+    address public immutable authorisedIssuer;
 
-    constructor(address _wrapper) {
+    constructor(address _wrapper, address _authorisedIssuer) {
         wrapper = INameWrapper(_wrapper);
+        authorisedIssuer = _authorisedIssuer;
     }
 
     modifier authorised(bytes32 node) {
@@ -65,7 +70,7 @@ abstract contract BaseSubdomainRegistrar {
 
     function _setupDomain(
         bytes32 node,
-        ISubdomainPricer pricer,
+        IFixedSubdomainPricer pricer,
         address beneficiary,
         bool active
     )
@@ -98,7 +103,7 @@ abstract contract BaseSubdomainRegistrar {
 
         _checkParent(parentNode, duration);
 
-        _batchPayBeneficiary(parentNode, labels, duration);
+        _batchPayBeneficiary(parentNode, labels);
 
         // double loop to prevent re-entrancy because _register calls user supplied functions
         for (uint256 i = 0; i < labels.length; i++) {
@@ -123,12 +128,17 @@ abstract contract BaseSubdomainRegistrar {
             revert ParentNameNotSetup(parentNode);
         }
 
-        (address token, uint256 fee) = ISubdomainPricer(names[parentNode].pricer).price(parentNode, label, duration);
+        (address asset, uint256 price) = IFixedSubdomainPricer(names[parentNode].pricer).getPriceDetails();
 
         _checkParent(parentNode, duration);
 
-        if (fee > 0) {
-            IERC20(token).transferFrom(msg.sender, address(names[parentNode].beneficiary), fee);
+        if (msg.sender != authorisedIssuer && price > 0) {
+            if (asset == NATIVE_TOKEN) {
+                (bool success,) = msg.sender.call{ value: price }("");
+                if (!success) revert NativeTokenPaymentFailed();
+            } else {
+                IERC20(asset).transferFrom(msg.sender, address(names[parentNode].beneficiary), price);
+            }
         }
 
         _register(parentNode, label, newOwner, resolver, fuses, uint64(block.timestamp) + duration, records);
@@ -171,10 +181,10 @@ abstract contract BaseSubdomainRegistrar {
         emit NameRegistered(node, expiry);
     }
 
-    function _batchPayBeneficiary(bytes32 parentNode, string[] calldata labels, uint64 duration) internal {
-        ISubdomainPricer pricer = names[parentNode].pricer;
+    function _batchPayBeneficiary(bytes32 parentNode, string[] calldata labels) internal {
+        IFixedSubdomainPricer pricer = names[parentNode].pricer;
         for (uint256 i = 0; i < labels.length; i++) {
-            (address token, uint256 price) = pricer.price(parentNode, labels[i], duration);
+            (address token, uint256 price) = pricer.getPriceDetails();
             IERC20(token).transferFrom(msg.sender, names[parentNode].beneficiary, price);
         }
     }
@@ -205,5 +215,9 @@ abstract contract BaseSubdomainRegistrar {
         if (duration + block.timestamp > parentExpiry) {
             revert DurationTooLong(parentNode);
         }
+    }
+
+    function _setPricer(bytes32 node, IFixedSubdomainPricer pricer) internal {
+        names[node].pricer = pricer;
     }
 }

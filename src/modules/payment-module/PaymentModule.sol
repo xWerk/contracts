@@ -26,7 +26,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     /// @dev Version identifier for the current implementation of the contract
     string public constant VERSION = "1.0.0";
 
-    /// @dev The address of the native token (ETH) this contract is deployed on following the ERC-7528 standard
+    /// @dev The address of the native token (ETH) following the ERC-7528 standard
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////////////////
