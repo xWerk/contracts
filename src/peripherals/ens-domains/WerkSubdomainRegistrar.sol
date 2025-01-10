@@ -10,12 +10,12 @@ import {
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { ERC1155Holder } from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import { BaseSubdomainRegistrar } from "./BaseSubdomainRegistrar.sol";
-import { IForeverSubdomainRegistrar } from "./IForeverSubdomainRegistrar.sol";
+import { IWerkSubdomainRegistrar } from "./interfaces/IWerkSubdomainRegistrar.sol";
 import { IFixedSubdomainPricer } from "./pricers/IFixedSubdomainPricer.sol";
 
 error ParentNameNotSetup(bytes32 parentNode);
 
-contract ForeverSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder, IForeverSubdomainRegistrar {
+contract WerkSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder, IWerkSubdomainRegistrar {
     constructor(address wrapper, address authorisedIssuer) BaseSubdomainRegistrar(wrapper, authorisedIssuer) { }
 
     bytes32 private constant ETH_NODE = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
@@ -68,7 +68,7 @@ contract ForeverSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder, IFo
     function available(bytes32 node)
         public
         view
-        override(BaseSubdomainRegistrar, IForeverSubdomainRegistrar)
+        override(BaseSubdomainRegistrar, IWerkSubdomainRegistrar)
         returns (bool)
     {
         return super.available(node);

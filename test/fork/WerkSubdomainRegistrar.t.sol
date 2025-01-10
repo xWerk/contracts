@@ -2,13 +2,13 @@
 pragma solidity ^0.8.26;
 
 import { Fork_Test } from "./Fork.t.sol";
-import { ForeverSubdomainRegistrar } from "../../src/peripherals/ens-domains/ForeverSubdomainRegistrar.sol";
+import { WerkSubdomainRegistrar } from "../../src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
 import { FixedSubdomainPricer } from "../../src/peripherals/ens-domains/pricers/FixedSubdomainPricer.sol";
 import { INameWrapper } from "@ensdomains/ens-contracts/contracts/wrapper/INameWrapper.sol";
 import { ENSRegistry } from "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol";
 import { Users } from "../utils/Types.sol";
 
-contract ForeverSubdomainRegistrar_Fork_Test is Fork_Test {
+contract WerkSubdomainRegistrar_Fork_Test is Fork_Test {
     /// @dev The address of the `NameWrapper` contract
     address internal constant NAME_WRAPPER = 0x0635513f179D50A207757E05759CbD106d7dFcE8;
 
@@ -29,7 +29,7 @@ contract ForeverSubdomainRegistrar_Fork_Test is Fork_Test {
     bytes32 internal WERK_ETH_NODE;
 
     /// @dev The subdomain registrar contract
-    ForeverSubdomainRegistrar public subdomainRegistrar;
+    WerkSubdomainRegistrar public subdomainRegistrar;
 
     /// @dev The pricer contract
     FixedSubdomainPricer public pricer;
@@ -44,7 +44,7 @@ contract ForeverSubdomainRegistrar_Fork_Test is Fork_Test {
         // Deploy the subdomain registrar passing the `NameWrapper` contract address and the authorised issuer
         // Note: the authorised issuer is an account that can issue subdomains without paying the registration fee
         subdomainRegistrar =
-            new ForeverSubdomainRegistrar({ wrapper: NAME_WRAPPER, authorisedIssuer: address(users.admin) });
+            new WerkSubdomainRegistrar({ wrapper: NAME_WRAPPER, authorisedIssuer: address(users.admin) });
 
         // Deploy the pricer contract
         pricer = new FixedSubdomainPricer({ _admin: address(users.admin), _price: 0, _asset: address(0) });
