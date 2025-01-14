@@ -4,6 +4,8 @@ pragma solidity ^0.8.26;
 import { IL2Registry } from "./interfaces/IL2Registry.sol";
 import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Ownable } from "./../../abstracts/Ownable.sol";
+import { ISubdomainPricer } from "./pricers/ISubdomainPricer.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title L2SubdomainRegistrar
 /// @dev This is a fork implementation of the L2Registrar contract created by NameStone
@@ -31,8 +33,17 @@ contract L2SubdomainRegistrar is Ownable {
     /// @notice Thrown when the caller is not the owner of the reservation
     error NotReservationOwner(uint40 expiresAt);
 
+    /// @notice Thrown when a native token payment fails
+    error NativeTokenPaymentFailed();
+
+    /// @dev The address of the native token (ETH) following the ERC-7528 standard
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     /// @notice Reference to the target registry contract
     IL2Registry public immutable registry;
+
+    /// @notice Reference to the subdomain pricer contract
+    ISubdomainPricer public pricer;
 
     /// @notice The chainId for the current chain
     uint256 public chainId;
@@ -140,6 +151,19 @@ contract L2SubdomainRegistrar is Ownable {
             revert NotReservationOwner({ expiresAt: reservation.expiresAt });
         }
 
+        // Retrieve the price details from the pricer contract
+        (address asset, uint256 price) = ISubdomainPricer(pricer).getPriceDetails();
+
+        // If there is a price to pay, the `msg.sender` needs to pay for the registration
+        if (price > 0) {
+            if (asset == NATIVE_TOKEN) {
+                (bool success,) = msg.sender.call{ value: price }("");
+                if (!success) revert NativeTokenPaymentFailed();
+            } else {
+                IERC20(asset).transferFrom(msg.sender, address(this), price);
+            }
+        }
+
         // Convert the address to bytes
         bytes memory addr = abi.encodePacked(owner);
 
@@ -156,5 +180,22 @@ contract L2SubdomainRegistrar is Ownable {
 
         // Log the registration event
         emit NameRegistered(label, owner);
+    }
+
+    /// @notice Withdraws an ERC-20 token from the Registrar
+    /// @param asset The ERC-20 token to withdraw
+    /// @param amount The amount of tokens to withdraw
+    function withdrawERC20(IERC20 asset, uint256 amount) public onlyOwner {
+        // Withdraw by transferring the `amount` to the owner
+        asset.transfer(owner, amount);
+    }
+
+    /// @notice Withdraws native tokens (ETH) from the Registrar
+    /// @param amount The amount of native tokens to withdraw
+    function withdrawNative(uint256 amount) public onlyOwner {
+        // Interactions: withdraw by transferring the `amount` to the owner
+        (bool success,) = owner.call{ value: amount }("");
+        // Revert if the call failed
+        if (!success) revert NativeTokenPaymentFailed();
     }
 }

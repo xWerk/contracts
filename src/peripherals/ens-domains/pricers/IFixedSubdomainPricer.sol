@@ -1,9 +1,11 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.26;
+
+import { ISubdomainPricer } from "./ISubdomainPricer.sol";
 
 /// @title IFixedSubdomainPricer
-/// @notice Contract used to set the price details for registering a subdomain
-interface IFixedSubdomainPricer {
+/// @notice Contract implementing a constant price for registering a subdomain
+interface IFixedSubdomainPricer is ISubdomainPricer {
     /*//////////////////////////////////////////////////////////////////////////
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -13,10 +15,6 @@ interface IFixedSubdomainPricer {
 
     /// @notice Returns the asset to pay the registration fee with
     function asset() external view returns (address);
-
-    /// @notice Returns the price details for registering a subdomain
-    /// @return The asset to pay the registration fee with and the price
-    function getPriceDetails() external returns (address, uint256);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
