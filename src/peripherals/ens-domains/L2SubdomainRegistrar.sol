@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import { IL2Registry } from "./interfaces/IL2Registry.sol";
 import { ISpace } from "./../../interfaces/ISpace.sol";
+import { Ownable } from "./../../abstracts/Ownable.sol";
 
 /// @title L2SubdomainRegistrar
 /// @dev This is a fork implementation of the L2Registrar contract created by NameStone
-contract L2SubdomainRegistrar {
+contract L2SubdomainRegistrar is Ownable {
     /// @notice Emitted when a new name is registered
     /// @param label The registered label (e.g. "name" in "name.werk.eth")
     /// @param owner The owner of the newly registered name
@@ -39,16 +40,21 @@ contract L2SubdomainRegistrar {
     /// @notice The coinType for the current chain (ENSIP-11)
     uint256 public immutable coinType;
 
+    /// @notice Enum representing the different values describing a reservation
+    /// @param owner The address that owns the reservation
+    /// @param expiresAt The timestamp at which the reservation expires
     struct Reservation {
         address owner;
         uint40 expiresAt;
     }
 
+    /// @notice Mapping storing the reservations for each label
     mapping(bytes32 => Reservation) public reservations;
 
     /// @notice Initializes the registrar with a registry contract
     /// @param _registry Address of the L2Registry contract
-    constructor(IL2Registry _registry) {
+    /// @param _owner Address of the registrar owner
+    constructor(IL2Registry _registry, address _owner) Ownable(_owner) {
         assembly {
             sstore(chainId.slot, chainid())
         }
@@ -88,7 +94,7 @@ contract L2SubdomainRegistrar {
     /// @notice Reserves a name for 30 minutes for a given address
     /// @param label The label to reserve (e.g. "name" for "name.werk.eth")
     /// @param owner The address that will own the name
-    function reserve(string memory label, address owner) external /* onlySpace */ {
+    function reserve(string memory label, address owner) external onlySpace {
         // Hash the label to get the labelhash
         bytes32 labelhash = keccak256(bytes(label));
 
@@ -112,7 +118,7 @@ contract L2SubdomainRegistrar {
     ///
     /// @param label The label to register (e.g. "name" for "name.werk.eth")
     /// @param owner The address that will own the name
-    function register(string memory label, address owner) external /* onlySpace */ {
+    function register(string memory label, address owner) external onlySpace {
         // Hash the label to get the labelhash
         bytes32 labelhash = keccak256(bytes(label));
 
