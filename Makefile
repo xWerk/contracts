@@ -80,3 +80,18 @@ deploy-core:
 					$(CREATE2SALT) {SABLIER_LOCKUP_LINEAR} {SABLIER_LOCKUP_TRANCHED} {INITIAL_OWNER} {BROKER_ACCOUNT} {ENTRYPOINT} \
 					--sig "run(string,address,address,address,address,address)" --rpc-url {RPC_URL} --account dev \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi				
+					
+# Deploys the {L2SubdomainRegistrar} contract deterministically 
+#
+# Update the following configs before running the script:
+#   - {L2_REGISTRY} with the address of the {L2Registry} contract 
+#       - L2Registry deployment on Base Sepolia: 0x5b7c9521d7324575041030ed7fd0af5205491d47
+#   - {RPC_URL} with the network RPC used for deployment
+deploy-l2-subdomain-registrar:
+                    forge script script/DeployDeterministicL2SubdomainRegistrar.s.sol:DeployDeterministicL2SubdomainRegistrar \
+                    $(CREATE2SALT) $(L2_REGISTRY) \
+                    --sig "run(string,address)" --rpc-url $(RPC_URL) --account dev \
+
+# Configure the {L2Registry} to allow the {L2SubdomainRegistrar} to register subdomains
+configure-l2-registry:
+                    cast send $(L2_REGISTRY) "addRegistrar(address)" $(L2_REGISTRAR) --rpc-url $(RPC_URL) --acount dev 
