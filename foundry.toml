@@ -3,8 +3,6 @@ src = "src"
 out = "out"
 script = "script"
 test = "test"
-optimizer = true
-optimizer_runs = 1000
 gas_reports = ["ModuleKeeper", "DockRegistry", "Container"]
 ast = true
 build_info = true
@@ -16,6 +14,8 @@ runs = 10_000
 
 [profile.optimized]
 out = "out-optimized"
+optimizer = true
+optimizer_runs = 1000
 via_ir = true
 
 [fmt]
