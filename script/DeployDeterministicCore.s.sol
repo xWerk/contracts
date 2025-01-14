@@ -7,8 +7,8 @@ import { StationRegistry } from "./../src/StationRegistry.sol";
 import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
 
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { Options } from "./../lib/openzeppelin-foundry-upgrades/src/Options.sol";
-import { Core } from "./../lib/openzeppelin-foundry-upgrades/src/internal/Core.sol";
+import { Options } from "@openzeppelin/foundry-upgrades/src/Options.sol";
+import { Core } from "@openzeppelin/foundry-upgrades/src/internal/Core.sol";
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
