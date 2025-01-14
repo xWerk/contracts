@@ -51,6 +51,14 @@ assets including any ERC-20 token and native ETH.
 The `InvoiceModule` relies on the [Sablier V2](https://docs.sablier.com/concepts/what-is-sablier) protocol for stream
 creation and management.
 
+## Install
+
+Install Werk contracts using your favourite package manager:
+
+```bash
+bun install
+```
+
 ## Contribute
 
 Anyone is welcomed to contribute either by creating & proposing a new module or simply
