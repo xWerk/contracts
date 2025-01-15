@@ -152,4 +152,19 @@ abstract contract Events {
     /// @param tokenId The ID of the NFT representing the invoice
     /// @param paymentRequestId The ID of the payment request associated with the invoice
     event InvoiceMinted(address to, uint256 tokenId, string paymentRequestId);
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                   ENS-DOMAINS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a new name is registered
+    /// @param label The registered label (e.g. "name" in "name.werk.eth")
+    /// @param owner The owner of the newly registered name
+    event NameRegistered(string indexed label, address indexed owner);
+
+    /// @notice Emitted when a subdomain is reserved
+    /// @param label The reserved label (e.g. "name" in "name.werk.eth")
+    /// @param owner The owner of the reserved subdomain
+    /// @param expiresAt The timestamp at which the reservation expires
+    event SubdomainReserved(string indexed label, address indexed owner, uint40 expiresAt);
 }

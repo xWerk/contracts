@@ -58,7 +58,6 @@ abstract contract Base_Test is Test, Events {
         users = Users({ admin: createUser("admin"), eve: createUser("eve"), bob: createUser("bob") });
 
         // Deploy test contracts
-        //entrypoint = new EntryPoint();
         moduleKeeper = new ModuleKeeper({ _initialOwner: users.admin });
 
         stationRegistry = new StationRegistry(users.admin, IEntryPoint(entrypoint), moduleKeeper);
@@ -141,7 +140,7 @@ abstract contract Base_Test is Test, Events {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Generates a user, labels its address, and funds it with test assets
-    function createUser(string memory name) internal returns (address payable) {
+    function createUser(string memory name) internal virtual returns (address payable) {
         address payable user = payable(makeAddr(name));
         vm.deal({ account: user, newBalance: 100 ether });
         deal({ token: address(usdt), to: user, give: 10_000_000e18 });

@@ -64,8 +64,6 @@ deploy-payment-module:
 					--sig "run(string,address,address,address,address)" --rpc-url {RPC_URL} --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) 
 					--broadcast --verify	
 
-# Deploys the {PaymentModule} contract deterministically 
-
 # Deploys the core contracts deterministically 
 #
 # Update the following configs before running the script:
@@ -79,4 +77,32 @@ deploy-core:
 					forge script script/DeployDeterministicCore.s.sol:DeployDeterministicCore \
 					$(CREATE2SALT) {SABLIER_LOCKUP_LINEAR} {SABLIER_LOCKUP_TRANCHED} {INITIAL_OWNER} {BROKER_ACCOUNT} {ENTRYPOINT} \
 					--sig "run(string,address,address,address,address,address)" --rpc-url {RPC_URL} --account dev \
-					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi				
+					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi		
+
+# Deploys the {WerkSubdomainCore} contract deterministically 
+#
+# Update the following configs before running the script:
+#   - {WERK_SUBDOMAIN_ENS_DOMAIN} with the ENS domain name of the {WerkSubdomainRegistry}
+#   - {WERK_SUBDOMAIN_BASE_URI} with the base URI of the {WerkSubdomainRegistry}
+#   - {INITIAL_OWNER} with the address of the initial Registryowner
+deploy-ens-subdomain-core:
+					forge script script/ens-domains/DeployDeterministicWerkSubdomainCore.s.sol:DeployDeterministicWerkSubdomainCore \
+					$(CREATE2SALT) "werk.eth" $(WERK_SUBDOMAIN_BASE_URI) $(INITIAL_OWNER) \
+					--sig "run(string,string,string,address)" --rpc-url $(RPC_URL) --account dev \
+					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
+					
+# Deploys the {L2SubdomainRegistrar} contract deterministically 
+#
+# Update the following configs before running the script:
+#   - {WERK_SUBDOMAIN_REGISTRY} with the address of the {WerkSubdomainRegistry} contract 
+#   - {RPC_URL} with the network RPC used for deployment
+#   - {INITIAL_OWNER} with the address of the initial Registryowner
+deploy-ens-subdomain-registrar:
+					forge script script/ens-domains/DeployDeterministicWerkSubdomainRegistrar.s.sol:DeployDeterministicWerkSubdomainRegistrar \
+                    $(CREATE2SALT) $(WERK_SUBDOMAIN_REGISTRY) $(INITIAL_OWNER) \
+                    --sig "run(string,address,address)" --rpc-url $(RPC_URL) --account dev \
+                    --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
+
+# Configure the {WerkSubdomainRegistry} to allow the {WerkSubdomainRegistrar} to register subdomains
+configure-ens-subdomain-registry:
+                    cast send $(WERK_SUBDOMAIN_REGISTRY) "addRegistrar(address)" $(WERK_SUBDOMAIN_REGISTRAR) --rpc-url $(RPC_URL) --acount dev 
