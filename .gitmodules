@@ -1,3 +1,0 @@
-[submodule "lib/durin"]
-	path = lib/durin
-	url = https://github.com/namestonehq/durin
