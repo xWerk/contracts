@@ -16,6 +16,12 @@ contract WerkSubdomainRegistrar is Ownable {
     /// @param owner The owner of the newly registered name
     event NameRegistered(string indexed label, address indexed owner);
 
+    /// @notice Emitted when a subdomain is reserved
+    /// @param label The reserved label (e.g. "name" in "name.werk.eth")
+    /// @param owner The owner of the reserved subdomain
+    /// @param expiresAt The timestamp at which the reservation expires
+    event SubdomainReserved(string indexed label, address indexed owner, uint40 expiresAt);
+
     /// @notice Thrown when the caller is an invalid zero code contract or EOA
     error SpaceZeroCodeSize();
 
@@ -105,8 +111,7 @@ contract WerkSubdomainRegistrar is Ownable {
 
     /// @notice Reserves a name for 30 minutes for a given address
     /// @param label The label to reserve (e.g. "name" for "name.werk.eth")
-    /// @param owner The address that will own the name
-    function reserve(string memory label, address owner) external onlySpace {
+    function reserve(string memory label) external onlySpace {
         // Hash the label to get the labelhash
         bytes32 labelhash = keccak256(bytes(label));
 
@@ -119,7 +124,11 @@ contract WerkSubdomainRegistrar is Ownable {
         }
 
         // Create a new reservation for the label
-        reservations[labelhash] = Reservation({ owner: owner, expiresAt: uint40(block.timestamp + 30 minutes) });
+        uint40 expiresAt = uint40(block.timestamp + 30 minutes);
+        reservations[labelhash] = Reservation({ owner: msg.sender, expiresAt: expiresAt });
+
+        // Log the reservation event
+        emit SubdomainReserved({ label: label, owner: msg.sender, expiresAt: expiresAt });
     }
 
     /// @notice Registers a new name for free
