@@ -128,20 +128,19 @@ contract WerkSubdomainRegistrar is Ownable {
     /// - `msg.sender` must have a valid reservation for the label
     ///
     /// @param label The label to register (e.g. "name" for "name.werk.eth")
-    /// @param owner The address that will own the name
-    function register(string memory label, address owner) external onlySpace {
+    function register(string memory label) external onlySpace {
         // Hash the label to get the labelhash
         bytes32 labelhash = keccak256(bytes(label));
 
         // Retrieve the reservation for the label to check if it has already been reserved
         Reservation memory reservation = reservations[labelhash];
 
-        // Check if there is an existing reservation for this label and if it's still valid (not expired)
+        // Check if there is an existing reservation for this label
         if (reservation.owner == address(0)) {
             revert ReservationNotFound();
         }
 
-        // Check if the reservation is still valid
+        // Check if the reservation is still valid (not expired)
         if (reservation.expiresAt < block.timestamp) {
             revert ReservationExpired();
         }
@@ -152,21 +151,21 @@ contract WerkSubdomainRegistrar is Ownable {
         }
 
         // Convert the address to bytes
-        bytes memory addr = abi.encodePacked(owner);
+        bytes memory addr = abi.encodePacked(msg.sender);
 
         // Set the forward address for the current chain. This is needed for reverse resolution.
         // E.g. if this contract is deployed to Base, set an address for chainId 8453 which is
         // coinType 2147492101 according to ENSIP-11.
-        registry.setAddr(labelhash, coinType, addr);
+        registry.setAddr({ labelhash: labelhash, coinType: coinType, value: addr });
 
         // Set the forward address for mainnet ETH (coinType 60) for easier debugging.
-        registry.setAddr(labelhash, 60, addr);
+        registry.setAddr({ labelhash: labelhash, coinType: 60, value: addr });
 
         // Register the name in the L2 registry
-        registry.register(label, owner);
+        registry.register({ label: label, owner: msg.sender });
 
         // Log the registration event
-        emit NameRegistered(label, owner);
+        emit NameRegistered({ label: label, owner: msg.sender });
     }
 
     /// @notice Withdraws an ERC-20 token from the Registrar
