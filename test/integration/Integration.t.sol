@@ -30,7 +30,7 @@ abstract contract Integration_Test is Base_Test {
     MockStreamManager internal mockStreamManager;
     MockBadSpace internal badSpace;
     WerkSubdomainRegistrar internal werkSubdomainRegistrar;
-
+    WerkSubdomainRegistry internal werkSubdomainRegistry;
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
     //////////////////////////////////////////////////////////////////////////*/
@@ -98,12 +98,21 @@ abstract contract Integration_Test is Base_Test {
         });
     }
 
-    /// @dev Deploys the {WerkSubdomainRegistrar} peripheral
+    /// @dev Deploys the {WerkSubdomainRegistrar} L2 ENS registrar
     function deployWerkSubdomainRegistrar() internal {
-        address registry = address(new WerkSubdomainRegistry());
-        WerkSubdomainRegistry(registry).initialize("werk.eth", "werk.eth", "https://werk.com/");
+        // Deploy the {WerkSubdomainRegistry} registry
+        werkSubdomainRegistry = new WerkSubdomainRegistry();
 
-        werkSubdomainRegistrar =
-            new WerkSubdomainRegistrar({ _registry: IWerkSubdomainRegistry(registry), _owner: users.admin });
+        // Initialize the {WerkSubdomainRegistry} registry
+        werkSubdomainRegistry.initialize("werk.eth", "werk.eth", "https://werk.com/");
+
+        // Deploy the {WerkSubdomainRegistrar} registrar
+        werkSubdomainRegistrar = new WerkSubdomainRegistrar({
+            _registry: IWerkSubdomainRegistry(address(werkSubdomainRegistry)),
+            _owner: users.admin
+        });
+
+        // Add the {WerkSubdomainRegistrar} as a registrar to the {WerkSubdomainRegistry}
+        werkSubdomainRegistry.addRegistrar({ registrar: address(werkSubdomainRegistrar) });
     }
 }
