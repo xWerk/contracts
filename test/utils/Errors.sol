@@ -144,4 +144,11 @@ library Errors {
 
     /// @notice The `account` is missing a role.
     error PermissionsUnauthorizedAccount(address account, bytes32 neededRole);
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                    ENS-DOMAINS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when the subdomain has already been reserved
+    error AlreadyReserved(uint40 expiresAt);
 }

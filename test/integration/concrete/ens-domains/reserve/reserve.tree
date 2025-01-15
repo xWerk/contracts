@@ -1,0 +1,12 @@
+reserve.t.sol
+├── when the caller IS NOT a contract
+│   └── it should revert with the {SpaceZeroCodeSize} error
+└── when the caller IS a contract
+    ├── when the caller is NOT a compliant Space
+    │   └── it should revert with the {SpaceUnsupportedInterface} error
+    └── when the caller is a compliant Space
+        ├── when subdomain is already reserved
+        │   └── it should revert with the {AlreadyReserved} error
+        └── when subdomain is NOT reserved
+            ├── it should emit a {SubdomainReserved} event
+            └── it should create a new reservation for the label

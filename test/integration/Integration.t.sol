@@ -4,6 +4,9 @@ pragma solidity ^0.8.26;
 import { Base_Test } from "../Base.t.sol";
 import { PaymentModule } from "./../../src/modules/payment-module/PaymentModule.sol";
 import { InvoiceCollection } from "./../../src/peripherals/invoice-collection/InvoiceCollection.sol";
+import { WerkSubdomainRegistrar } from "./../../src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
+import { WerkSubdomainRegistry } from "./../../src/peripherals/ens-domains/WerkSubdomainRegistry.sol";
+import { IWerkSubdomainRegistry } from "./../../src/peripherals/ens-domains/interfaces/IWerkSubdomainRegistry.sol";
 import { SablierV2LockupLinear } from "@sablier/v2-core/src/SablierV2LockupLinear.sol";
 import { SablierV2LockupTranched } from "@sablier/v2-core/src/SablierV2LockupTranched.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -26,6 +29,7 @@ abstract contract Integration_Test is Base_Test {
     SablierV2LockupTranched internal sablierV2LockupTranched;
     MockStreamManager internal mockStreamManager;
     MockBadSpace internal badSpace;
+    WerkSubdomainRegistrar internal werkSubdomainRegistrar;
 
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
@@ -37,9 +41,10 @@ abstract contract Integration_Test is Base_Test {
         // Deploy corect contracts
         deployCoreContracts();
 
-        // Enable the {PaymentModule} module on the {Space} contract
-        address[] memory modules = new address[](1);
+        // Enable the {PaymentModule} and {WerkSubdomainRegistrar} modules on the {Space} contract
+        address[] memory modules = new address[](2);
         modules[0] = address(paymentModule);
+        modules[1] = address(werkSubdomainRegistrar);
 
         // Deploy the {Space} contract with the {PaymentModule} enabled by default
         space = deploySpace({ _owner: users.eve, _stationId: 0, _initialModules: modules });
@@ -63,6 +68,7 @@ abstract contract Integration_Test is Base_Test {
     function deployCoreContracts() internal {
         deployPaymentModule();
         deployInvoiceCollection();
+        deployWerkSubdomainRegistrar();
     }
 
     /// @dev Deploys the {PaymentModule} module
@@ -90,5 +96,14 @@ abstract contract Integration_Test is Base_Test {
             initialNFTDescriptor: mockNFTDescriptor,
             maxTrancheCount: 1000
         });
+    }
+
+    /// @dev Deploys the {WerkSubdomainRegistrar} peripheral
+    function deployWerkSubdomainRegistrar() internal {
+        address registry = address(new WerkSubdomainRegistry());
+        WerkSubdomainRegistry(registry).initialize("werk.eth", "werk.eth", "https://werk.com/");
+
+        werkSubdomainRegistrar =
+            new WerkSubdomainRegistrar({ _registry: IWerkSubdomainRegistry(registry), _owner: users.admin });
     }
 }
