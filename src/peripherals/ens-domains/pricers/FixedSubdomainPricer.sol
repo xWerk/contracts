@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { IFixedSubdomainPricer } from "./IFixedSubdomainPricer.sol";
+import { IFixedSubdomainPricer } from "../interfaces/IFixedSubdomainPricer.sol";
 import { Ownable } from "../../../abstracts/Ownable.sol";
 
 /// @title FixedSubdomainPricer

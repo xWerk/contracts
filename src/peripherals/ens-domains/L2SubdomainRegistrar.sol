@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import { IL2Registry } from "./interfaces/IL2Registry.sol";
 import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Ownable } from "./../../abstracts/Ownable.sol";
-import { ISubdomainPricer } from "./pricers/ISubdomainPricer.sol";
+import { ISubdomainPricer } from "./interfaces/ISubdomainPricer.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title L2SubdomainRegistrar
