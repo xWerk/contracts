@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import { IL2Registry } from "./interfaces/IL2Registry.sol";
+import { IWerkSubdomainRegistry } from "./interfaces/IWerkSubdomainRegistry.sol";
 import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Ownable } from "./../../abstracts/Ownable.sol";
 import { ISubdomainPricer } from "./interfaces/ISubdomainPricer.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-/// @title L2SubdomainRegistrar
-/// @dev This is a fork implementation of the L2Registrar contract created by NameStone
-contract L2SubdomainRegistrar is Ownable {
+/// @title WerkSubdomainRegistrar
+/// @notice This is a fork implementation of the L2Registrar contract created by NameStone
+/// @dev See the initial implementation here: https://github.com/namestonehq/durin/blob/main/src/L2Registrar.sol
+contract WerkSubdomainRegistrar is Ownable {
     /// @notice Emitted when a new name is registered
     /// @param label The registered label (e.g. "name" in "name.werk.eth")
     /// @param owner The owner of the newly registered name
@@ -40,7 +41,7 @@ contract L2SubdomainRegistrar is Ownable {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /// @notice Reference to the target registry contract
-    IL2Registry public immutable registry;
+    IWerkSubdomainRegistry public immutable registry;
 
     /// @notice Reference to the subdomain pricer contract
     ISubdomainPricer public pricer;
@@ -65,7 +66,7 @@ contract L2SubdomainRegistrar is Ownable {
     /// @notice Initializes the registrar with a registry contract
     /// @param _registry Address of the L2Registry contract
     /// @param _owner Address of the registrar owner
-    constructor(IL2Registry _registry, address _owner) Ownable(_owner) {
+    constructor(IWerkSubdomainRegistry _registry, address _owner) Ownable(_owner) {
         assembly {
             sstore(chainId.slot, chainid())
         }

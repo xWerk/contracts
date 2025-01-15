@@ -2,8 +2,8 @@
 pragma solidity ^0.8.26;
 
 import { BaseScript } from "./Base.s.sol";
-import { L2SubdomainRegistrar } from "./../src/peripherals/ens-domains/L2SubdomainRegistrar.sol";
-import { IL2Registry } from "./../src/peripherals/ens-domains/interfaces/IL2Registry.sol";
+import { WerkSubdomainRegistrar } from "./../src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
+import { IWerkSubdomainRegistry } from "./../src/peripherals/ens-domains/interfaces/IWerkSubdomainRegistry.sol";
 
 /// @notice Deploys at deterministic addresses across chains the {L2SubdomainRegistrar} contract
 /// @dev Reverts if any contract has already been deployed
@@ -12,17 +12,17 @@ contract DeployDeterministicL2SubdomainRegistrar is BaseScript {
     /// https://book.getfoundry.sh/tutorials/create2-tutorial?highlight=deter#deterministic-deployment-using-create2
     function run(
         string memory create2Salt,
-        IL2Registry registry,
+        IWerkSubdomainRegistry registry,
         address owner
     )
         public
         virtual
         broadcast
-        returns (L2SubdomainRegistrar subdomainRegistrar)
+        returns (WerkSubdomainRegistrar subdomainRegistrar)
     {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));
 
-        // Deterministically deploy the {L2SubdomainRegistrar} contract
-        subdomainRegistrar = new L2SubdomainRegistrar{ salt: salt }(registry, owner);
+        // Deterministically deploy the {WerkSubdomainRegistrar} contract
+        subdomainRegistrar = new WerkSubdomainRegistrar{ salt: salt }(registry, owner);
     }
 }

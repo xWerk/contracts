@@ -1,26 +1,13 @@
-// ***********************************************
-// ▗▖  ▗▖ ▗▄▖ ▗▖  ▗▖▗▄▄▄▖ ▗▄▄▖▗▄▄▄▖▗▄▖ ▗▖  ▗▖▗▄▄▄▖
-// ▐▛▚▖▐▌▐▌ ▐▌▐▛▚▞▜▌▐▌   ▐▌     █ ▐▌ ▐▌▐▛▚▖▐▌▐▌
-// ▐▌ ▝▜▌▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘ ▝▀▚▖  █ ▐▌ ▐▌▐▌ ▝▜▌▐▛▀▀▘
-// ▐▌  ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▗▄▄▞▘  █ ▝▚▄▞▘▐▌  ▐▌▐▙▄▄▖
-// ***********************************************
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
-
-/// @author darianb.eth + Unruggable(clowes.eth)
-/// @custom:project Durin
-/// @custom:company NameStone
-/// @notice Combined registry and resolver contract for Layer 2 name resolution
-/// @dev Implements ERC721 for name ownership and AccessControl for permissions
 
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 
-/// @title Registry/Resolver All-in-one (for Layer 2)
-/// @notice Manages name registration, ownership, and resolution on Layer 2
-/// @dev Uses labelhash instead of node for resolution functions
-contract L2Registry is ERC721, AccessControl {
+/// @title WerkSubdomainRegistry
+/// @notice This is a fork implementation of the L2Registry contract created by NameStone
+/// @dev See the initial implementation here: https://github.com/namestonehq/durin/blob/main/src/L2Registry.sol
+contract WerkSubdomainRegistry is ERC721, AccessControl {
     /// @notice Implements interface detection for ERC721 and AccessControl
     /// @param x The interface identifier to check
     /// @return bool True if the interface is supported
