@@ -22,7 +22,7 @@ tests-coverage :; ./script/coverage.sh
 #	- {RPC_URL} with the network RPC used for deployment
 deploy-invoice-collection: 
 					forge script script/DeployInvoiceCollection.s.sol:DeployInvoiceCollection \
-					{RELAYER} {NAME} {SYMBOL} \
+					$(RELAYER) $(NAME) $(SYMBOL) \
 					--sig "run(address,string,string)" --rpc-url {RPC_URL} --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) 
 					--broadcast --verify
 
@@ -32,8 +32,8 @@ deploy-invoice-collection:
 #	- {RPC_URL} with the network RPC used for deployment
 deploy-deterministic-module-keeper:
 					forge script script/DeployDeterministicModuleKeeper.s.sol:DeployDeterministicModuleKeeper \
-					$(CREATE2SALT) {INITIAL_OWNER} \
-					--sig "run(string,address)" --rpc-url {RPC_URL} \
+					$(CREATE2SALT) $(INITIAL_OWNER) \
+					--sig "run(string,address)" --rpc-url $(RPC_URL) \
 					--account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify
 
@@ -45,8 +45,8 @@ deploy-deterministic-module-keeper:
 #	- {RPC_URL} with the network RPC used for deployment
 deploy-deterministic-station-registry:
 					forge script script/DeployDeterministicStationRegistry.s.sol:DeployDeterministicStationRegistry \
-					$(CREATE2SALT) {INITIAL_OWNER} {ENTRYPOINT} {MODULE_KEEPER} \
-					--sig "run(string,address,address,address)" --rpc-url {RPC_URL} \
+					$(CREATE2SALT) $(INITIAL_OWNER) $(ENTRYPOINT) $(MODULE_KEEPER) \
+					--sig "run(string,address,address,address)" --rpc-url $(RPC_URL) \
 					--account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 
@@ -60,8 +60,8 @@ deploy-deterministic-station-registry:
 #	- {RPC_URL} with the network RPC used for deployment
 deploy-payment-module: 
 					forge script script/DeployDeterministicPaymentModule.s.sol:DeployDeterministicPaymentModule \
-					$(CREATE2SALT) {SABLIER_LOCKUP_LINEAR} {SABLIER_LOCKUP_TRANCHED} {INITIAL_OWNER} {BROKER_ACCOUNT} \
-					--sig "run(string,address,address,address,address)" --rpc-url {RPC_URL} --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) 
+					$(CREATE2SALT) $(SABLIER_LOCKUP_LINEAR) $(SABLIER_LOCKUP_TRANCHED) $(INITIAL_OWNER) $(BROKER_ACCOUNT) \
+					--sig "run(string,address,address,address,address)" --rpc-url $(RPC_URL) --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) 
 					--broadcast --verify	
 
 # Deploys the core contracts deterministically 
@@ -75,9 +75,9 @@ deploy-payment-module:
 #	- {RPC_URL} with the network RPC used for deployment
 deploy-core: 
 					forge script script/DeployDeterministicCore.s.sol:DeployDeterministicCore \
-					$(CREATE2SALT) {SABLIER_LOCKUP_LINEAR} {SABLIER_LOCKUP_TRANCHED} {INITIAL_OWNER} {BROKER_ACCOUNT} {ENTRYPOINT} \
-					--sig "run(string,address,address,address,address,address)" --rpc-url {RPC_URL} --account dev \
-					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi		
+					$(CREATE2SALT) $(SABLIER_LOCKUP_LINEAR) $(SABLIER_LOCKUP_TRANCHED) $(INITIAL_OWNER) $(BROKER_ACCOUNT) $(ENTRYPOINT) \
+					--sig "run(string,address,address,address,address,address)" --rpc-url $(RPC_URL) --account dev \
+					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
 
 # Deploys the {WerkSubdomainCore} contract deterministically 
 #
