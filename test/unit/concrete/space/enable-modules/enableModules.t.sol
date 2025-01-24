@@ -19,7 +19,7 @@ contract EnableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert(Errors.CallerNotEntryPointOrAdmin.selector);
 
         // Run the test
-        space.enableModule({ module: address(0x1) });
+        space.enableModules({ modules: mockModules });
     }
 
     modifier whenCallerOwner() {
@@ -33,7 +33,7 @@ contract EnableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert(Errors.ModuleNotAllowlisted.selector);
 
         // Run the test
-        space.enableModule({ module: address(0x1) });
+        space.enableModules({ modules: mockModules });
     }
 
     modifier whenNonZeroCodeModule() {
@@ -46,7 +46,7 @@ contract EnableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         emit Events.ModuleEnabled({ module: address(mockModule), owner: users.eve });
 
         // Run the test
-        space.enableModule({ module: address(mockModule) });
+        space.enableModules({ modules: mockModules });
 
         // Assert the module enablement state
         bool isModuleEnabled = space.isModuleEnabled({ module: address(mockModule) });

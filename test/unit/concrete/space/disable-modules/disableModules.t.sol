@@ -19,7 +19,7 @@ contract DisableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert(Errors.CallerNotEntryPointOrAdmin.selector);
 
         // Run the test
-        space.disableModule({ module: address(0x1) });
+        space.disableModules({ modules: mockModules });
     }
 
     modifier whenCallerOwner() {
@@ -30,20 +30,17 @@ contract DisableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
 
     modifier givenModuleEnabled() {
         // Enable the {MockModule} first
-        space.enableModule({ module: address(mockModule) });
+        space.enableModules({ modules: mockModules });
         _;
     }
 
-    function test_DisableModule() external whenCallerOwner givenModuleEnabled {
-        // Create a new mock module
-        MockModule mockModule = new MockModule();
-
+    function test_DisableModules() external whenCallerOwner givenModuleEnabled {
         // Expect the {ModuleDisabled} to be emitted
         vm.expectEmit();
         emit Events.ModuleDisabled({ module: address(mockModule), owner: users.eve });
 
         // Run the test
-        space.disableModule({ module: address(mockModule) });
+        space.disableModules({ modules: mockModules });
 
         // Assert the module enablement state
         bool isModuleEnabled = space.isModuleEnabled({ module: address(mockModule) });

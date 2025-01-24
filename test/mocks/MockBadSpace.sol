@@ -185,15 +185,19 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
     }
 
     /// @inheritdoc IModuleManager
-    function enableModule(address module) public override onlyAdminOrEntrypoint {
+    function enableModules(address[] memory modules) public override onlyAdminOrEntrypoint {
         ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
-        _enableModule(moduleKeeper, module);
+        for (uint256 i; i < modules.length; ++i) {
+            _enableModule(moduleKeeper, modules[i]);
+        }
     }
 
     /// @inheritdoc IModuleManager
-    function disableModule(address module) public override onlyAdminOrEntrypoint {
-        _disableModule(module);
+    function disableModules(address[] memory modules) public override onlyAdminOrEntrypoint {
+        for (uint256 i; i < modules.length; ++i) {
+            _disableModule(modules[i]);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////////////////
