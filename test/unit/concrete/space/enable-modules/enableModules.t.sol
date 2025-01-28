@@ -29,6 +29,10 @@ contract EnableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     }
 
     function test_RevertWhen_ModuleNotAllowlisted() external whenCallerOwner {
+        // Create a new module that is not allowlisted
+        address notAllowlistedModule = address(new MockModule());
+        mockModules[0] = notAllowlistedModule;
+
         // Expect the next call to revert with the {ModuleNotAllowlisted}
         vm.expectRevert(Errors.ModuleNotAllowlisted.selector);
 
