@@ -27,11 +27,11 @@ interface IModuleManager {
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Enables the `module` module on the {ModuleManager} contract
-    /// @param module The address of the module to enable
-    function enableModule(address module) external;
+    /// @notice Enables one or multiple `modules` modules on the {ModuleManager} contract
+    /// @param modules The array with addresses of the module to enable
+    function enableModules(address[] memory modules) external;
 
-    /// @notice Disables the `module` module on the {ModuleManager} contract
-    /// @param module The address of the module to disable
-    function disableModule(address module) external;
+    /// @notice Disables one or multiple `modules` modules on the {ModuleManager} contract
+    /// @param modules The array with addresses of the modules to disable
+    function disableModules(address[] memory modules) external;
 }

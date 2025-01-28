@@ -6,7 +6,7 @@ import { MockModule } from "../../../../mocks/MockModule.sol";
 import { Events } from "../../../../utils/Events.sol";
 import { Errors } from "../../../../utils/Errors.sol";
 
-contract DisableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
+contract EnableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     function setUp() public virtual override {
         Space_Unit_Concrete_Test.setUp();
     }
@@ -19,7 +19,7 @@ contract DisableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert(Errors.CallerNotEntryPointOrAdmin.selector);
 
         // Run the test
-        space.disableModule({ module: address(0x1) });
+        space.enableModules({ modules: mockModules });
     }
 
     modifier whenCallerOwner() {
@@ -28,25 +28,32 @@ contract DisableModule_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         _;
     }
 
-    modifier givenModuleEnabled() {
-        // Enable the {MockModule} first
-        space.enableModule({ module: address(mockModule) });
+    function test_RevertWhen_ModuleNotAllowlisted() external whenCallerOwner {
+        // Create a new module that is not allowlisted
+        address notAllowlistedModule = address(new MockModule());
+        mockModules[0] = notAllowlistedModule;
+
+        // Expect the next call to revert with the {ModuleNotAllowlisted}
+        vm.expectRevert(Errors.ModuleNotAllowlisted.selector);
+
+        // Run the test
+        space.enableModules({ modules: mockModules });
+    }
+
+    modifier whenNonZeroCodeModule() {
         _;
     }
 
-    function test_DisableModule() external whenCallerOwner givenModuleEnabled {
-        // Create a new mock module
-        MockModule mockModule = new MockModule();
-
-        // Expect the {ModuleDisabled} to be emitted
+    function test_EnableModule() external whenCallerOwner whenNonZeroCodeModule {
+        // Expect the {ModuleEnabled} to be emitted
         vm.expectEmit();
-        emit Events.ModuleDisabled({ module: address(mockModule), owner: users.eve });
+        emit Events.ModuleEnabled({ module: address(mockModule), owner: users.eve });
 
         // Run the test
-        space.disableModule({ module: address(mockModule) });
+        space.enableModules({ modules: mockModules });
 
         // Assert the module enablement state
         bool isModuleEnabled = space.isModuleEnabled({ module: address(mockModule) });
-        assertFalse(isModuleEnabled);
+        assertTrue(isModuleEnabled);
     }
 }

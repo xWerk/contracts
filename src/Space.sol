@@ -187,18 +187,18 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     }
 
     /// @inheritdoc IModuleManager
-    function enableModule(address module) public override onlyAdminOrEntrypoint {
+    function enableModules(address[] memory modules) public override onlyAdminOrEntrypoint {
         // Retrieve the address of the {ModuleKeeper}
         ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
-        // Checks, Effects: enable the module
-        _enableModule(moduleKeeper, module);
+        // Checks, Effects: enable the module(s)
+        _enableBatchModules(moduleKeeper, modules);
     }
 
     /// @inheritdoc IModuleManager
-    function disableModule(address module) public override onlyAdminOrEntrypoint {
-        // Effects: disable the module
-        _disableModule(module);
+    function disableModules(address[] memory modules) public override onlyAdminOrEntrypoint {
+        // Effects: disable the module(s)
+        _disableBatchModules(modules);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

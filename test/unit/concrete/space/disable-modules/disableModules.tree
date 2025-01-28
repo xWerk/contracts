@@ -1,7 +1,7 @@
-disableModule.t.sol
+disableModules.t.sol
 ├── when the caller IS NOT the space owner
 │   └── it should revert with the {CallerNotEntryPointOrAdmin} error
 └── when the caller IS the space owner
-    └── given module enabled
-        ├── it should mark the module as disabled
+    └── given module(s) enabled
+        ├── it should mark the module(s) as disabled
         └── it should emit a {ModuleDisabled} event

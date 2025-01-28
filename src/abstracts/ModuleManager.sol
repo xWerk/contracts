@@ -33,10 +33,10 @@ abstract contract ModuleManager is IModuleManager {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IModuleManager
-    function enableModule(address module) public virtual;
+    function enableModules(address[] memory modules) public virtual;
 
     /// @inheritdoc IModuleManager
-    function disableModule(address module) public virtual;
+    function disableModules(address[] memory modules) public virtual;
 
     /*//////////////////////////////////////////////////////////////////////////
                                 INTERNAL FUNCTIONS
@@ -77,5 +77,12 @@ abstract contract ModuleManager is IModuleManager {
 
         // Log the module disablement
         emit ModuleDisabled({ module: module, owner: msg.sender });
+    }
+
+    /// @dev Disables multiple modules at the same time
+    function _disableBatchModules(address[] memory modules) internal {
+        for (uint256 i; i < modules.length; ++i) {
+            _disableModule(modules[i]);
+        }
     }
 }
