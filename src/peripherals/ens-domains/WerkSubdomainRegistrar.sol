@@ -92,9 +92,18 @@ contract WerkSubdomainRegistrar is Ownable {
         bytes32 labelhash = keccak256(bytes(label));
         uint256 tokenId = uint256(labelhash);
 
+        // Check if the subdomain is registered
         try registry.ownerOf(tokenId) {
             return false;
         } catch {
+            // Otherwise check if there is any active reservation for the subdomain
+            Reservation memory reservation = reservations[labelhash];
+
+            // Check if the reservation is still valid (not expired)
+            if (reservation.expiresAt > block.timestamp) {
+                return false;
+            }
+
             return true;
         }
     }
@@ -157,9 +166,6 @@ contract WerkSubdomainRegistrar is Ownable {
         // E.g. if this contract is deployed to Base, set an address for chainId 8453 which is
         // coinType 2147492101 according to ENSIP-11.
         registry.setAddr({ labelhash: labelhash, coinType: coinType, value: addr });
-
-        // Set the forward address for mainnet ETH (coinType 60) for easier debugging.
-        registry.setAddr({ labelhash: labelhash, coinType: 60, value: addr });
 
         // Register the name in the L2 registry
         registry.register({ label: label, owner: msg.sender });
