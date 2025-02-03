@@ -39,6 +39,9 @@ contract WerkSubdomainRegistrar is Ownable {
     /// @notice Thrown when the caller is not the owner of the reservation
     error NotReservationOwner(uint40 expiresAt);
 
+    /// @notice Thrown when the caller is not the owner of the subdomain
+    error Unauthorized();
+
     /// @notice Reference to the target registry contract
     IWerkSubdomainRegistry public immutable registry;
 
@@ -163,15 +166,44 @@ contract WerkSubdomainRegistrar is Ownable {
         bytes memory addr = abi.encodePacked(msg.sender);
 
         // Set the forward address for the current chain. This is needed for reverse resolution.
-        // E.g. if this contract is deployed to Base, set an address for chainId 8453 which is
-        // coinType 2147492101 according to ENSIP-11.
+        // E.g. if this contract is deployed to Base Sepolia, set an address for chainId 84532 which is
+        // coinType 2147568180 according to ENSIP-11.
         registry.setAddr({ labelhash: labelhash, coinType: coinType, value: addr });
+
+        // Set the forward address for mainnet Base (coinType 2147492101) for easier debugging.
+        registry.setAddr({ labelhash: labelhash, coinType: 2_147_492_101, value: addr });
 
         // Register the name in the L2 registry
         registry.register({ label: label, owner: msg.sender });
 
         // Log the registration event
         emit NameRegistered({ label: label, owner: msg.sender });
+    }
+
+    /// @notice Registers an existing subdomain on a new chain through the `newCoinType` value
+    /// As a result, the `label` subdomain will also resolve on the provided chain
+    ///
+    /// Requirements:
+    /// - `msg.sender` must be a contract implementing the {ISpace} interface
+    /// - `msg.sender` must be the owner of the `label` subdomain
+    ///
+    /// @param label The label to register (e.g. "name" for "name.werk.eth")
+    /// @param newCoinType The coin type of the new chain where the subdomain will resolve too
+    function registerOnNewChain(string memory label, uint256 newCoinType) external onlySpace {
+        // Hash the label to get the labelhash
+        bytes32 labelhash = keccak256(bytes(label));
+
+        // Check if `msg.sender` is the owner of the subdomain
+        address owner = registry.ownerOf(uint256(labelhash));
+        if (owner != msg.sender) {
+            revert Unauthorized();
+        }
+
+        // Convert the address to bytes
+        bytes memory addr = abi.encodePacked(msg.sender);
+
+        // Set the forward address for the current chain. This is needed for reverse resolution.
+        registry.setAddr({ labelhash: labelhash, coinType: newCoinType, value: addr });
     }
 
     /// @notice Withdraws an ERC-20 token from the Registrar
