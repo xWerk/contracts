@@ -1,0 +1,10 @@
+available.t.sol
+├── when the subdomain is registered
+│   └── it should return false
+└── when the subdomain is NOT registered
+    ├── when the subdomain is reserved
+    │   └── it should return false
+    └── when the subdomain is NOT reserved
+        └── it should return true
+
+

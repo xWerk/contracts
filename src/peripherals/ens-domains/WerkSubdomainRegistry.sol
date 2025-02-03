@@ -24,18 +24,22 @@ contract WerkSubdomainRegistry is ERC721, AccessControl {
         }
         _;
     }
-    /// @notice Thrown when caller lacks required permissions
 
+    /// @notice Thrown when caller lacks required permissions
     error Unauthorized();
+
     /// @notice Thrown when initialization is attempted twice
     error AlreadyInitialized();
 
     /// @notice Emitted when a new name is registered
     event Registered(string label, address owner);
+
     /// @notice Emitted when a text record is changed
     event TextChanged(bytes32 indexed labelhash, string key, string value);
+
     /// @notice Emitted when an address record is changed
     event AddrChanged(bytes32 indexed labelhash, uint256 coinType, bytes value);
+
     /// @notice Emitted when a content hash is changed
     event ContenthashChanged(bytes32 indexed labelhash, bytes value);
 
@@ -58,6 +62,7 @@ contract WerkSubdomainRegistry is ERC721, AccessControl {
      */
     /// @notice Role identifier for administrative operations
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
     /// @notice Role identifier for registrar operations
     bytes32 public constant REGISTRAR_ROLE = keccak256("REGISTRAR_ROLE");
 
@@ -72,19 +77,26 @@ contract WerkSubdomainRegistry is ERC721, AccessControl {
      */
     /// @notice Total number of registered names
     uint256 public totalSupply;
+
     /// @notice Flag to track initialization status
     bool private _initialized;
+
     /// @notice Base URI for token metadata
     string public baseUri;
+
     ///  @notice Store name and symbol as public variables
     string private _name;
     string private _symbol;
+
     /// @notice Mapping of text records for each name
     mapping(bytes32 labelhash => mapping(string key => string)) _texts;
+
     /// @notice Mapping of address records for each name
     mapping(bytes32 labelhash => mapping(uint256 coinType => bytes)) _addrs;
+
     /// @notice Mapping of content hashes for each name
     mapping(bytes32 labelhash => bytes) _chashes;
+
     /// @notice Mapping of labels (names) for each labelhash
     mapping(bytes32 labelhash => string) _labels;
 
