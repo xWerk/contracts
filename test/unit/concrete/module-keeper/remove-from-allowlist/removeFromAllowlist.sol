@@ -18,8 +18,12 @@ contract RemoveFromAllowlist_Unit_Concrete_Test is ModuleKeeper_Unit_Concrete_Te
         // Expect the next call to revert with the {Unauthorized} error
         vm.expectRevert(Errors.Unauthorized.selector);
 
+        // Create a mock modules array to remove from the allowlist
+        address[] memory modules = new address[](1);
+        modules[0] = address(0x1);
+
         // Run the test
-        moduleKeeper.removeFromAllowlist({ module: address(0x1) });
+        moduleKeeper.removeFromAllowlist(modules);
     }
 
     modifier whenCallerOwner() {
@@ -33,12 +37,16 @@ contract RemoveFromAllowlist_Unit_Concrete_Test is ModuleKeeper_Unit_Concrete_Te
     }
 
     function test_AddToAllowlist() external whenCallerOwner givenModuleAllowlisted {
+        // Create a mock modules array to remove from the allowlist
+        address[] memory modules = new address[](1);
+        modules[0] = address(mockModule);
+
         // Expect the {ModuleRemovedFromAllowlist} event to be emitted
         vm.expectEmit();
-        emit Events.ModuleRemovedFromAllowlist({ owner: users.admin, module: address(mockModule) });
+        emit Events.ModulesRemovedFromAllowlist({ owner: users.admin, modules: modules });
 
         // Run the test
-        moduleKeeper.removeFromAllowlist({ module: address(mockModule) });
+        moduleKeeper.removeFromAllowlist(modules);
 
         // Assert the actual and expected allowlist state of the module
         bool actualIsAllowlisted = moduleKeeper.isAllowlisted({ module: address(mockModule) });

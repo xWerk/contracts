@@ -20,23 +20,11 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         // Therefore, we need to calculate the current nonce of the {StationRegistry}
         // to pre-compute the address of the new {Space} before deployment.
         (address expectedSpace, bytes memory data) =
-            computeDeploymentAddressAndCalldata({ deployer: users.bob, stationId: 0, initialModules: mockModules });
-
-        // Allowlist the mock modules on the {ModuleKeeper} contract from the admin account
-        vm.startPrank({ msgSender: users.admin });
-        for (uint256 i; i < mockModules.length; ++i) {
-            allowlistModule(mockModules[i]);
-        }
-        vm.stopPrank();
+            computeDeploymentAddressAndCalldata({ deployer: users.bob, stationId: 0 });
 
         // Expect the {SpaceCreated} to be emitted
         vm.expectEmit();
-        emit Events.SpaceCreated({
-            owner: users.bob,
-            stationId: 1,
-            space: Space(payable(expectedSpace)),
-            initialModules: mockModules
-        });
+        emit Events.SpaceCreated({ owner: users.bob, stationId: 1, space: Space(payable(expectedSpace)) });
 
         // Make Bob the caller in this test suite
         vm.prank({ msgSender: users.bob });
@@ -55,14 +43,13 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
 
     modifier whenStationIdNonZero() {
         // Create & deploy a new space with Bob as the owner
-        space = deploySpace({ _owner: users.bob, _stationId: 0, _initialModules: mockModules });
+        space = deploySpace({ _owner: users.bob, _stationId: 0 });
         _;
     }
 
     function test_RevertWhen_CallerNotStationOwner() external whenStationIdNonZero {
         // Construct the calldata to be used to initialize the {Space} smart account
-        bytes memory data =
-            computeCreateAccountCalldata({ deployer: users.eve, stationId: 1, initialModules: mockModules });
+        bytes memory data = computeCreateAccountCalldata({ deployer: users.eve, stationId: 1 });
 
         // Make Eve the caller in this test suite
         vm.prank({ msgSender: users.eve });
@@ -83,23 +70,11 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         // Therefore, we need to calculate the current nonce of the {StationRegistry}
         // to pre-compute the address of the new {Space} before deployment.
         (address expectedSpace, bytes memory data) =
-            computeDeploymentAddressAndCalldata({ deployer: users.bob, stationId: 1, initialModules: mockModules });
-
-        // Allowlist the mock modules on the {ModuleKeeper} contract from the admin account
-        vm.startPrank({ msgSender: users.admin });
-        for (uint256 i; i < mockModules.length; ++i) {
-            allowlistModule(mockModules[i]);
-        }
-        vm.stopPrank();
+            computeDeploymentAddressAndCalldata({ deployer: users.bob, stationId: 1 });
 
         // Expect the {SpaceCreated} event to be emitted
         vm.expectEmit();
-        emit Events.SpaceCreated({
-            owner: users.bob,
-            stationId: 1,
-            space: Space(payable(expectedSpace)),
-            initialModules: mockModules
-        });
+        emit Events.SpaceCreated({ owner: users.bob, stationId: 1, space: Space(payable(expectedSpace)) });
 
         // Make Bob the caller in this test suite
         vm.prank({ msgSender: users.bob });
@@ -110,10 +85,6 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
         // Assert if the freshly deployed smart account is registered on the factory
         bool isRegisteredOnFactory = stationRegistry.isRegistered(expectedSpace);
         assertTrue(isRegisteredOnFactory);
-
-        // Assert if the initial modules has been enabled on the {Space} smart account instance
-        bool isModuleEnabled = Space(payable(expectedSpace)).isModuleEnabled(mockModules[0]);
-        assertTrue(isModuleEnabled);
 
         // Assert the expected and actual owner of the station
         address actualOwnerOfStation = stationRegistry.ownerOfStation({ stationId: 1 });
