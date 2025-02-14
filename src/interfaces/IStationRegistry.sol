@@ -16,8 +16,7 @@ interface IStationRegistry {
     /// @param owner The address of the owner
     /// @param stationId The ID of the station to which this {Space} belongs
     /// @param space The address of the {Space}
-    /// @param initialModules Array of initially enabled modules
-    event SpaceCreated(address indexed owner, uint256 indexed stationId, address space, address[] initialModules);
+    event SpaceCreated(address indexed owner, uint256 indexed stationId, address space);
 
     /// @notice Emitted when the ownership of a {Station} is transferred to a new owner
     /// @param stationId The address of the {Station}

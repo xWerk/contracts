@@ -5,6 +5,7 @@ import { Integration_Test } from "../Integration.t.sol";
 import { Types } from "./../../../src/modules/payment-module/libraries/Types.sol";
 import { Space } from "./../../../src/Space.sol";
 import { MockBadSpace } from "../../mocks/MockBadSpace.sol";
+import { Constants } from "../../utils/Constants.sol";
 
 abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
     mapping(uint256 paymentRequestId => Types.PaymentRequest) paymentRequests;
@@ -22,7 +23,8 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
         // Create a mock payment request with a one-off ETH transfer
-        paymentRequest = createPaymentRequestWithOneOffTransfer({ asset: address(0), recipient: address(space) });
+        paymentRequest =
+            createPaymentRequestWithOneOffTransfer({ asset: Constants.NATIVE_TOKEN, recipient: address(space) });
         paymentRequests[2] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 

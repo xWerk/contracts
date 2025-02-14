@@ -30,26 +30,41 @@ the power of web3 as an organisation.
 
 ## Architecture
 
-Multiple Containers can be deployed, allowing ERC-20 and native tokens (ETH) to be deposited, acting as a user vault. At
-the same time, a Container can execute arbitrary code on an unlimited number of Modules. This ability enhances the Werk
-protocol with a modular architecture, providing an opportunity to create an open market of Modules where external
-players can create and integrate their own use-cases into the protocol.
+At its core, the Werk protocol enables users to create Space accounts, which serve as vaults for depositing ERC-20
+tokens and native tokens (ETH). These accounts are flexible and can be extended to meet the evolving needs of users. A
+Space is built on the ERC-4337 standard, leveraging the benefits of the Account Abstraction ecosystem. This architecture
+allows Space accounts to execute arbitrary code through enabled modules. This capability endows the Werk protocol with a
+modular and extensible framework. It also creates opportunities for an open market of modules, where external developers
+can design and integrate their own use cases into the protocol, fostering innovation and expanding the ecosystem.
 
 A module must first be allowlisted through the `ModuleKeeper` before being made publicly available to Werk users.
 Currently, due to the high-security risks, only the Werk team can add modules to or remove them from the allowlist.
 
-Once a module is allowlisted, it can be enabled via the `enableModule()` method available on any `Container`.
+Once a module is allowlisted, it can be enabled via the `enableModule()` method available on any `Space` account.
 
-### Invoice Module
+### Payment Module
 
-Our first available module is called `InvoiceModule`. This module enables users to create on-chain invoices that can be
-paid using various methods, such as transfer,
+Our first available module is called `PaymentModule`. This module enables users to create on-chain payment requests that
+can be paid in any ERC-20 token or native ETH using various methods, such as transfer,
 [linear](https://docs.sablier.com/concepts/protocol/stream-types#lockup-linear) or
-[tranched](https://docs.sablier.com/concepts/protocol/stream-types#lockup-tranched) stream, and have multiple payment
-assets including any ERC-20 token and native ETH.
+[tranched](https://docs.sablier.com/concepts/protocol/stream-types#lockup-tranched) stream.
 
-The `InvoiceModule` relies on the [Sablier V2](https://docs.sablier.com/concepts/what-is-sablier) protocol for stream
+The `PaymentModule` relies on the [Sablier V2](https://docs.sablier.com/concepts/what-is-sablier) protocol for stream
 creation and management.
+
+### ENS Subdomains
+
+Werk protocol provides a peripheral module called `WerkSubdomainRegistrar` that allows users to register ENS subdomains
+for their `Space` accounts. This feature enables users to easily manage and reference their `Space` accounts using
+familiar domain names.
+
+## Install
+
+Install Werk contracts using your favourite package manager:
+
+```bash
+bun install
+```
 
 ## Contribute
 

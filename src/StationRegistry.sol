@@ -63,10 +63,10 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, PermissionsEnu
         override(BaseAccountFactory, IStationRegistry)
         returns (address)
     {
-        // Get the station ID and initial modules array from the calldata
-        // Note: calldata contains a salt (usually the number of accounts created by an admin),
-        // station ID and an array with the initial enabled modules on the account
-        (, uint256 stationId, address[] memory initialModules) = abi.decode(_data, (uint256, uint256, address[]));
+        // Decode the `stationId` station ID from the calldata
+        // Note: `_data` calldata is the result of the `abi.encode` operation
+        // between the number of Spaces created by an admin on a specific station
+        (, uint256 stationId) = abi.decode(_data, (uint256, uint256));
 
         // Checks: a new station must be created first
         if (stationId == 0) {
@@ -95,7 +95,7 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, PermissionsEnu
         stationIdOfSpace[space] = stationId;
 
         // Log the {Space} creation
-        emit SpaceCreated(_admin, stationId, space, initialModules);
+        emit SpaceCreated(_admin, stationId, space);
 
         // Return {Space} smart account address
         return space;

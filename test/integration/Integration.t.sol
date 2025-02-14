@@ -4,6 +4,9 @@ pragma solidity ^0.8.26;
 import { Base_Test } from "../Base.t.sol";
 import { PaymentModule } from "./../../src/modules/payment-module/PaymentModule.sol";
 import { InvoiceCollection } from "./../../src/peripherals/invoice-collection/InvoiceCollection.sol";
+import { WerkSubdomainRegistrar } from "./../../src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
+import { WerkSubdomainRegistry } from "./../../src/peripherals/ens-domains/WerkSubdomainRegistry.sol";
+import { IWerkSubdomainRegistry } from "./../../src/peripherals/ens-domains/interfaces/IWerkSubdomainRegistry.sol";
 import { SablierV2LockupLinear } from "@sablier/v2-core/src/SablierV2LockupLinear.sol";
 import { SablierV2LockupTranched } from "@sablier/v2-core/src/SablierV2LockupTranched.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -26,6 +29,10 @@ abstract contract Integration_Test is Base_Test {
     SablierV2LockupTranched internal sablierV2LockupTranched;
     MockStreamManager internal mockStreamManager;
     MockBadSpace internal badSpace;
+    WerkSubdomainRegistrar internal werkSubdomainRegistrar;
+    WerkSubdomainRegistry internal werkSubdomainRegistry;
+
+    address[] internal modules;
 
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
@@ -37,15 +44,18 @@ abstract contract Integration_Test is Base_Test {
         // Deploy corect contracts
         deployCoreContracts();
 
-        // Enable the {PaymentModule} module on the {Space} contract
-        address[] memory modules = new address[](1);
-        modules[0] = address(paymentModule);
+        // Enable the {PaymentModule} and {WerkSubdomainRegistrar} modules on the {Space} contract
+        modules.push(address(paymentModule));
+        modules.push(address(werkSubdomainRegistrar));
+
+        // Allowlist the required modules for testing
+        allowlistModules(modules);
 
         // Deploy the {Space} contract with the {PaymentModule} enabled by default
-        space = deploySpace({ _owner: users.eve, _stationId: 0, _initialModules: modules });
+        space = deploySpace({ _owner: users.eve, _stationId: 0 });
 
         // Deploy a "bad" {Space} with the `mockBadReceiver` as the owner
-        badSpace = deployBadSpace({ _owner: address(mockBadReceiver), _stationId: 0, _initialModules: modules });
+        badSpace = deployBadSpace({ _owner: address(mockBadReceiver), _stationId: 0 });
 
         // Label the test contracts so we can easily track them
         vm.label({ account: address(paymentModule), newLabel: "PaymentModule" });
@@ -63,6 +73,7 @@ abstract contract Integration_Test is Base_Test {
     function deployCoreContracts() internal {
         deployPaymentModule();
         deployInvoiceCollection();
+        deployWerkSubdomainRegistrar();
     }
 
     /// @dev Deploys the {PaymentModule} module
@@ -90,5 +101,23 @@ abstract contract Integration_Test is Base_Test {
             initialNFTDescriptor: mockNFTDescriptor,
             maxTrancheCount: 1000
         });
+    }
+
+    /// @dev Deploys the {WerkSubdomainRegistrar} L2 ENS registrar
+    function deployWerkSubdomainRegistrar() internal {
+        // Deploy the {WerkSubdomainRegistry} registry
+        werkSubdomainRegistry = new WerkSubdomainRegistry();
+
+        // Initialize the {WerkSubdomainRegistry} registry
+        werkSubdomainRegistry.initialize("werk.eth", "werk.eth", "https://werk.com/");
+
+        // Deploy the {WerkSubdomainRegistrar} registrar
+        werkSubdomainRegistrar = new WerkSubdomainRegistrar({
+            _registry: IWerkSubdomainRegistry(address(werkSubdomainRegistry)),
+            _owner: users.admin
+        });
+
+        // Add the {WerkSubdomainRegistrar} as a registrar to the {WerkSubdomainRegistry}
+        werkSubdomainRegistry.addRegistrar({ registrar: address(werkSubdomainRegistrar) });
     }
 }

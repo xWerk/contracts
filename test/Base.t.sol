@@ -58,7 +58,6 @@ abstract contract Base_Test is Test, Events {
         users = Users({ admin: createUser("admin"), eve: createUser("eve"), bob: createUser("bob") });
 
         // Deploy test contracts
-        //entrypoint = new EntryPoint();
         moduleKeeper = new ModuleKeeper({ _initialOwner: users.admin });
 
         stationRegistry = new StationRegistry(users.admin, IEntryPoint(entrypoint), moduleKeeper);
@@ -70,8 +69,9 @@ abstract contract Base_Test is Test, Events {
         mockERC721 = new MockERC721Collection("MockERC721Collection", "MC");
         mockERC1155 = new MockERC1155Collection("https://nft.com/0x1.json");
 
-        // Create a mock modules array
+        // Create a mock modules array and allowlist them
         mockModules.push(address(mockModule));
+        allowlistModules(mockModules);
 
         // Label the test contracts so we can easily track them
         vm.label({ account: address(stationRegistry), newLabel: "StationRegistry" });
@@ -86,54 +86,29 @@ abstract contract Base_Test is Test, Events {
                             DEPLOYMENT-RELATED FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Deploys a new {Space} smart account based on the provided `owner`, `moduleKeeper` and `initialModules` input params
-    function deploySpace(
-        address _owner,
-        uint256 _stationId,
-        address[] memory _initialModules
-    )
-        internal
-        returns (Space _space)
-    {
-        vm.startPrank({ msgSender: users.admin });
-        for (uint256 i; i < _initialModules.length; ++i) {
-            allowlistModule(_initialModules[i]);
-        }
-        vm.stopPrank();
-
-        bytes memory data =
-            computeCreateAccountCalldata({ deployer: _owner, stationId: _stationId, initialModules: _initialModules });
+    /// @dev Deploys a new {Space} smart account based on the provided `owner` and `stationId` input params
+    function deploySpace(address _owner, uint256 _stationId) internal returns (Space _space) {
+        bytes memory data = computeCreateAccountCalldata({ deployer: _owner, stationId: _stationId });
 
         vm.prank({ msgSender: _owner });
         _space = Space(payable(stationRegistry.createAccount({ _admin: _owner, _data: data })));
         vm.stopPrank();
     }
 
-    /// @dev Deploys a new {MockBadSpace} smart account based on the provided `owner`, `moduleKeeper` and `initialModules` input params
-    function deployBadSpace(
-        address _owner,
-        uint256 _stationId,
-        address[] memory _initialModules
-    )
-        internal
-        returns (MockBadSpace _badSpace)
-    {
-        vm.startPrank({ msgSender: users.admin });
-        for (uint256 i; i < _initialModules.length; ++i) {
-            allowlistModule(_initialModules[i]);
-        }
-        vm.stopPrank();
-
-        bytes memory data =
-            computeCreateAccountCalldata({ deployer: _owner, stationId: _stationId, initialModules: _initialModules });
+    /// @dev Deploys a new {MockBadSpace} smart account based on the provided `owner` and `stationId` input params
+    function deployBadSpace(address _owner, uint256 _stationId) internal returns (MockBadSpace _badSpace) {
+        bytes memory data = computeCreateAccountCalldata({ deployer: _owner, stationId: _stationId });
 
         vm.prank({ msgSender: _owner });
         _badSpace = MockBadSpace(payable(stationRegistry.createAccount({ _admin: _owner, _data: data })));
         vm.stopPrank();
     }
 
-    function allowlistModule(address _module) internal {
-        moduleKeeper.addToAllowlist({ module: _module });
+    /// @dev Allowslist the provided `modules` in the {ModuleKeeper} contract
+    function allowlistModules(address[] memory _modules) internal {
+        vm.startPrank({ msgSender: users.admin });
+        moduleKeeper.addToAllowlist({ modules: _modules });
+        vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -141,7 +116,7 @@ abstract contract Base_Test is Test, Events {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Generates a user, labels its address, and funds it with test assets
-    function createUser(string memory name) internal returns (address payable) {
+    function createUser(string memory name) internal virtual returns (address payable) {
         address payable user = payable(makeAddr(name));
         vm.deal({ account: user, newBalance: 100 ether });
         deal({ token: address(usdt), to: user, give: 10_000_000e18 });
@@ -153,14 +128,13 @@ abstract contract Base_Test is Test, Events {
     /// and constructs the calldata to be used to create the new smart account
     function computeDeploymentAddressAndCalldata(
         address deployer,
-        uint256 stationId,
-        address[] memory initialModules
+        uint256 stationId
     )
         internal
         view
         returns (address expectedAddress, bytes memory data)
     {
-        data = computeCreateAccountCalldata(deployer, stationId, initialModules);
+        data = computeCreateAccountCalldata(deployer, stationId);
 
         // Compute the final salt made by the deployer address and initialization data
         bytes32 salt = keccak256(abi.encode(deployer, data));
@@ -173,8 +147,7 @@ abstract contract Base_Test is Test, Events {
     /// @dev Constructs the calldata passed to the {StationRegistry}.createAccount method
     function computeCreateAccountCalldata(
         address deployer,
-        uint256 stationId,
-        address[] memory initialModules
+        uint256 stationId
     )
         internal
         view
@@ -186,6 +159,6 @@ abstract contract Base_Test is Test, Events {
         uint256 totalAccountsOfDeployer = stationRegistry.totalAccountsOfSigner(deployer);
 
         // Construct the calldata to be used to initialize the {Space} smart account
-        data = abi.encode(totalAccountsOfDeployer, stationId, initialModules);
+        data = abi.encode(totalAccountsOfDeployer, stationId);
     }
 }

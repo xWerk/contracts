@@ -27,7 +27,33 @@ contract ModuleKeeper is IModuleKeeper, Ownable {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IModuleKeeper
-    function addToAllowlist(address module) public onlyOwner {
+    function addToAllowlist(address[] calldata modules) public onlyOwner {
+        for (uint256 i; i < modules.length; ++i) {
+            // Effects: add the module to the allowlist
+            _allowlistModule(modules[i]);
+        }
+
+        // Log the modules allowlisting
+        emit ModulesAllowlisted(owner, modules);
+    }
+
+    /// @inheritdoc IModuleKeeper
+    function removeFromAllowlist(address[] calldata modules) public onlyOwner {
+        for (uint256 i; i < modules.length; ++i) {
+            // Effects: remove the module from the allowlist
+            isAllowlisted[modules[i]] = false;
+        }
+
+        // Log the modules removal from the allowlist
+        emit ModulesRemovedFromAllowlist(owner, modules);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Adds the `module` module to the allowlist
+    function _allowlistModule(address module) internal {
         // Check: the module has a valid non-zero code size
         if (module.code.length == 0) {
             revert Errors.InvalidZeroCodeModule();
@@ -35,17 +61,5 @@ contract ModuleKeeper is IModuleKeeper, Ownable {
 
         // Effects: add the module to the allowlist
         isAllowlisted[module] = true;
-
-        // Log the module allowlisting
-        emit ModuleAllowlisted(owner, module);
-    }
-
-    /// @inheritdoc IModuleKeeper
-    function removeFromAllowlist(address module) public onlyOwner {
-        // Effects: remove the module from the allowlist
-        isAllowlisted[module] = false;
-
-        // Log the module removal from the allowlist
-        emit ModuleRemovedFromAllowlist(owner, module);
     }
 }

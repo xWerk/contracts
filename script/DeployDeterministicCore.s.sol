@@ -7,8 +7,8 @@ import { StationRegistry } from "./../src/StationRegistry.sol";
 import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
 
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { Options } from "./../lib/openzeppelin-foundry-upgrades/src/Options.sol";
-import { Core } from "./../lib/openzeppelin-foundry-upgrades/src/internal/Core.sol";
+import { Options } from "@openzeppelin/foundry-upgrades/src/Options.sol";
+import { Core } from "@openzeppelin/foundry-upgrades/src/internal/Core.sol";
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
@@ -17,6 +17,8 @@ import { ud } from "@prb/math/src/UD60x18.sol";
 /// @notice Deploys at deterministic addresses across chains the core contracts of the Werk Protocol
 /// @dev Reverts if any contract has already been deployed
 contract DeployDeterministicCore is BaseScript {
+    address[] modules;
+
     /// @dev By using a salt, Forge will deploy the contract via a deterministic CREATE2 factory
     /// https://book.getfoundry.sh/tutorials/create2-tutorial?highlight=deter#deterministic-deployment-using-create2
     function run(
@@ -51,7 +53,8 @@ contract DeployDeterministicCore is BaseScript {
         );
 
         // Add the {PaymentModule} module to the allowlist of the {ModuleKeeper}
-        moduleKeeper.addToAllowlist(address(paymentModule));
+        modules.push(address(paymentModule));
+        moduleKeeper.addToAllowlist(modules);
     }
 
     /// @dev Deploys a UUPS proxy at deterministic addresses across chains based on a provided salt

@@ -5,6 +5,7 @@ import { PayRequest_Integration_Shared_Test } from "../../../shared/payRequest.t
 import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
 import { Events } from "../../../../utils/Events.sol";
 import { Errors } from "../../../../utils/Errors.sol";
+import { Constants } from "../../../../utils/Constants.sol";
 
 import { LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
 
@@ -98,25 +99,19 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         whenPaymentAmountEqualToPaymentValue
     {
         // Create a mock payment request with a one-off ETH transfer from the Eve's space
-        Types.PaymentRequest memory paymentRequest =
-            createPaymentRequestWithOneOffTransfer({ asset: address(0), recipient: address(mockBadReceiver) });
+        Types.PaymentRequest memory paymentRequest = createPaymentRequestWithOneOffTransfer({
+            asset: Constants.NATIVE_TOKEN,
+            recipient: address(mockBadReceiver)
+        });
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
+        // Retrieve the payment request ID
         uint256 paymentRequestId = _nextRequestId;
 
-        // Make Eve's space the caller for the next call to approve & transfer the payment request NFT to a bad receiver
-        //vm.startPrank({ msgSender: address(space) });
-
-        // Approve the {PaymentModule} to transfer the token
-        //paymentModule.approve({ to: address(paymentModule), tokenrequestId: paymentRequestId });
-
-        // Transfer the payment request to a bad receiver so we can test against `NativeTokenPaymentFailed`
-        //paymentModule.transferFrom({ from: address(space), to: address(mockBadReceiver), tokenrequestId: paymentRequestId });
-
-        // Make Bob the payer for this paymentRequest
+        // Make Bob the payer for this payment request
         vm.startPrank({ msgSender: users.bob });
 
-        // Expect the call to be reverted with the {NativeTokenPaymentFailed} error
+        // Expect the call to be reverted with the {NativeTokenPaymentFailed} error due to the bad receiver
         vm.expectRevert(Errors.NativeTokenPaymentFailed.selector);
 
         // Run the test

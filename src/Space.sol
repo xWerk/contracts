@@ -16,15 +16,13 @@ import { ERC1271 } from "@thirdweb/contracts/eip/ERC1271.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 
 import { ISpace } from "./interfaces/ISpace.sol";
-import { ModuleManager } from "./abstracts/ModuleManager.sol";
-import { IModuleManager } from "./interfaces/IModuleManager.sol";
 import { Errors } from "./libraries/Errors.sol";
 import { StationRegistry } from "./StationRegistry.sol";
 import { ModuleKeeper } from "./ModuleKeeper.sol";
 
 /// @title Space
 /// @notice See the documentation in {ISpace}
-contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
+contract Space is ISpace, AccountCore, ERC1271 {
     using ECDSA for bytes32;
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -32,23 +30,11 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
     bytes32 private constant MSG_TYPEHASH = keccak256("AccountMessage(bytes message)");
 
     /*//////////////////////////////////////////////////////////////////////////
-                            CONSTRUCTOR & INITIALIZER
+                                  CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Initializes the address of the EIP 4337 factory and EntryPoint contract
     constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) { }
-
-    /// @notice Initializes the {ModuleKeeper}, enables initial modules and configures the {Space} smart account
-    function initialize(address _defaultAdmin, bytes calldata _data) public override {
-        (,, address[] memory initialModules) = abi.decode(_data, (uint256, uint256, address[]));
-
-        // Enable the initial module(s)
-        ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
-        _initializeModuleManager(moduleKeeper, initialModules);
-
-        // Initialize the {Space} smart contract
-        super.initialize(_defaultAdmin, _data);
-    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 RECEIVE & FALLBACK
@@ -91,8 +77,8 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         onlyAdminOrEntrypoint
         returns (bool success)
     {
-        // Checks: the `module` module is enabled on the smart account
-        _checkIfModuleIsEnabled(module);
+        // Checks: the `module` module is allowlisted
+        _checkIfModuleAllowlisted(module);
 
         // Effects, Interactions: execute the call on the `module` contract
         success = _call(module, value, data);
@@ -115,8 +101,8 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
 
         // Loop through the calls to execute
         for (uint256 i; i < modulesLength; ++i) {
-            // Checks: current module is enabled
-            _checkIfModuleIsEnabled(modules[i]);
+            // Checks: current module is allowlisted
+            _checkIfModuleAllowlisted(modules[i]);
 
             // Effects, Interactions: execute all calls on the provided `modules` contracts
             _call(modules[i], values[i], data[i]);
@@ -186,19 +172,15 @@ contract Space is ISpace, AccountCore, ERC1271, ModuleManager {
         emit AssetWithdrawn({ to: to, asset: address(0), amount: amount });
     }
 
-    /// @inheritdoc IModuleManager
-    function enableModule(address module) public override onlyAdminOrEntrypoint {
+    /// @dev Checks if the module is allowlisted
+    function _checkIfModuleAllowlisted(address module) internal view {
         // Retrieve the address of the {ModuleKeeper}
         ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
-        // Checks, Effects: enable the module
-        _enableModule(moduleKeeper, module);
-    }
-
-    /// @inheritdoc IModuleManager
-    function disableModule(address module) public override onlyAdminOrEntrypoint {
-        // Effects: disable the module
-        _disableModule(module);
+        // Checks: module is in the allowlist
+        if (!moduleKeeper.isAllowlisted(module)) {
+            revert Errors.ModuleNotAllowlisted(module);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////////////////

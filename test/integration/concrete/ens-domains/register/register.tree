@@ -1,0 +1,16 @@
+register.t.sol
+├── when the caller IS NOT a contract
+│   └── it should revert with the {SpaceZeroCodeSize} error
+└── when the caller IS a contract
+    ├── when the caller is NOT a compliant Space
+    │   └── it should revert with the {SpaceUnsupportedInterface} error
+    └── when the caller is a compliant Space
+        ├── when subdomain is not reserved
+        │   └── it should revert with the {ReservationNotFound} error
+        ├── when subdomain has an expired reservation
+        │   └── it should revert with the {ReservationExpired} error
+        ├── when subdomain has a valid reservation but caller is not the owner
+        │   └── it should revert with the {NotReservationOwner} error
+        └── when subdomain has a valid reservation and caller is the owner
+            ├── it should emit a {NameRegistered} event
+            └── it should register the label

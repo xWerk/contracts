@@ -16,8 +16,7 @@ abstract contract Events {
     /// @param owner The address of the owner
     /// @param stationId The ID of the station to which this {Space} belongs
     /// @param space The address of the {Space}
-    /// @param initialModules Array of initially enabled modules
-    event SpaceCreated(address indexed owner, uint256 indexed stationId, Space space, address[] initialModules);
+    event SpaceCreated(address indexed owner, uint256 indexed stationId, Space space);
 
     /// @notice Emitted when the ownership of a {Station} is transferred to a new owner
     /// @param stationId The address of the {Station}
@@ -135,13 +134,13 @@ abstract contract Events {
 
     /// @notice Emitted when a new module is allowlisted
     /// @param owner The address of the {ModuleKeeper} owner
-    /// @param module The address of the module to be allowlisted
-    event ModuleAllowlisted(address indexed owner, address indexed module);
+    /// @param modules The addresses of the modules to be allowlisted
+    event ModulesAllowlisted(address indexed owner, address[] modules);
 
     /// @notice Emitted when a module is removed from the allowlist
     /// @param owner The address of the {ModuleKeeper} owner
-    /// @param module The address of the module to be removed
-    event ModuleRemovedFromAllowlist(address indexed owner, address indexed module);
+    /// @param modules The addresses of the modules to be removed
+    event ModulesRemovedFromAllowlist(address indexed owner, address[] modules);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 INVOICE-COLLECTION
@@ -152,4 +151,19 @@ abstract contract Events {
     /// @param tokenId The ID of the NFT representing the invoice
     /// @param paymentRequestId The ID of the payment request associated with the invoice
     event InvoiceMinted(address to, uint256 tokenId, string paymentRequestId);
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                   ENS-DOMAINS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a new name is registered
+    /// @param label The registered label (e.g. "name" in "name.werk.eth")
+    /// @param owner The owner of the newly registered name
+    event NameRegistered(string indexed label, address indexed owner);
+
+    /// @notice Emitted when a subdomain is reserved
+    /// @param label The reserved label (e.g. "name" in "name.werk.eth")
+    /// @param owner The owner of the reserved subdomain
+    /// @param expiresAt The timestamp at which the reservation expires
+    event SubdomainReserved(string indexed label, address indexed owner, uint40 expiresAt);
 }

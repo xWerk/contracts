@@ -71,12 +71,20 @@ interface ISpace is IERC165, IERC721Receiver, IERC1155Receiver {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Executes a call on the `module` module, proving the `value` wei amount for the ABI-encoded `data` method
+    ///
+    /// Requirements:
+    /// - `module` must be allowlisted in the {ModuleKeeper} contract
+    ///
     /// @param module The address of the module to call
     /// @param value The amount of wei to provide
     /// @param data The ABI-encoded definition of the method (+inputs) to call
     function execute(address module, uint256 value, bytes memory data) external returns (bool success);
 
     /// @notice Executes multiple calls to one or more `modules` modules
+    ///
+    /// Requirements:
+    /// - All `modules` must be allowlisted in the {ModuleKeeper} contract
+    ///
     /// @param modules The addesses of the modules to call
     /// @param values THe amout of wei to provide to each call
     /// @param data The ABI-encoded definition of the method and inputs

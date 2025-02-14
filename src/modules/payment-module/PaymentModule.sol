@@ -26,6 +26,9 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     /// @dev Version identifier for the current implementation of the contract
     string public constant VERSION = "1.0.0";
 
+    /// @dev The address of the native token (ETH) following the ERC-7528 standard
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
@@ -173,7 +176,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         // Checks: the asset is different than the native token if dealing with either a linear or tranched stream-based payment
         if (request.config.method != Types.Method.Transfer) {
-            if (request.config.asset == address(0)) {
+            if (request.config.asset == NATIVE_TOKEN) {
                 revert Errors.OnlyERC20StreamsAllowed();
             }
         }
@@ -345,7 +348,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     /// @dev Pays the `id` request  by transfer
     function _payByTransfer(Types.PaymentRequest memory request) internal {
         // Check if the payment must be done in native token (ETH) or an ERC-20 token
-        if (request.config.asset == address(0)) {
+        if (request.config.asset == NATIVE_TOKEN) {
             // Checks: the payment amount matches the request value
             if (msg.value < request.config.amount) {
                 revert Errors.PaymentAmountLessThanRequestedAmount({ amount: request.config.amount });
