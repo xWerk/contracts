@@ -105,10 +105,11 @@ contract Register_Integration_Concret_Test is Integration_Test {
         bytes memory data = abi.encodeWithSignature("reserve(string)", "test");
         space.execute({ module: address(werkSubdomainRegistrar), value: 0, data: data });
 
+        // Stop the current prank context
+        vm.stopPrank();
+
         // Create a new space with Bob as the owner and enable the {WerkSubdomainRegistrar} module
-        address[] memory initialModules = new address[](1);
-        initialModules[0] = address(werkSubdomainRegistrar);
-        space = deploySpace({ _owner: users.bob, _stationId: 0, _initialModules: initialModules });
+        space = deploySpace({ _owner: users.bob, _stationId: 0 });
 
         // Make Bob the caller for the next calls to simulate a different Space trying to
         // register an already reserved subdomain

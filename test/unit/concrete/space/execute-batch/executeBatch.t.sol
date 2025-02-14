@@ -61,18 +61,18 @@ contract ExecuteBatch_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         // Update the first module address to `0x0000000000000000000000000000000000000001` address which is not a valid one
         modules[0] = address(0x1);
 
-        // Expect the next call to revert with the {ModuleNotEnabled} error
-        vm.expectRevert(abi.encodeWithSelector(Errors.ModuleNotEnabled.selector, address(0x1)));
+        // Expect the next call to revert with the {ModuleNotAllowlisted} error
+        vm.expectRevert(abi.encodeWithSelector(Errors.ModuleNotAllowlisted.selector, address(0x1)));
 
         // Run the test
         space.executeBatch(modules, values, data);
     }
 
-    modifier whenModuleEnabled() {
+    modifier whenModuleAllowlisted() {
         _;
     }
 
-    function test_ExecuteBatch() external whenCallerOwner whenModuleEnabled {
+    function test_ExecuteBatch() external whenCallerOwner whenModuleAllowlisted {
         // Create the calldata for the mock module execution
         data[0] = abi.encodeWithSignature("createModuleItem()", "");
         data.push(abi.encodeWithSignature("createModuleItem()", ""));

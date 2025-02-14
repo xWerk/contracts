@@ -31,6 +31,9 @@ abstract contract Integration_Test is Base_Test {
     MockBadSpace internal badSpace;
     WerkSubdomainRegistrar internal werkSubdomainRegistrar;
     WerkSubdomainRegistry internal werkSubdomainRegistry;
+
+    address[] internal modules;
+
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
     //////////////////////////////////////////////////////////////////////////*/
@@ -42,15 +45,17 @@ abstract contract Integration_Test is Base_Test {
         deployCoreContracts();
 
         // Enable the {PaymentModule} and {WerkSubdomainRegistrar} modules on the {Space} contract
-        address[] memory modules = new address[](2);
-        modules[0] = address(paymentModule);
-        modules[1] = address(werkSubdomainRegistrar);
+        modules.push(address(paymentModule));
+        modules.push(address(werkSubdomainRegistrar));
+
+        // Allowlist the required modules for testing
+        allowlistModules(modules);
 
         // Deploy the {Space} contract with the {PaymentModule} enabled by default
-        space = deploySpace({ _owner: users.eve, _stationId: 0, _initialModules: modules });
+        space = deploySpace({ _owner: users.eve, _stationId: 0 });
 
         // Deploy a "bad" {Space} with the `mockBadReceiver` as the owner
-        badSpace = deployBadSpace({ _owner: address(mockBadReceiver), _stationId: 0, _initialModules: modules });
+        badSpace = deployBadSpace({ _owner: address(mockBadReceiver), _stationId: 0 });
 
         // Label the test contracts so we can easily track them
         vm.label({ account: address(paymentModule), newLabel: "PaymentModule" });

@@ -48,11 +48,8 @@ library Errors {
                                   MODULE-MANAGER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when a {Space} tries to execute a method on a non-enabled module
-    error ModuleNotEnabled(address module);
-
-    /// @notice Thrown when an attempt is made to enable a non-allowlisted module on a {Space}
-    error ModuleNotAllowlisted();
+    /// @notice Thrown when a {Space} tries to execute a method on a non-allowlisted module
+    error ModuleNotAllowlisted(address module);
 
     /*//////////////////////////////////////////////////////////////////////////
                                   MODULE-KEEPER

@@ -28,18 +28,18 @@ contract Execute_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     }
 
     function test_RevertWhen_ModuleNotEnabled() external whenCallerOwner {
-        // Expect the next call to revert with the {ModuleNotEnabled} error
-        vm.expectRevert(abi.encodeWithSelector(Errors.ModuleNotEnabled.selector, address(0x1)));
+        // Expect the next call to revert with the {ModuleNotAllowlisted} error
+        vm.expectRevert(abi.encodeWithSelector(Errors.ModuleNotAllowlisted.selector, address(0x1)));
 
         // Run the test by trying to execute a module at `0x0000000000000000000000000000000000000001` address
         space.execute({ module: address(0x1), value: 0, data: "" });
     }
 
-    modifier whenModuleEnabled() {
+    modifier whenModuleAllowlisted() {
         _;
     }
 
-    function test_Execute() external whenCallerOwner whenModuleEnabled {
+    function test_Execute() external whenCallerOwner whenModuleAllowlisted {
         // Create the calldata for the mock module execution
         bytes memory data = abi.encodeWithSignature("createModuleItem()", "");
 

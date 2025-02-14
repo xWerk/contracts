@@ -7,9 +7,7 @@ contract Space_Unit_Concrete_Test is Base_Test {
     function setUp() public virtual override {
         Base_Test.setUp();
 
-        address[] memory modules = new address[](1);
-        modules[0] = address(mockModule);
-
-        space = deploySpace({ _owner: users.eve, _stationId: 0, _initialModules: modules });
+        // Deploy a new {Space} smart account for Eve
+        space = deploySpace({ _owner: users.eve, _stationId: 0 });
     }
 }

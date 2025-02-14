@@ -17,15 +17,13 @@ import { AccountCoreStorage } from "@thirdweb/contracts/prebuilts/account/utils/
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 
 import { ISpace } from "./../../src/interfaces/ISpace.sol";
-import { ModuleManager } from "./../../src/abstracts/ModuleManager.sol";
-import { IModuleManager } from "./../../src/interfaces/IModuleManager.sol";
 import { Errors } from "./../../src/libraries/Errors.sol";
 import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
 import { StationRegistry } from "./../../src/StationRegistry.sol";
 
 /// @title MockBadSpace
 /// @notice Space that reverts when receiving native tokens (ETH)
-contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
+contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     using ECDSA for bytes32;
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -83,13 +81,10 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
         onlyAdminOrEntrypoint
         returns (bool success)
     {
-        // Check and register the smart account on the {StationRegistry} factory if it is not registered yet
-        _registerOnFactory();
+        // Checks: the `module` module is allowlisted
+        _checkIfModuleAllowlisted(module);
 
-        // Checks: the `module` module is enabled on the smart account
-        _checkIfModuleIsEnabled(module);
-
-        // Execute the call on the `module` contract
+        // Effects, Interactions: execute the call on the `module` contract
         success = _call(module, value, data);
     }
 
@@ -102,9 +97,6 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
         external
         onlyAdminOrEntrypoint
     {
-        // Check and register the smart account on the {StationRegistry} factory if it is not registered yet
-        _registerOnFactory();
-
         // Cache the length of the modules array
         uint256 modulesLength = modules.length;
 
@@ -113,8 +105,8 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
 
         // Loop through the calls to execute
         for (uint256 i; i < modulesLength; ++i) {
-            // Checks: current module is enabled
-            _checkIfModuleIsEnabled(modules[i]);
+            // Checks: current module is allowlisted
+            _checkIfModuleAllowlisted(modules[i]);
 
             // Effects, Interactions: execute all calls on the provided `modules` contracts
             _call(modules[i], values[i], data[i]);
@@ -184,19 +176,14 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271, ModuleManager {
         emit AssetWithdrawn({ to: to, asset: NATIVE_TOKEN, amount: amount });
     }
 
-    /// @inheritdoc IModuleManager
-    function enableModules(address[] memory modules) public override onlyAdminOrEntrypoint {
+    /// @dev Checks if the module is allowlisted
+    function _checkIfModuleAllowlisted(address module) internal view {
+        // Retrieve the address of the {ModuleKeeper}
         ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
-        for (uint256 i; i < modules.length; ++i) {
-            _enableModule(moduleKeeper, modules[i]);
-        }
-    }
-
-    /// @inheritdoc IModuleManager
-    function disableModules(address[] memory modules) public override onlyAdminOrEntrypoint {
-        for (uint256 i; i < modules.length; ++i) {
-            _disableModule(modules[i]);
+        // Checks: module is in the allowlist
+        if (!moduleKeeper.isAllowlisted(module)) {
+            revert Errors.ModuleNotAllowlisted(module);
         }
     }
 

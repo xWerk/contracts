@@ -18,8 +18,12 @@ contract AddToAllowlist_Unit_Concrete_Test is ModuleKeeper_Unit_Concrete_Test {
         // Expect the next call to revert with the {Unauthorized} error
         vm.expectRevert(Errors.Unauthorized.selector);
 
+        // Create a mock modules array to add to the allowlist
+        address[] memory modules = new address[](1);
+        modules[0] = address(0x1);
+
         // Run the test
-        moduleKeeper.addToAllowlist({ module: address(0x1) });
+        moduleKeeper.addToAllowlist(modules);
     }
 
     modifier whenCallerOwner() {
@@ -32,8 +36,12 @@ contract AddToAllowlist_Unit_Concrete_Test is ModuleKeeper_Unit_Concrete_Test {
         // Expect the next call to revert with the {InvalidZeroCodeModule} error
         vm.expectRevert(Errors.InvalidZeroCodeModule.selector);
 
-        // Run the test by trying to execute a module at `0x0000000000000000000000000000000000000001` address
-        moduleKeeper.addToAllowlist({ module: address(0x1) });
+        // Create a mock modules array to add to the allowlist
+        address[] memory modules = new address[](1);
+        modules[0] = address(0x01);
+
+        // Run the test
+        moduleKeeper.addToAllowlist(modules);
     }
 
     modifier whenValidNonZeroCodeModule() {
@@ -44,12 +52,16 @@ contract AddToAllowlist_Unit_Concrete_Test is ModuleKeeper_Unit_Concrete_Test {
         // Deploy a new {MockModule} contract to be allowlisted
         MockModule moduleToAllowlist = new MockModule();
 
+        // Create a mock modules array to add to the allowlist
+        address[] memory modules = new address[](1);
+        modules[0] = address(moduleToAllowlist);
+
         // Expect the {ModuleAllowlisted} event to be emitted
         vm.expectEmit();
-        emit Events.ModuleAllowlisted({ owner: users.admin, module: address(moduleToAllowlist) });
+        emit Events.ModulesAllowlisted({ owner: users.admin, modules: modules });
 
         // Run the test
-        moduleKeeper.addToAllowlist({ module: address(moduleToAllowlist) });
+        moduleKeeper.addToAllowlist(modules);
 
         // Assert the actual and expected allowlist state of the module
         bool actualIsAllowlisted = moduleKeeper.isAllowlisted({ module: address(moduleToAllowlist) });
