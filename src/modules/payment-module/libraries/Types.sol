@@ -46,13 +46,13 @@ library Types {
 
     /// @notice Enum representing the different statuses a payment request can have
     /// @custom:value Pending Payment request waiting to be accepted by the payer
-    /// @custom:value Accepted Payment request has been accepted and is being paid; if the payment method is a One-Off Transfer,
-    /// the payment request status will automatically be set to `Paid`. Otherwise, it will remain `Accepted` until it is fully paid
+    /// @custom:value Ongoing Payment request has been accepted and is being paid; if the payment method is a One-Off Transfer,
+    /// the payment request status will automatically be set to `Completed`. Otherwise, it will remain `Ongoing` until it is fully paid
     /// @custom:value Paid Payment request has been fully paid
     /// @custom:value Canceled Payment request canceled by declined by the recipient (if Transfer-based) or stream sender
     enum Status {
         Pending,
-        Accepted,
+        Ongoing,
         Paid,
         Canceled
     }
