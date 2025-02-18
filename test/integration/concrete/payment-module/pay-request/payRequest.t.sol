@@ -216,7 +216,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         Types.PaymentRequest memory paymentRequest = paymentModule.getRequest({ requestId: paymentRequestId });
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
 
-        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Accepted));
+        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Ongoing));
         assertEq(paymentRequest.config.paymentsLeft, 3);
 
         // Assert the balances of payer and recipient
@@ -268,7 +268,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         Types.PaymentRequest memory paymentRequest = paymentModule.getRequest({ requestId: paymentRequestId });
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
 
-        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Accepted));
+        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Ongoing));
         assertEq(paymentRequest.config.streamId, 1);
         assertEq(paymentRequest.config.paymentsLeft, 0);
 
@@ -323,7 +323,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         Types.PaymentRequest memory paymentRequest = paymentModule.getRequest({ requestId: paymentRequestId });
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
 
-        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Accepted));
+        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Ongoing));
         assertEq(paymentRequest.config.streamId, 1);
         assertEq(paymentRequest.config.paymentsLeft, 0);
 

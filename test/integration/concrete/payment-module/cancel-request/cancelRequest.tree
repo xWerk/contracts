@@ -18,7 +18,7 @@ cancelRequest.t.sol
         │   │   └── when the sender IS the request recipient
         │   │       ├── it should mark the request as Canceled
         │   │       └── it should emit an {RequestCanceled} event
-        │   └── given the request status is Accepted
+        │   └── given the request status is Ongoing
         │        ├── when the sender IS NOT the initial stream sender
         │        │   └── it should revert with the {OnlyInitialStreamSender} error 
         │        └── when the sender IS the initial stream sender 
@@ -31,7 +31,7 @@ cancelRequest.t.sol
             │   └── when the sender IS the request recipient
             │       ├── it should mark the request as Canceled
             │       └── it should emit an {RequestCanceled} event
-            └── given the request status is Accepted
+            └── given the request status is Ongoing
                 ├── when the sender IS NOT the initial stream sender
                 │   └──it should revert with the {OnlyInitialStreamSender} error 
                 └── when the sender IS the initial stream sender 
