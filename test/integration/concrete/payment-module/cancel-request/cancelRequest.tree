@@ -6,11 +6,15 @@ cancelRequest.t.sol
     │   └── it should revert with the {RequestCanceled} error
     └── when the request status IS NOT Canceled
         ├── given the payment method is transfer
-        │   ├── when the sender IS NOT the request recipient
-        │   │   └── it should revert with the {OnlyRequestRecipient}
-        │   └── when the sender IS the request recipient
-        │        ├── it should mark the request as Canceled
-        │        └── it should emit a {RequestCanceled} event
+        │   ├── given the request status is Accepted
+        │   │   ├── when the sender IS NOT the request recipient
+        │   │   │   └── it should revert with the {OnlyRequestRecipient}        
+        │   └── given the request status is Pending
+        │        ├── when the sender IS NOT the request recipient
+        │        │   └── it should revert with the {OnlyRequestRecipient}
+        │        └── when the sender IS the request recipient
+        │             ├── it should mark the request as Canceled
+        │             └── it should emit a {RequestCanceled} event
         ├── given the payment method is linear stream-based
         │   ├── given the request status is Pending
         │   │   ├── when the sender IS NOT the request recipient

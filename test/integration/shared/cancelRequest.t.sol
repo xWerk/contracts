@@ -20,4 +20,12 @@ abstract contract CancelRequest_Integration_Shared_Test is Integration_Test, Pay
     modifier whenSenderInitialStreamSender() {
         _;
     }
+
+    modifier whenRequestAlreadyCanceled() {
+        _;
+    }
+
+    modifier givenRequestStatusAccepted() {
+        _;
+    }
 }

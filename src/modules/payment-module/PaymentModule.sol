@@ -298,11 +298,14 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         }
 
         // Checks: `msg.sender` is the recipient if the payment request status is `Pending`
-        //
-        // Notes:
-        // - Once a linear or tranched stream is created, the `msg.sender` is checked in the
-        // {SablierV2Lockup} `cancel` method
         if (requestStatus == Types.Status.Pending) {
+            if (request.recipient != msg.sender) {
+                revert Errors.OnlyRequestRecipient();
+            }
+        }
+        // Checks: `msg.sender` is the recipient if the payment request status is `Accepted`
+        // and the payment method is transfer-based
+        else if (request.config.method == Types.Method.Transfer) {
             if (request.recipient != msg.sender) {
                 revert Errors.OnlyRequestRecipient();
             }
@@ -311,10 +314,11 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // and the payment method is either linear or tranched stream
         //
         // Notes:
-        // - A transfer-based payment request can be canceled directly
+        // - Once a linear or tranched stream is created, the `msg.sender` is checked in the
+        // {SablierV2Lockup} `cancel` method
         // - A linear or tranched stream MUST be canceled by calling the `cancel` method on the according
         // {ISablierV2Lockup} contract
-        else if (request.config.method != Types.Method.Transfer) {
+        else {
             cancelStream({ streamType: request.config.method, streamId: request.config.streamId });
         }
 
@@ -423,8 +427,8 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     /// @notice Retrieves the status of the `requestId` payment request
     /// Note:
     /// - The status of a payment request is determined by the `wasCanceled` and `wasAccepted` flags and:
-    ///   - For a stream-based payment request, by the status of the underlying stream;
-    ///   - For a transfer-based payment request, by the number of payments left;
+    /// - For a stream-based payment request, by the status of the underlying stream;
+    /// - For a transfer-based payment request, by the number of payments left;
     function _statusOf(uint256 requestId) internal view returns (Types.Status status) {
         // Retrieve the contract storage
         PaymentModuleStorage storage $ = _getPaymentModuleStorage();
@@ -432,6 +436,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
 
+        // Check if the payment request is in the `Pending` state first
         if (!request.wasAccepted && !request.wasCanceled) {
             return Types.Status.Pending;
         }
