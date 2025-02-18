@@ -246,7 +246,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         // Handle the payment workflow depending on the payment method type
         if (request.config.method == Types.Method.Transfer) {
-            // Effects: pay the request and update its status to `Paid` or `Accepted` depending on the payment type
+            // Effects: pay the request and update its status to `Paid` or `Ongoing` depending on the payment type
             _payByTransfer(request);
         } else {
             uint256 streamId;
@@ -450,7 +450,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
                 // Check if the payment request is canceled or paid
                 streamedAmount < request.config.amount ? Types.Status.Canceled : Types.Status.Paid;
             } else {
-                return Types.Status.Accepted;
+                return Types.Status.Ongoing;
             }
         }
 
@@ -461,6 +461,6 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             return Types.Status.Paid;
         }
 
-        return Types.Status.Accepted;
+        return Types.Status.Ongoing;
     }
 }
