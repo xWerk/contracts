@@ -90,7 +90,7 @@ contract PayRequest_Integration_Fuzz_Test is PayRequest_Integration_Shared_Test 
         uint40 expectedNumberOfPaymentsLeft = expectedNumberOfPayments > 0 ? expectedNumberOfPayments - 1 : 0;
 
         Types.Status expectedRequestStatus = expectedNumberOfPaymentsLeft == 0
-            && paymentRequest.config.method == Types.Method.Transfer ? Types.Status.Paid : Types.Status.Accepted;
+            && paymentRequest.config.method == Types.Method.Transfer ? Types.Status.Paid : Types.Status.Ongoing;
 
         // Expect the {RequestPaid} event to be emitted
         vm.expectEmit();

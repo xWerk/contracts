@@ -150,14 +150,14 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Set the current payment request as a linear stream-based one
         uint256 paymentRequestId = 5;
 
-        // The payment request must be paid for its status to be updated to `Accepted`
+        // The payment request must be paid for its status to be updated to `Ongoing`
         // Make Bob the payer of the payment request (also Bob will be the stream sender)
         vm.startPrank({ msgSender: users.bob });
 
         // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
-        // Pay the payment request first (status will be updated to `Accepted`)
+        // Pay the payment request first (status will be updated to `Ongoing`)
         paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
             requestId: paymentRequestId
         });
@@ -183,14 +183,14 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Set the current payment request as a linear stream-based one
         uint256 paymentRequestId = 5;
 
-        // The payment request must be paid for its status to be updated to `Accepted`
+        // The payment request must be paid for its status to be updated to `Ongoing`
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
         // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
-        // Pay the payment request first (status will be updated to `Accepted`)
+        // Pay the payment request first (status will be updated to `Ongoing`)
         paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
             requestId: paymentRequestId
         });
@@ -266,14 +266,14 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Set the current payment request as a tranched stream-based one
         uint256 paymentRequestId = 5;
 
-        // The payment request must be paid for its status to be updated to `Accepted`
+        // The payment request must be paid for its status to be updated to `Ongoing`
         // Make Bob the payer of the payment request (also Bob will be the stream sender)
         vm.startPrank({ msgSender: users.bob });
 
         // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
-        // Pay the payment request first (status will be updated to `Accepted`)
+        // Pay the payment request first (status will be updated to `Ongoing`)
         paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
             requestId: paymentRequestId
         });
@@ -299,14 +299,14 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Set the current payment request as a tranched stream-based one
         uint256 paymentRequestId = 5;
 
-        // The payment request must be paid for its status to be updated to `Accepted`
+        // The payment request must be paid for its status to be updated to `Ongoing`
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
         // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
-        // Pay the payment request first (status will be updated to `Accepted`)
+        // Pay the payment request first (status will be updated to `Ongoing`)
         paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
             requestId: paymentRequestId
         });
