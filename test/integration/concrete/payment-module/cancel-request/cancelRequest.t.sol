@@ -66,7 +66,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
-        // Pay the payment request first (status will be updated to `Accepted`)
+        // Pay the payment request first (status will be updated to `Ongoing`)
         paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
             requestId: paymentRequestId
         });
