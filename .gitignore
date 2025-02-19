@@ -1,6 +1,7 @@
 # Directories
 cache/
 out/
+old-out/
 out-optimized/
 node_modules
 

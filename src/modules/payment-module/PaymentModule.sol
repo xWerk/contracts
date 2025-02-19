@@ -303,7 +303,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
                 revert Errors.OnlyRequestRecipient();
             }
         }
-        // Checks: `msg.sender` is the recipient if the payment request status is `Accepted`
+        // Checks: `msg.sender` is the recipient if the payment request status is `Ongoing`
         // and the payment method is transfer-based
         else if (request.config.method == Types.Method.Transfer) {
             if (request.recipient != msg.sender) {
