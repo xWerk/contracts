@@ -57,7 +57,7 @@ contract ExecuteBatch_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         _;
     }
 
-    function test_RevertWhen_ModuleNotEnabled() external whenCallerOwner whenCorrectArrayLengths {
+    function test_RevertWhen_ModuleNotAllowlisted() external whenCallerOwner whenCorrectArrayLengths {
         // Update the first module address to `0x0000000000000000000000000000000000000001` address which is not a valid one
         modules[0] = address(0x1);
 

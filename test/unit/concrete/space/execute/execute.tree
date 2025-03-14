@@ -3,7 +3,7 @@ execute.t.sol
 │   └── it should revert with the {CallerNotEntryPointOrAdmin} error
 └── when the caller IS the space owner
     ├── when the module IS NOT enabled
-    │   └── it should revert with the {ModuleNotEnabled} error
+    │   └── it should revert with the {ModuleNotAllowlisted} error
     └── when the module IS enabled
             ├── when the call is successfull
             │   └── it should emit a {ModuleItemCreated} event

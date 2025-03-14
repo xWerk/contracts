@@ -6,7 +6,7 @@ executeBatch.t.sol
     │   └── it should revert with the {WrongArrayLengths} error
     └── when all arrays have the same length
         ├── when the module IS NOT enabled
-        │   └── it should revert with the {ModuleNotEnabled} error
+        │   └── it should revert with the {ModuleNotAllowlisted} error
         └── when the module IS enabled
             ├── when the call is successfull
             │   └── it should emit a {ModuleItemCreated} event
