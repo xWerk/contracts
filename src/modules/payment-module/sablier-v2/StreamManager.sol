@@ -241,7 +241,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         params.timestamps = LockupLinear.Timestamps({ start: startTime, cliff: 0, end: endTime });
         params.broker = Broker({ account: $.broker.account, fee: $.broker.fee }); // Optional parameter for charging a fee
 
-        // Create the LockupLinear stream using a function that sets the start time to `block.timestamp`
+        // Create the LockupLinear stream using a function that sets the start time to `startTime` timestamp
         streamId = LOCKUP_LINEAR.createWithTimestamps(params);
     }
 
