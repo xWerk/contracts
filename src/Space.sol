@@ -174,6 +174,9 @@ contract Space is ISpace, AccountCore, ERC1271 {
 
     /// @dev Checks if the module is allowlisted
     function _checkIfModuleAllowlisted(address module) internal view {
+        // Do not check for allowlist if this is a self-call (e.g. `execute()` or `executeBatch()`)
+        if (module == address(this)) return;
+
         // Retrieve the address of the {ModuleKeeper}
         ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 

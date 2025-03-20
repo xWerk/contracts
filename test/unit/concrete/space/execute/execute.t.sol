@@ -27,7 +27,7 @@ contract Execute_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         _;
     }
 
-    function test_RevertWhen_ModuleNotEnabled() external whenCallerOwner {
+    function test_RevertWhen_ModuleNotAllowlisted() external whenCallerOwner {
         // Expect the next call to revert with the {ModuleNotAllowlisted} error
         vm.expectRevert(abi.encodeWithSelector(Errors.ModuleNotAllowlisted.selector, address(0x1)));
 
