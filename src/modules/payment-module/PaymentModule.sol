@@ -238,7 +238,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         // Checks: the payment request is not already paid or canceled
         // Note: for stream-based requests the `status` changes to `Paid` only after the funds are fully streamed
-        if (requestStatus == Types.Status.Paid || request.config.paymentsLeft == 0) {
+        if (requestStatus == Types.Status.Paid) {
             revert Errors.RequestPaid();
         } else if (requestStatus == Types.Status.Canceled) {
             revert Errors.RequestCanceled();
