@@ -244,6 +244,19 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             revert Errors.RequestCanceled();
         }
 
+        // Effects: decrease the number of payments left
+        // Using unchecked because the number of payments left cannot underflow:
+        // - For transfer-based requests, the status will be updated to `Paid` when `paymentsLeft` reaches zero;
+        // - For stream-based requests, `paymentsLeft` is validated before decrementing;
+        uint40 paymentsLeft;
+        unchecked {
+            paymentsLeft = request.config.paymentsLeft - 1;
+            $.requests[requestId].config.paymentsLeft = paymentsLeft;
+        }
+
+        // Effects: mark the payment request as accepted
+        $.requests[requestId].wasAccepted = true;
+
         // Handle the payment workflow depending on the payment method type
         if (request.config.method == Types.Method.Transfer) {
             // Effects: pay the request and update its status to `Paid` or `Ongoing` depending on the payment type
@@ -261,19 +274,6 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             // Effects: set the stream ID of the payment request
             $.requests[requestId].config.streamId = streamId;
         }
-
-        // Effects: decrease the number of payments left
-        // Using unchecked because the number of payments left cannot underflow:
-        // - For transfer-based requests, the status will be updated to `Paid` when `paymentsLeft` reaches zero;
-        // - For stream-based requests, `paymentsLeft` is validated before decrementing;
-        uint40 paymentsLeft;
-        unchecked {
-            paymentsLeft = request.config.paymentsLeft - 1;
-            $.requests[requestId].config.paymentsLeft = paymentsLeft;
-        }
-
-        // Effects: mark the payment request as accepted
-        $.requests[requestId].wasAccepted = true;
 
         // Log the payment transaction
         emit RequestPaid({ requestId: requestId, payer: msg.sender, config: $.requests[requestId].config });
