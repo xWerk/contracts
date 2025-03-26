@@ -462,12 +462,14 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
                 // Check if the payment request is canceled or paid
                 return streamedAmount < request.config.amount ? Types.Status.Canceled : Types.Status.Paid;
+            } else if (statusOfStream == Lockup.Status.CANCELED) {
+                return Types.Status.Canceled;
             } else {
                 return Types.Status.Ongoing;
             }
         }
 
-        // Otherwise, the payment request is a transfer-based one
+        // Otherwise, the payment request is transfer-based
         if (request.wasCanceled) {
             return Types.Status.Canceled;
         } else if (request.config.paymentsLeft == 0) {
