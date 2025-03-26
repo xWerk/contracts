@@ -287,6 +287,11 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
 
+        // Checks: the payment request exists
+        if (request.recipient == address(0)) {
+            revert Errors.NullRequest();
+        }
+
         // Retrieve the request status
         Types.Status requestStatus = _statusOf(requestId);
 
