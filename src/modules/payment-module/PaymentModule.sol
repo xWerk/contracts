@@ -453,7 +453,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
                     streamedAmountOf({ streamType: request.config.method, streamId: request.config.streamId });
 
                 // Check if the payment request is canceled or paid
-                streamedAmount < request.config.amount ? Types.Status.Canceled : Types.Status.Paid;
+                return streamedAmount < request.config.amount ? Types.Status.Canceled : Types.Status.Paid;
             } else {
                 return Types.Status.Ongoing;
             }
