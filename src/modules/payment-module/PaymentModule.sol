@@ -238,11 +238,27 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         // Checks: the payment request is not already paid or canceled
         // Note: for stream-based requests the `status` changes to `Paid` only after the funds are fully streamed
-        if (requestStatus == Types.Status.Paid || request.config.paymentsLeft == 0) {
+        if (
+            requestStatus == Types.Status.Paid
+                || (requestStatus == Types.Status.Ongoing && request.config.streamId != 0)
+        ) {
             revert Errors.RequestPaid();
         } else if (requestStatus == Types.Status.Canceled) {
             revert Errors.RequestCanceled();
         }
+
+        // Effects: decrease the number of payments left
+        // Using unchecked because the number of payments left cannot underflow:
+        // - For transfer-based requests, the status will be updated to `Paid` when `paymentsLeft` reaches zero;
+        // - For stream-based requests, `paymentsLeft` is validated before decrementing;
+        uint40 paymentsLeft;
+        unchecked {
+            paymentsLeft = request.config.paymentsLeft - 1;
+            $.requests[requestId].config.paymentsLeft = paymentsLeft;
+        }
+
+        // Effects: mark the payment request as accepted
+        $.requests[requestId].wasAccepted = true;
 
         // Handle the payment workflow depending on the payment method type
         if (request.config.method == Types.Method.Transfer) {
@@ -262,19 +278,6 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             $.requests[requestId].config.streamId = streamId;
         }
 
-        // Effects: decrease the number of payments left
-        // Using unchecked because the number of payments left cannot underflow:
-        // - For transfer-based requests, the status will be updated to `Paid` when `paymentsLeft` reaches zero;
-        // - For stream-based requests, `paymentsLeft` is validated before decrementing;
-        uint40 paymentsLeft;
-        unchecked {
-            paymentsLeft = request.config.paymentsLeft - 1;
-            $.requests[requestId].config.paymentsLeft = paymentsLeft;
-        }
-
-        // Effects: mark the payment request as accepted
-        $.requests[requestId].wasAccepted = true;
-
         // Log the payment transaction
         emit RequestPaid({ requestId: requestId, payer: msg.sender, config: $.requests[requestId].config });
     }
@@ -286,6 +289,11 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
+
+        // Checks: the payment request exists
+        if (request.recipient == address(0)) {
+            revert Errors.NullRequest();
+        }
 
         // Retrieve the request status
         Types.Status requestStatus = _statusOf(requestId);
@@ -453,13 +461,15 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
                     streamedAmountOf({ streamType: request.config.method, streamId: request.config.streamId });
 
                 // Check if the payment request is canceled or paid
-                streamedAmount < request.config.amount ? Types.Status.Canceled : Types.Status.Paid;
+                return streamedAmount < request.config.amount ? Types.Status.Canceled : Types.Status.Paid;
+            } else if (statusOfStream == Lockup.Status.CANCELED) {
+                return Types.Status.Canceled;
             } else {
                 return Types.Status.Ongoing;
             }
         }
 
-        // Otherwise, the payment request is a transfer-based one
+        // Otherwise, the payment request is transfer-based
         if (request.wasCanceled) {
             return Types.Status.Canceled;
         } else if (request.config.paymentsLeft == 0) {
