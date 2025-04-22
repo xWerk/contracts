@@ -18,6 +18,7 @@
     "@openzeppelin/contracts-upgradeable": "^5.1.0",
     "@openzeppelin/foundry-upgrades": "^0.3.7",
     "@prb/math": "^4.1.0",
+    "@sablier/flow": "^1.1.1",
     "@sablier/v2-core": "^1.2.0",
     "@thirdweb-dev/contracts": "^3.15.0"
   }
