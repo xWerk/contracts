@@ -7,6 +7,8 @@ import { Types } from "./libraries/Types.sol";
 import { FlowStreamManager } from "./sablier-flow/FlowStreamManager.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
+import { ISpace } from "./../../interfaces/ISpace.sol";
+import { Errors } from "./libraries/Errors.sol";
 
 /// @title CompensationModule
 /// @notice See the documentation in {ICompensationModule}
@@ -17,7 +19,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
     /// @custom:storage-location erc7201:werk.storage.CompensationModule
     struct CompensationModuleStorage {
-        /// @notice Compensation details mapped by the `id` compensation ID
+        /// @notice Compensation details mapped by the compensation ID
         mapping(uint256 id => Types.Compensation) compensations;
         /// @notice Counter to keep track of the next ID used to create a new compensation
         uint256 nextCompensationId;
@@ -66,4 +68,68 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
     /// @dev Allows only the owner to upgrade the contract
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                      MODIFIERS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Allow only calls from contracts implementing the {ISpace} interface
+    modifier onlySpace() {
+        // Checks: the sender is a valid non-zero code size contract
+        if (msg.sender.code.length == 0) {
+            revert Errors.SpaceZeroCodeSize();
+        }
+
+        // Checks: the sender implements the ERC-165 interface required by {ISpace}
+        bytes4 interfaceId = type(ISpace).interfaceId;
+        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert Errors.SpaceUnsupportedInterface();
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                NON-CONSTANT FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ICompensationModule
+    function createCompensation(
+        address recipient,
+        Types.Package[] memory packages
+    )
+        external
+        onlySpace
+        returns (uint256 compensationId)
+    {
+        // Retrieve the contract storage
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Get the next compensation plan ID
+        compensationId = $.nextCompensationId;
+
+        // Effects: set the recipient address of the current compensation plan
+        $.compensations[compensationId].recipient = recipient;
+
+        // Cache the packages length to save on gas costs
+        uint256 packagesLength = packages.length;
+
+        // Checks, Effects, Interactions: create the compensation packages
+        for (uint256 i; i < packagesLength; ++i) {
+            // Checks, Effects, Interactions: create the flow stream
+            uint256 streamId = this.createFlowStream(recipient, packages[i]);
+
+            // Effects: set the package stream Id
+            packages[i].streamId = streamId;
+
+            // Effects: add the package to the compensation
+            $.compensations[compensationId].packages.push(packages[i]);
+        }
+
+        // Effects: increment the next compensation ID
+        // Use unchecked because the compensation ID cannot realistically overflow
+        unchecked {
+            $.nextCompensationId++;
+        }
+
+        // Log the compensation plan creation
+        emit CompensationCreated(compensationId, recipient);
+    }
 }

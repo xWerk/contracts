@@ -7,6 +7,7 @@ import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { Broker } from "@sablier/flow/src/types/DataTypes.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { IFlowStreamManager } from "./interfaces/IFlowStreamManager.sol";
+import { Types } from "../libraries/Types.sol";
 
 /// @title FlowStreamManager
 /// @notice See the documentation in {IFlowStreamManager}
@@ -76,5 +77,24 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     /// @inheritdoc IFlowStreamManager
     function SABLIER_FLOW() public view override returns (ISablierFlow) {
         return _getFlowStreamManagerStorage().SABLIER_FLOW;
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                NON-CONSTANT FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IFlowStreamManager
+    function createFlowStream(address recipient, Types.Package memory package) external returns (uint256 streamId) {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Create the flow stream using the `create` function
+        streamId = $.SABLIER_FLOW.create({
+            sender: msg.sender, // The sender will be able to pause the stream or change rate per second
+            recipient: recipient, // The recipient of the streamed tokens
+            ratePerSecond: package.ratePerSecond, // The rate per second of the stream
+            token: package.asset, // The streaming token
+            transferable: false // Whether the stream will be transferable or not
+         });
     }
 }
