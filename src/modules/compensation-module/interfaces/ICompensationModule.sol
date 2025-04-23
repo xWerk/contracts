@@ -24,6 +24,14 @@ interface ICompensationModule {
         uint256 indexed compensationPlanId, uint96 indexed componentId, UD21x18 newRatePerSecond
     );
 
+    /// @notice Emitted when a compensation plan component stream is withdrawn
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    /// @param withdrawnAmount The amount withdrawn from the compensation plan component stream
+    event ComponentStreamWithdrawn(
+        uint256 indexed compensationPlanId, uint96 indexed componentId, uint128 withdrawnAmount
+    );
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -81,4 +89,19 @@ interface ICompensationModule {
     /// @param componentId The ID of the compensation plan component
     /// @param amount The amount to deposit
     function depositToComponent(uint256 compensationPlanId, uint96 componentId, uint128 amount) external;
+
+    /// @notice Withdraws the maximum amount from a compensation plan component
+    ///
+    /// Notes:
+    /// - `msg.sender` must be a valid Space account and the compensation plan recipient
+    /// - `componentId` must not reference a null compensation plan component
+    ///
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    function withdrawFromComponent(
+        uint256 compensationPlanId,
+        uint96 componentId
+    )
+        external
+        returns (uint128 withdrawnAmount);
 }

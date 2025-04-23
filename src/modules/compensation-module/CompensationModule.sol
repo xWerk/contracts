@@ -175,12 +175,13 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         compensationPlan.components[componentId].ratePerSecond = newRatePerSecond;
 
         // Checks, Effects, Interactions: adjust the compensation component stream rate per second
-        this.adjustFlowStreamRatePerSecond(streamId, newRatePerSecond);
+        this.adjustComponentStreamRatePerSecond(streamId, newRatePerSecond);
 
         // Log the compensation component rate per second adjustment
         emit ComponentRatePerSecondAdjusted(compensationPlanId, componentId, newRatePerSecond);
     }
 
+    /// @inheritdoc ICompensationModule
     function depositToComponent(uint256 compensationPlanId, uint96 componentId, uint128 amount) external onlySpace {
         // Checks: the deposit amount is not zero
         if (amount == 0) revert Errors.InvalidZeroDepositAmount();
@@ -200,12 +201,45 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
 
         // Checks, Effects, Interactions: deposit the amount to the compensation component stream
-        this.depositToFlowStream({
+        this.depositToComponentStream({
             streamId: compensationPlan.components[componentId].streamId,
             amount: amount,
             sender: msg.sender,
             recipient: compensationPlan.recipient
         });
+    }
+
+    /// @inheritdoc ICompensationModule
+    function withdrawFromComponent(
+        uint256 compensationPlanId,
+        uint96 componentId
+    )
+        external
+        onlySpace
+        returns (uint128 withdrawnAmount)
+    {
+        // Retrieve the contract storage
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Cache the compensation plan details to save on multiple storage reads
+        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
+
+        // Checks: the compensation component exists
+        if (compensationPlan.components[componentId].streamId == 0) {
+            revert Errors.InvalidComponentId();
+        }
+
+        // Checks: `msg.sender` is the compensation plan recipient
+        if (compensationPlan.recipient != msg.sender) revert Errors.OnlyCompensationPlanRecipient();
+
+        // Checks, Effects, Interactions: withdraw the amount from the compensation component stream
+        withdrawnAmount = this.withdrawMaxFromComponentStream({
+            streamId: compensationPlan.components[componentId].streamId,
+            to: msg.sender
+        });
+
+        // Log the compensation component stream withdrawal
+        emit ComponentStreamWithdrawn(compensationPlanId, componentId, withdrawnAmount);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -236,7 +270,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
             if (components[i].ratePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
 
             // Checks, Effects, Interactions: create the flow stream
-            uint256 streamId = this.createFlowStream(recipient, components[i]);
+            uint256 streamId = this.createComponentStream(recipient, components[i]);
 
             // Effects: set the compensation component stream ID
             components[i].streamId = streamId;

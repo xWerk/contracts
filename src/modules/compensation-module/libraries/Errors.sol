@@ -29,6 +29,9 @@ library Errors {
     /// @notice Thrown when the caller is not the compensation plan sender
     error OnlyCompensationPlanSender();
 
+    /// @notice Thrown when the caller is not the compensation plan recipient
+    error OnlyCompensationPlanRecipient();
+
     /// @notice Thrown when the compensation component rate per second is zero
     error InvalidZeroRatePerSecond();
 

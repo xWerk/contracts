@@ -22,38 +22,24 @@ interface IFlowStreamManager {
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Creates a new Sablier flow stream without upfront deposit
+    /// @notice Creates a new Sablier flow stream without upfront deposit for a compensation component
+    /// @dev See the documentation in {ISablierFlow-create}
     /// @param recipient The address of the recipient of the compensation component
     /// @param component The component of the compensation plan to be streamed
     /// @return streamId The ID of the newly created stream
-    function createFlowStream(
+    function createComponentStream(
         address recipient,
         Types.Component memory component
     )
         external
         returns (uint256 streamId);
 
-    /// @notice Adjusts the rate per second of a Sablier flow stream
-    ///
-    /// Notes:
-    /// - `msg.sender` must be the stream sender
-    /// - `streamId` must not reference a null or a paused stream
-    /// - `newRatePerSecond` must not equal to the current rate per second
-    ///
-    /// @param streamId The ID of the stream to adjust
-    /// @param newRatePerSecond The new rate per second of the stream
-    function adjustFlowStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) external;
+    /// @notice See the documentation in {ISablierFlow-adjustRatePerSecond}
+    function adjustComponentStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) external;
 
-    /// @notice Deposits an amount to a Sablier flow stream
-    ///
-    /// Notes:
-    /// - `streamId` must not reference a null or a voided stream.
-    /// - `amount` must be greater than zero.
-    /// - `sender` and `recipient` must match the stream's sender and recipient addresses.
-    ///
-    /// @param streamId The ID of the stream to deposit to
-    /// @param amount The amount to deposit
-    /// @param sender The address of the sender
-    /// @param recipient The address of the recipient
-    function depositToFlowStream(uint256 streamId, uint128 amount, address sender, address recipient) external;
+    /// @notice See the documentation in {ISablierFlow-deposit}
+    function depositToComponentStream(uint256 streamId, uint128 amount, address sender, address recipient) external;
+
+    /// @notice See the documentation in {ISablierFlow-withdrawMax}
+    function withdrawMaxFromComponentStream(uint256 streamId, address to) external returns (uint128);
 }

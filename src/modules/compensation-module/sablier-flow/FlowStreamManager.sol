@@ -86,7 +86,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IFlowStreamManager
-    function createFlowStream(
+    function createComponentStream(
         address recipient,
         Types.Component memory component
     )
@@ -107,7 +107,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc IFlowStreamManager
-    function adjustFlowStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) external {
+    function adjustComponentStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) external {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -116,11 +116,23 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc IFlowStreamManager
-    function depositToFlowStream(uint256 streamId, uint128 amount, address sender, address recipient) external {
+    function depositToComponentStream(uint256 streamId, uint128 amount, address sender, address recipient) external {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Deposit the amount to the stream
         $.SABLIER_FLOW.deposit(streamId, amount, sender, recipient);
+    }
+
+    /// @inheritdoc IFlowStreamManager
+    function withdrawMaxFromComponentStream(uint256 streamId, address to) external returns (uint128) {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Withdraw the maximum amount from the stream
+        (uint128 withdrawnAmount,) = $.SABLIER_FLOW.withdrawMax(streamId, to);
+
+        // Return the withdrawn amount
+        return withdrawnAmount;
     }
 }
