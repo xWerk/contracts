@@ -7,11 +7,13 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @notice Namespace for the structs used across the {CompensationModule} related contracts
 library Types {
     /// @notice Struct encapsulating the different values describing a compensation plan
-    /// @param recipient The address of the recipient of the compensation
-    /// @param packages The packages included in the compensation (salary, ESOPs, bonuses, etc.)
+    /// @param recipient The address of compensation recipient
+    /// @param nextPackageId The next package ID to be used
+    /// @param packages The packages included in the compensation (salary, ESOPs, bonuses, etc.) by their IDs
     struct Compensation {
         address recipient;
-        Package[] packages;
+        uint96 nextPackageId;
+        mapping(uint256 packageId => Package package) packages;
     }
 
     /// @notice Struct encapsulating the different values describing a package within a compensation plan

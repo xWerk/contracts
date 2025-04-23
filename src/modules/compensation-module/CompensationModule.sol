@@ -99,6 +99,15 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         onlySpace
         returns (uint256 compensationId)
     {
+        // Checks: the recipient is not the zero address
+        if (recipient == address(0)) revert Errors.InvalidZeroAddressRecipient();
+
+        // Cache the packages length to save on gas costs
+        uint256 packagesLength = packages.length;
+
+        // Checks: the packages array is not empty
+        if (packagesLength == 0) revert Errors.InvalidEmptyPackagesArray();
+
         // Retrieve the contract storage
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
 
@@ -108,10 +117,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Effects: set the recipient address of the current compensation plan
         $.compensations[compensationId].recipient = recipient;
 
-        // Cache the packages length to save on gas costs
-        uint256 packagesLength = packages.length;
-
-        // Checks, Effects, Interactions: create the compensation packages
+        // Create the compensation packages
         for (uint256 i; i < packagesLength; ++i) {
             // Checks, Effects, Interactions: create the flow stream
             uint256 streamId = this.createFlowStream(recipient, packages[i]);
@@ -119,8 +125,17 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
             // Effects: set the package stream Id
             packages[i].streamId = streamId;
 
+            // Get the next package ID
+            uint96 packageId = $.compensations[compensationId].nextPackageId;
+
             // Effects: add the package to the compensation
-            $.compensations[compensationId].packages.push(packages[i]);
+            $.compensations[compensationId].packages[packageId] = packages[i];
+
+            // Effects: increment the next package ID
+            // Use unchecked because the package ID cannot realistically overflow
+            unchecked {
+                $.compensations[compensationId].nextPackageId++;
+            }
         }
 
         // Effects: increment the next compensation ID
