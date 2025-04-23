@@ -43,4 +43,17 @@ interface IFlowStreamManager {
     /// @param streamId The ID of the stream to adjust
     /// @param newRatePerSecond The new rate per second of the stream
     function adjustFlowStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) external;
+
+    /// @notice Deposits an amount to a Sablier flow stream
+    ///
+    /// Notes:
+    /// - `streamId` must not reference a null or a voided stream.
+    /// - `amount` must be greater than zero.
+    /// - `sender` and `recipient` must match the stream's sender and recipient addresses.
+    ///
+    /// @param streamId The ID of the stream to deposit to
+    /// @param amount The amount to deposit
+    /// @param sender The address of the sender
+    /// @param recipient The address of the recipient
+    function depositToFlowStream(uint256 streamId, uint128 amount, address sender, address recipient) external;
 }

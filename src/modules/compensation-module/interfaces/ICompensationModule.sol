@@ -69,4 +69,16 @@ interface ICompensationModule {
         UD21x18 newRatePerSecond
     )
         external;
+
+    /// @notice Deposits an amount to a compensation plan component
+    ///
+    /// Notes:
+    /// - `msg.sender` must be a valid Space account and the compensation plan sender
+    /// - `componentId` must not reference a null compensation plan component
+    /// - `amount` must be greater than zero
+    ///
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    /// @param amount The amount to deposit
+    function depositToComponent(uint256 compensationPlanId, uint96 componentId, uint128 amount) external;
 }

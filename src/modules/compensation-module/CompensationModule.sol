@@ -142,6 +142,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         }
     }
 
+    /// @inheritdoc ICompensationModule
     function adjustComponentRatePerSecond(
         uint256 compensationPlanId,
         uint96 componentId,
@@ -178,6 +179,33 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
         // Log the compensation component rate per second adjustment
         emit ComponentRatePerSecondAdjusted(compensationPlanId, componentId, newRatePerSecond);
+    }
+
+    function depositToComponent(uint256 compensationPlanId, uint96 componentId, uint128 amount) external onlySpace {
+        // Checks: the deposit amount is not zero
+        if (amount == 0) revert Errors.InvalidZeroDepositAmount();
+
+        // Retrieve the contract storage
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Cache the compensation plan details to save on multiple storage reads
+        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
+
+        // Checks: the compensation component exists
+        if (compensationPlan.components[componentId].streamId == 0) {
+            revert Errors.InvalidComponentId();
+        }
+
+        // Checks: `msg.sender` is the compensation plan sender
+        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+
+        // Checks, Effects, Interactions: deposit the amount to the compensation component stream
+        this.depositToFlowStream({
+            streamId: compensationPlan.components[componentId].streamId,
+            amount: amount,
+            sender: msg.sender,
+            recipient: compensationPlan.recipient
+        });
     }
 
     /*//////////////////////////////////////////////////////////////////////////

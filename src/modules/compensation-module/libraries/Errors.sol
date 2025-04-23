@@ -37,4 +37,7 @@ library Errors {
 
     /// @notice Thrown when the compensation component does not exist
     error InvalidComponentId();
+
+    /// @notice Thrown when the deposit amount is zero
+    error InvalidZeroDepositAmount();
 }

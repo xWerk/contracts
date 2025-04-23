@@ -114,4 +114,13 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         // Adjust the rate per second of the stream
         $.SABLIER_FLOW.adjustRatePerSecond(streamId, newRatePerSecond);
     }
+
+    /// @inheritdoc IFlowStreamManager
+    function depositToFlowStream(uint256 streamId, uint128 amount, address sender, address recipient) external {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Deposit the amount to the stream
+        $.SABLIER_FLOW.deposit(streamId, amount, sender, recipient);
+    }
 }
