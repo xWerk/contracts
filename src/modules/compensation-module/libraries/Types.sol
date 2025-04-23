@@ -11,6 +11,7 @@ library Types {
     /// @param nextComponentId The next compensationcomponent ID to be used
     /// @param components The components included in the compensation plan (salary, ESOPs, bonuses, etc.) by their IDs
     struct Compensation {
+        address sender;
         address recipient;
         uint96 nextComponentId;
         mapping(uint256 componentId => Component component) components;
@@ -28,7 +29,6 @@ library Types {
         IERC20 asset; // 20 bytes
         // slot 1
         UD21x18 ratePerSecond; // 16 bytes
-        uint128 amount; // 16 bytes
         // slot 2
         uint256 streamId; // 32 bytes
     }

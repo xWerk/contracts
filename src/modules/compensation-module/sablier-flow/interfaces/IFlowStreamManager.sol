@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { Types } from "../../libraries/Types.sol";
+import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 
 /// @title IFlowStreamManager
 /// @notice Contract used to create and manage Sablier Flow compatible streams
@@ -31,4 +32,15 @@ interface IFlowStreamManager {
     )
         external
         returns (uint256 streamId);
+
+    /// @notice Adjusts the rate per second of a Sablier flow stream
+    ///
+    /// Notes:
+    /// - `msg.sender` must be the stream sender
+    /// - `streamId` must not reference a null or a paused stream
+    /// - `newRatePerSecond` must not equal to the current rate per second
+    ///
+    /// @param streamId The ID of the stream to adjust
+    /// @param newRatePerSecond The new rate per second of the stream
+    function adjustFlowStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) external;
 }

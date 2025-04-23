@@ -6,6 +6,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { Broker } from "@sablier/flow/src/types/DataTypes.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
+import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { IFlowStreamManager } from "./interfaces/IFlowStreamManager.sol";
 import { Types } from "../libraries/Types.sol";
 
@@ -49,6 +50,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         _disableInitializers();
     }
 
+    /// @dev Initializes the {FlowStreamManager} contract
     function __FlowStreamManager_init(
         ISablierFlow _sablierFlow,
         address _initialAdmin,
@@ -102,5 +104,14 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
             token: component.asset, // The streaming token
             transferable: false // Whether the stream will be transferable or not
          });
+    }
+
+    /// @inheritdoc IFlowStreamManager
+    function adjustFlowStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) external {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Adjust the rate per second of the stream
+        $.SABLIER_FLOW.adjustRatePerSecond(streamId, newRatePerSecond);
     }
 }

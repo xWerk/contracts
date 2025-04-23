@@ -25,4 +25,16 @@ library Errors {
 
     /// @notice Thrown when the recipients and components arrays have different lengths
     error InvalidRecipientsAndComponentsArraysLength();
+
+    /// @notice Thrown when the caller is not the compensation plan sender
+    error OnlyCompensationPlanSender();
+
+    /// @notice Thrown when the compensation component rate per second is zero
+    error InvalidZeroRatePerSecond();
+
+    /// @notice Thrown when the compensation component asset is the zero address
+    error InvalidZeroAddressAsset();
+
+    /// @notice Thrown when the compensation component does not exist
+    error InvalidComponentId();
 }

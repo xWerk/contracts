@@ -7,6 +7,7 @@ import { Types } from "./libraries/Types.sol";
 import { FlowStreamManager } from "./sablier-flow/FlowStreamManager.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
+import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Errors } from "./libraries/Errors.sol";
 
@@ -141,6 +142,44 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         }
     }
 
+    function adjustComponentRatePerSecond(
+        uint256 compensationPlanId,
+        uint96 componentId,
+        UD21x18 newRatePerSecond
+    )
+        external
+        onlySpace
+    {
+        // Retrieve the contract storage
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Cache the compensation plan details to save on multiple storage reads
+        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
+
+        // Checks: the compensation component exists
+        if (compensationPlan.components[componentId].streamId == 0) {
+            revert Errors.InvalidComponentId();
+        }
+
+        // Checks: `msg.sender` is the compensation plan sender
+        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+
+        // Checks: the new rate per second is not zero
+        if (newRatePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
+
+        // Retrieve the stream ID of the compensation plan component
+        uint256 streamId = compensationPlan.components[componentId].streamId;
+
+        // Effects: update the compensation component rate per second
+        compensationPlan.components[componentId].ratePerSecond = newRatePerSecond;
+
+        // Checks, Effects, Interactions: adjust the compensation component stream rate per second
+        this.adjustFlowStreamRatePerSecond(streamId, newRatePerSecond);
+
+        // Log the compensation component rate per second adjustment
+        emit ComponentRatePerSecondAdjusted(compensationPlanId, componentId, newRatePerSecond);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                            INTERNAL NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -157,14 +196,17 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Get the next compensation plan ID
         compensationPlanId = $.nextCompensationId;
 
-        // Effects: set the recipient address of the current compensation plan
-        $.compensations[compensationPlanId].recipient = recipient;
+        // Cache the compensation plan details to save on multiple storage reads
+        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
 
         // Cache the components length to save on gas costs
         uint256 componentsLength = components.length;
 
         // Create the compensation components
         for (uint256 i; i < componentsLength; ++i) {
+            // Checks: the compensation component rate per second is not zero
+            if (components[i].ratePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
+
             // Checks, Effects, Interactions: create the flow stream
             uint256 streamId = this.createFlowStream(recipient, components[i]);
 
@@ -172,17 +214,23 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
             components[i].streamId = streamId;
 
             // Get the next compensation component ID
-            uint96 componentId = $.compensations[compensationPlanId].nextComponentId;
+            uint96 componentId = compensationPlan.nextComponentId;
 
-            // Effects: add the compensation component to the compensation
-            $.compensations[compensationPlanId].components[componentId] = components[i];
+            // Effects: add the compensation component to the compensation plan
+            compensationPlan.components[componentId] = components[i];
 
             // Effects: increment the next compensation component ID
             // Use unchecked because the compensation component ID cannot realistically overflow
             unchecked {
-                $.compensations[compensationPlanId].nextComponentId++;
+                compensationPlan.nextComponentId++;
             }
         }
+
+        // Effects: set the recipient address of the current compensation plan
+        compensationPlan.recipient = recipient;
+
+        // Effects: set the sender address of the current compensation plan
+        compensationPlan.sender = msg.sender;
 
         // Effects: increment the next compensation ID
         // Use unchecked because the compensation ID cannot realistically overflow
