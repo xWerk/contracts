@@ -29,4 +29,9 @@ interface ICompensationModule {
     )
         external
         returns (uint256 compensationId);
+
+    /// @notice Creates new compensation plans in batch for the `recipients` recipients
+    /// @param recipients The addresses of the recipients of the compensation plans
+    /// @param packages The packages included in the compensation plans (salary, ESOPs, bonuses, etc.) of each recipient
+    function createBatchCompensation(address[] memory recipients, Types.Package[][] memory packages) external;
 }

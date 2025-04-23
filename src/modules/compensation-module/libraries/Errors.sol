@@ -19,4 +19,7 @@ library Errors {
 
     /// @notice Thrown when the packages array is empty
     error InvalidEmptyPackagesArray();
+
+    /// @notice Thrown when the recipients array is empty
+    error InvalidEmptyRecipientsArray();
 }

@@ -102,27 +102,70 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: the recipient is not the zero address
         if (recipient == address(0)) revert Errors.InvalidZeroAddressRecipient();
 
-        // Cache the packages length to save on gas costs
-        uint256 packagesLength = packages.length;
-
         // Checks: the packages array is not empty
-        if (packagesLength == 0) revert Errors.InvalidEmptyPackagesArray();
+        if (packages.length == 0) revert Errors.InvalidEmptyPackagesArray();
 
         // Retrieve the contract storage
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
 
+        // Checks, Effects, Interactions: create the compensation plan
+        compensationId = _createCompensation($, recipient, packages);
+    }
+
+    /// @inheritdoc ICompensationModule
+    function createBatchCompensation(
+        address[] memory recipients,
+        Types.Package[][] memory packages
+    )
+        external
+        onlySpace
+    {
+        // Cache the recipients length to save on gas costs
+        uint256 recipientsLength = recipients.length;
+
+        // Checks: the recipients array is not empty
+        if (recipientsLength == 0) revert Errors.InvalidEmptyRecipientsArray();
+
+        // Retrieve the contract storage
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        for (uint256 i; i < recipientsLength; ++i) {
+            // Checks: the packages array is not empty
+            if (packages[i].length == 0) revert Errors.InvalidEmptyPackagesArray();
+
+            // Checks, Effects, Interactions: create the compensation plan for the current recipient
+            _createCompensation($, recipients[i], packages[i]);
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                           INTERNAL NON-CONSTANT FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev See the documentation for the user-facingfunctions that call this internal function
+    function _createCompensation(
+        CompensationModuleStorage storage $,
+        address recipient,
+        Types.Package[] memory packages
+    )
+        internal
+        returns (uint256 compensationId)
+    {
         // Get the next compensation plan ID
         compensationId = $.nextCompensationId;
 
         // Effects: set the recipient address of the current compensation plan
         $.compensations[compensationId].recipient = recipient;
 
+        // Cache the packages length to save on gas costs
+        uint256 packagesLength = packages.length;
+
         // Create the compensation packages
         for (uint256 i; i < packagesLength; ++i) {
             // Checks, Effects, Interactions: create the flow stream
             uint256 streamId = this.createFlowStream(recipient, packages[i]);
 
-            // Effects: set the package stream Id
+            // Effects: set the package stream ID
             packages[i].streamId = streamId;
 
             // Get the next package ID
