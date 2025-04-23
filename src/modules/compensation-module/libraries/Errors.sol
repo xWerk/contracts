@@ -17,9 +17,12 @@ library Errors {
     /// @notice Thrown when the caller is a contract that does not implement the {ISpace} interface
     error SpaceUnsupportedInterface();
 
-    /// @notice Thrown when the packages array is empty
-    error InvalidEmptyPackagesArray();
+    /// @notice Thrown when the components array is empty
+    error InvalidEmptyComponentsArray();
 
     /// @notice Thrown when the recipients array is empty
     error InvalidEmptyRecipientsArray();
+
+    /// @notice Thrown when the recipients and components arrays have different lengths
+    error InvalidRecipientsAndComponentsArraysLength();
 }

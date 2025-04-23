@@ -22,8 +22,13 @@ interface IFlowStreamManager {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Creates a new Sablier flow stream without upfront deposit
-    /// @param recipient The address of the recipient of the compensation
-    /// @param package The package of the compensation
+    /// @param recipient The address of the recipient of the compensation component
+    /// @param component The component of the compensation plan to be streamed
     /// @return streamId The ID of the newly created stream
-    function createFlowStream(address recipient, Types.Package memory package) external returns (uint256 streamId);
+    function createFlowStream(
+        address recipient,
+        Types.Component memory component
+    )
+        external
+        returns (uint256 streamId);
 }

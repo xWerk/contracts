@@ -91,31 +91,31 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICompensationModule
-    function createCompensation(
+    function createCompensationPlan(
         address recipient,
-        Types.Package[] memory packages
+        Types.Component[] memory components
     )
         external
         onlySpace
-        returns (uint256 compensationId)
+        returns (uint256 compensationPlanId)
     {
         // Checks: the recipient is not the zero address
         if (recipient == address(0)) revert Errors.InvalidZeroAddressRecipient();
 
-        // Checks: the packages array is not empty
-        if (packages.length == 0) revert Errors.InvalidEmptyPackagesArray();
+        // Checks: the compensation components array is not empty
+        if (components.length == 0) revert Errors.InvalidEmptyComponentsArray();
 
         // Retrieve the contract storage
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
 
         // Checks, Effects, Interactions: create the compensation plan
-        compensationId = _createCompensation($, recipient, packages);
+        compensationPlanId = _createCompensationPlan($, recipient, components);
     }
 
     /// @inheritdoc ICompensationModule
-    function createBatchCompensation(
+    function createBatchCompensationPlan(
         address[] memory recipients,
-        Types.Package[][] memory packages
+        Types.Component[][] memory components
     )
         external
         onlySpace
@@ -126,15 +126,18 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: the recipients array is not empty
         if (recipientsLength == 0) revert Errors.InvalidEmptyRecipientsArray();
 
+        // Checks: the recipients and components arrays have the same length
+        if (recipientsLength != components.length) revert Errors.InvalidRecipientsAndComponentsArraysLength();
+
         // Retrieve the contract storage
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
 
         for (uint256 i; i < recipientsLength; ++i) {
-            // Checks: the packages array is not empty
-            if (packages[i].length == 0) revert Errors.InvalidEmptyPackagesArray();
+            // Checks: the components array is not empty
+            if (components[i].length == 0) revert Errors.InvalidEmptyComponentsArray();
 
             // Checks, Effects, Interactions: create the compensation plan for the current recipient
-            _createCompensation($, recipients[i], packages[i]);
+            _createCompensationPlan($, recipients[i], components[i]);
         }
     }
 
@@ -142,42 +145,42 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
                            INTERNAL NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev See the documentation for the user-facingfunctions that call this internal function
-    function _createCompensation(
+    /// @dev See the documentation for the user-facing functions that call this internal function
+    function _createCompensationPlan(
         CompensationModuleStorage storage $,
         address recipient,
-        Types.Package[] memory packages
+        Types.Component[] memory components
     )
         internal
-        returns (uint256 compensationId)
+        returns (uint256 compensationPlanId)
     {
         // Get the next compensation plan ID
-        compensationId = $.nextCompensationId;
+        compensationPlanId = $.nextCompensationId;
 
         // Effects: set the recipient address of the current compensation plan
-        $.compensations[compensationId].recipient = recipient;
+        $.compensations[compensationPlanId].recipient = recipient;
 
-        // Cache the packages length to save on gas costs
-        uint256 packagesLength = packages.length;
+        // Cache the components length to save on gas costs
+        uint256 componentsLength = components.length;
 
-        // Create the compensation packages
-        for (uint256 i; i < packagesLength; ++i) {
+        // Create the compensation components
+        for (uint256 i; i < componentsLength; ++i) {
             // Checks, Effects, Interactions: create the flow stream
-            uint256 streamId = this.createFlowStream(recipient, packages[i]);
+            uint256 streamId = this.createFlowStream(recipient, components[i]);
 
-            // Effects: set the package stream ID
-            packages[i].streamId = streamId;
+            // Effects: set the compensation component stream ID
+            components[i].streamId = streamId;
 
-            // Get the next package ID
-            uint96 packageId = $.compensations[compensationId].nextPackageId;
+            // Get the next compensation component ID
+            uint96 componentId = $.compensations[compensationPlanId].nextComponentId;
 
-            // Effects: add the package to the compensation
-            $.compensations[compensationId].packages[packageId] = packages[i];
+            // Effects: add the compensation component to the compensation
+            $.compensations[compensationPlanId].components[componentId] = components[i];
 
-            // Effects: increment the next package ID
-            // Use unchecked because the package ID cannot realistically overflow
+            // Effects: increment the next compensation component ID
+            // Use unchecked because the compensation component ID cannot realistically overflow
             unchecked {
-                $.compensations[compensationId].nextPackageId++;
+                $.compensations[compensationPlanId].nextComponentId++;
             }
         }
 
@@ -188,6 +191,6 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         }
 
         // Log the compensation plan creation
-        emit CompensationCreated(compensationId, recipient);
+        emit CompensationPlanCreated(compensationPlanId, recipient);
     }
 }
