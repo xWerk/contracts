@@ -207,6 +207,9 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
             sender: msg.sender,
             recipient: compensationPlan.recipient
         });
+
+        // Log the compensation component deposit
+        emit CompensationComponentDeposited(compensationPlanId, componentId, amount);
     }
 
     /// @inheritdoc ICompensationModule
@@ -239,7 +242,49 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         });
 
         // Log the compensation component stream withdrawal
-        emit ComponentStreamWithdrawn(compensationPlanId, componentId, withdrawnAmount);
+        emit CompensationComponentWithdrawn(compensationPlanId, componentId, withdrawnAmount);
+    }
+
+    /// @inheritdoc ICompensationModule
+    function pauseComponentStream(uint256 compensationPlanId, uint96 componentId) external onlySpace {
+        // Retrieve the contract storage
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Cache the compensation plan details to save on multiple storage reads
+        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
+
+        // Checks: the compensation component exists
+        if (compensationPlan.components[componentId].streamId == 0) revert Errors.InvalidComponentId();
+
+        // Checks: `msg.sender` is the compensation plan sender
+        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+
+        // Checks, Effects, Interactions: pause the compensation component stream
+        this.pauseComponentStream(compensationPlan.components[componentId].streamId);
+
+        // Log the compensation component stream pause
+        emit CompensationComponentPaused(compensationPlanId, componentId);
+    }
+
+    /// @inheritdoc ICompensationModule
+    function cancelComponentStream(uint256 compensationPlanId, uint96 componentId) external onlySpace {
+        // Retrieve the contract storage
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Cache the compensation plan details to save on multiple storage reads
+        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
+
+        // Checks: the compensation component exists
+        if (compensationPlan.components[componentId].streamId == 0) revert Errors.InvalidComponentId();
+
+        // Checks: `msg.sender` is the compensation plan sender
+        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+
+        // Checks, Effects, Interactions: cancel the compensation component stream
+        this.cancelComponentStream(compensationPlan.components[componentId].streamId);
+
+        // Log the compensation component stream cancellation
+        emit CompensationComponentCancelled(compensationPlanId, componentId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

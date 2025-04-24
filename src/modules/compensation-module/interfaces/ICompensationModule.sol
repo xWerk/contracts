@@ -24,13 +24,31 @@ interface ICompensationModule {
         uint256 indexed compensationPlanId, uint96 indexed componentId, UD21x18 newRatePerSecond
     );
 
+    /// @notice Emitted when a compensation plan component stream is deposited
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    /// @param amount The amount deposited to the compensation plan component stream
+    event CompensationComponentDeposited(
+        uint256 indexed compensationPlanId, uint96 indexed componentId, uint128 amount
+    );
+
     /// @notice Emitted when a compensation plan component stream is withdrawn
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component
     /// @param withdrawnAmount The amount withdrawn from the compensation plan component stream
-    event ComponentStreamWithdrawn(
+    event CompensationComponentWithdrawn(
         uint256 indexed compensationPlanId, uint96 indexed componentId, uint128 withdrawnAmount
     );
+
+    /// @notice Emitted when a compensation plan component stream is paused
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    event CompensationComponentPaused(uint256 indexed compensationPlanId, uint96 indexed componentId);
+
+    /// @notice Emitted when a compensation plan component stream is cancelled
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    event CompensationComponentCancelled(uint256 indexed compensationPlanId, uint96 indexed componentId);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
@@ -104,4 +122,26 @@ interface ICompensationModule {
     )
         external
         returns (uint128 withdrawnAmount);
+
+    /// @notice Pauses a compensation plan component stream
+    ///
+    /// Notes:
+    /// - `msg.sender` must be a valid Space account and the compensation plan sender
+    /// - `compensationPlanId` must not reference a null compensation plan
+    /// - `componentId` must not reference a null compensation plan component
+    ///
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    function pauseComponentStream(uint256 compensationPlanId, uint96 componentId) external;
+
+    /// @notice Cancels a compensation plan component stream
+    ///
+    /// Notes:
+    /// - `msg.sender` must be a valid Space account and the compensation plan sender
+    /// - `compensationPlanId` must not reference a null compensation plan
+    /// - `componentId` must not reference a null compensation plan component
+    ///
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    function cancelComponentStream(uint256 compensationPlanId, uint96 componentId) external;
 }

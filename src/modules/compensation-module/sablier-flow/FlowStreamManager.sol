@@ -135,4 +135,22 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         // Return the withdrawn amount
         return withdrawnAmount;
     }
+
+    /// @inheritdoc IFlowStreamManager
+    function pauseComponentStream(uint256 streamId) external {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Pause the stream
+        $.SABLIER_FLOW.pause(streamId);
+    }
+
+    /// @inheritdoc IFlowStreamManager
+    function cancelComponentStream(uint256 streamId) external {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Cancel the stream
+        $.SABLIER_FLOW.void(streamId);
+    }
 }

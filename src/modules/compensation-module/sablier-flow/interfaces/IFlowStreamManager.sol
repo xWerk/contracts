@@ -42,4 +42,11 @@ interface IFlowStreamManager {
 
     /// @notice See the documentation in {ISablierFlow-withdrawMax}
     function withdrawMaxFromComponentStream(uint256 streamId, address to) external returns (uint128);
+
+    /// @notice See the documentation in {ISablierFlow-pause}
+    function pauseComponentStream(uint256 streamId) external;
+
+    /// @notice Cancels a compensation component stream by forfeiting its uncovered debt (if any) and marking it as voided
+    /// @dev See the documentation in {ISablierFlow-void}
+    function cancelComponentStream(uint256 streamId) external;
 }
