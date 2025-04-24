@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import { Types } from "../libraries/Types.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
+import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 
 /// @title ICompensationModule
 /// @notice Module that provides functionalities to create onchain compensation plans
@@ -49,6 +50,21 @@ interface ICompensationModule {
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component
     event CompensationComponentCancelled(uint256 indexed compensationPlanId, uint96 indexed componentId);
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                CONSTANT FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Returns the status of a compensation plan component stream
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    function statusOfComponent(
+        uint256 compensationPlanId,
+        uint96 componentId
+    )
+        external
+        view
+        returns (Flow.Status status);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
@@ -123,7 +139,7 @@ interface ICompensationModule {
         external
         returns (uint128 withdrawnAmount);
 
-    /// @notice Pauses a compensation plan component stream
+    /// @notice Pauses a compensation plan component by setting its rate per second to zero
     ///
     /// Notes:
     /// - `msg.sender` must be a valid Space account and the compensation plan sender
@@ -132,9 +148,9 @@ interface ICompensationModule {
     ///
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component
-    function pauseComponentStream(uint256 compensationPlanId, uint96 componentId) external;
+    function pauseComponent(uint256 compensationPlanId, uint96 componentId) external;
 
-    /// @notice Cancels a compensation plan component stream
+    /// @notice Cancels a compensation plan component by forfeiting its uncovered debt (if any) and marking it as voided
     ///
     /// Notes:
     /// - `msg.sender` must be a valid Space account and the compensation plan sender
@@ -143,5 +159,5 @@ interface ICompensationModule {
     ///
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component
-    function cancelComponentStream(uint256 compensationPlanId, uint96 componentId) external;
+    function cancelComponent(uint256 compensationPlanId, uint96 componentId) external;
 }

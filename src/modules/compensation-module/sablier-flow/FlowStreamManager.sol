@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
-import { Broker } from "@sablier/flow/src/types/DataTypes.sol";
+import { Broker, Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { IFlowStreamManager } from "./interfaces/IFlowStreamManager.sol";
@@ -79,6 +79,15 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     /// @inheritdoc IFlowStreamManager
     function SABLIER_FLOW() public view override returns (ISablierFlow) {
         return _getFlowStreamManagerStorage().SABLIER_FLOW;
+    }
+
+    /// @inheritdoc IFlowStreamManager
+    function statusOfComponentStream(uint256 streamId) external view returns (Flow.Status status) {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Return the status of the stream
+        return $.SABLIER_FLOW.statusOf(streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

@@ -10,6 +10,7 @@ import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Errors } from "./libraries/Errors.sol";
+import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 
 /// @title CompensationModule
 /// @notice See the documentation in {ICompensationModule}
@@ -85,6 +86,26 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         bytes4 interfaceId = type(ISpace).interfaceId;
         if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert Errors.SpaceUnsupportedInterface();
         _;
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                CONSTANT FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ICompensationModule
+    function statusOfComponent(
+        uint256 compensationPlanId,
+        uint96 componentId
+    )
+        external
+        view
+        returns (Flow.Status status)
+    {
+        // Retrieve the storage of the {CompensationModule} contract
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Return the status of the compensation component stream
+        return this.statusOfComponentStream($.compensations[compensationPlanId].components[componentId].streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -246,7 +267,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @inheritdoc ICompensationModule
-    function pauseComponentStream(uint256 compensationPlanId, uint96 componentId) external onlySpace {
+    function pauseComponent(uint256 compensationPlanId, uint96 componentId) external onlySpace {
         // Retrieve the contract storage
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
 
@@ -267,7 +288,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @inheritdoc ICompensationModule
-    function cancelComponentStream(uint256 compensationPlanId, uint96 componentId) external onlySpace {
+    function cancelComponent(uint256 compensationPlanId, uint96 componentId) external onlySpace {
         // Retrieve the contract storage
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
 
