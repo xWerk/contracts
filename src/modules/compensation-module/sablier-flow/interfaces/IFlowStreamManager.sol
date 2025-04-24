@@ -60,4 +60,8 @@ interface IFlowStreamManager {
     /// @notice Cancels a compensation component stream by forfeiting its uncovered debt (if any) and marking it as voided
     /// @dev See the documentation in {ISablierFlow-void}
     function cancelComponentStream(uint256 streamId) external;
+
+    /// @notice Refunds the entire refundable amount of tokens from the compensation component stream to the sender's address
+    /// @dev See the documentation in {ISablierFlow-refundMax}
+    function refundComponentStream(uint256 streamId) external;
 }

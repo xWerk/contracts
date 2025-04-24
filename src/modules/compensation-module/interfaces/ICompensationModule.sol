@@ -51,6 +51,11 @@ interface ICompensationModule {
     /// @param componentId The ID of the compensation plan component
     event CompensationComponentCancelled(uint256 indexed compensationPlanId, uint96 indexed componentId);
 
+    /// @notice Emitted when a compensation plan component stream is refunded
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    event CompensationComponentRefunded(uint256 indexed compensationPlanId, uint96 indexed componentId);
+
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -99,7 +104,7 @@ interface ICompensationModule {
     /// Notes:
     /// - `msg.sender` must be a valid Space account
     /// - `msg.sender` must be the compensation plan sender
-    /// - `componentId` must not reference a null compensation plan component
+    /// - `compensationPlanId` and `componentId` must not reference a null compensation plan and component
     /// - `newRatePerSecond` must not equal to the current rate per second or be zero
     ///
     /// @param compensationPlanId The ID of the compensation plan
@@ -116,7 +121,7 @@ interface ICompensationModule {
     ///
     /// Notes:
     /// - `msg.sender` must be a valid Space account and the compensation plan sender
-    /// - `componentId` must not reference a null compensation plan component
+    /// - `compensationPlanId` and `componentId` must not reference a null compensation plan and component
     /// - `amount` must be greater than zero
     ///
     /// @param compensationPlanId The ID of the compensation plan
@@ -128,7 +133,7 @@ interface ICompensationModule {
     ///
     /// Notes:
     /// - `msg.sender` must be a valid Space account and the compensation plan recipient
-    /// - `componentId` must not reference a null compensation plan component
+    /// - `compensationPlanId` and `componentId` must not reference a null compensation plan and component
     ///
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component
@@ -143,8 +148,7 @@ interface ICompensationModule {
     ///
     /// Notes:
     /// - `msg.sender` must be a valid Space account and the compensation plan sender
-    /// - `compensationPlanId` must not reference a null compensation plan
-    /// - `componentId` must not reference a null compensation plan component
+    /// - `compensationPlanId` and `componentId` must not reference a null compensation plan and component
     ///
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component
@@ -154,10 +158,19 @@ interface ICompensationModule {
     ///
     /// Notes:
     /// - `msg.sender` must be a valid Space account and the compensation plan sender
-    /// - `compensationPlanId` must not reference a null compensation plan
-    /// - `componentId` must not reference a null compensation plan component
+    /// - `compensationPlanId` and `componentId` must not reference a null compensation plan and component
     ///
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component
     function cancelComponent(uint256 compensationPlanId, uint96 componentId) external;
+
+    /// @notice Refunds the entire refundable amount of tokens from a compensation plan component stream to the sender's address
+    ///
+    /// Notes:
+    /// - `msg.sender` must be a valid Space account and the compensation plan sender
+    /// - `compensationPlanId` and `componentId` must not reference a null compensation plan and component
+    ///
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    function refundComponent(uint256 compensationPlanId, uint96 componentId) external;
 }

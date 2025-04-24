@@ -162,4 +162,13 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         // Cancel the stream
         $.SABLIER_FLOW.void(streamId);
     }
+
+    /// @inheritdoc IFlowStreamManager
+    function refundComponentStream(uint256 streamId) external {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Refund the stream
+        $.SABLIER_FLOW.refundMax(streamId);
+    }
 }

@@ -308,6 +308,27 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         emit CompensationComponentCancelled(compensationPlanId, componentId);
     }
 
+    /// @inheritdoc ICompensationModule
+    function refundComponent(uint256 compensationPlanId, uint96 componentId) external onlySpace {
+        // Retrieve the contract storage
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Cache the compensation plan details to save on multiple storage reads
+        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
+
+        // Checks: the compensation component exists
+        if (compensationPlan.components[componentId].streamId == 0) revert Errors.InvalidComponentId();
+
+        // Checks: `msg.sender` is the compensation plan sender
+        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+
+        // Checks, Effects, Interactions: refund the compensation component stream
+        this.refundComponentStream(compensationPlan.components[componentId].streamId);
+
+        // Log the compensation component stream refund
+        emit CompensationComponentRefunded(compensationPlanId, componentId);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                            INTERNAL NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
