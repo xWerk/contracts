@@ -9,7 +9,7 @@ import { Events } from "./../../../../utils/Events.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Constants } from "./../../../../utils/Constants.sol";
 
-contract CreateCompensationPlan_Integration_Concret_Test is CreateCompensationPlan_Integration_Shared_Test {
+contract CreateCompensationPlan_Integration_Concrete_Test is CreateCompensationPlan_Integration_Shared_Test {
     function setUp() public override {
         CreateCompensationPlan_Integration_Shared_Test.setUp();
     }

@@ -122,6 +122,12 @@ library Errors {
     /// @notice Thrown when the compensation component rate per second is zero
     error InvalidZeroRatePerSecond();
 
+    /// @notice Thrown when the recipients array is empty
+    error InvalidEmptyRecipientsArray();
+
+    /// @notice Thrown when the recipients and components arrays have different lengths
+    error InvalidRecipientsAndComponentsArraysLength();
+
     /*//////////////////////////////////////////////////////////////////////////
                                     STREAM-MANAGER
     //////////////////////////////////////////////////////////////////////////*/

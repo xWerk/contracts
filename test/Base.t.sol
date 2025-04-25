@@ -55,7 +55,12 @@ abstract contract Base_Test is Test, Events {
         usdt = new MockERC20NoReturn("Tether USD", "USDT", 6);
 
         // Create test users
-        users = Users({ admin: createUser("admin"), eve: createUser("eve"), bob: createUser("bob") });
+        users = Users({
+            admin: createUser("admin"),
+            eve: createUser("eve"),
+            bob: createUser("bob"),
+            alice: createUser("alice")
+        });
 
         // Deploy test contracts
         moduleKeeper = new ModuleKeeper({ _initialOwner: users.admin });

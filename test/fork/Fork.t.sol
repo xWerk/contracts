@@ -7,7 +7,12 @@ import { Users } from "../utils/Types.sol";
 abstract contract Fork_Test is Base_Test {
     function setUp() public virtual override {
         // Create test users
-        users = Users({ admin: createUser("admin"), eve: createUser("eve"), bob: createUser("bob") });
+        users = Users({
+            admin: createUser("admin"),
+            eve: createUser("eve"),
+            bob: createUser("bob"),
+            alice: createUser("alice")
+        });
     }
 
     /// @dev Generates a user, labels its address, and funds it with test assets
