@@ -92,6 +92,27 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
+    function getCompensationPlan(uint256 compensationPlanId)
+        external
+        view
+        returns (address sender, address recipient, uint96 nextComponentId, Types.Component[] memory components)
+    {
+        // Retrieve the storage of the {CompensationModule} contract
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Get the compensation plan
+        Types.Compensation storage plan = $.compensations[compensationPlanId];
+
+        // Get the components
+        components = new Types.Component[](plan.nextComponentId);
+        for (uint256 i; i < components.length; ++i) {
+            components[i] = plan.components[i];
+        }
+
+        // Return the compensation plan fields
+        return (plan.sender, plan.recipient, plan.nextComponentId, components);
+    }
+
     /// @inheritdoc ICompensationModule
     function statusOfComponent(
         uint256 compensationPlanId,
