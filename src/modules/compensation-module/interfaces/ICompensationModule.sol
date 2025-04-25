@@ -60,6 +60,13 @@ interface ICompensationModule {
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns the compensation plan details with the given ID
+    /// @param compensationPlanId The ID of the compensation plan
+    function getCompensationPlan(uint256 compensationPlanId)
+        external
+        view
+        returns (address sender, address recipient, uint96 nextComponentId, Types.Component[] memory components);
+
     /// @notice Returns the status of a compensation plan component stream
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component

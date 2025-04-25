@@ -92,6 +92,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc ICompensationModule
     function getCompensationPlan(uint256 compensationPlanId)
         external
         view
