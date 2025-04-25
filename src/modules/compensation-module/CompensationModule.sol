@@ -176,6 +176,9 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
 
         for (uint256 i; i < recipientsLength; ++i) {
+            // Checks: the recipient is not the zero address
+            if (recipients[i] == address(0)) revert Errors.InvalidZeroAddressRecipient();
+
             // Checks: the components array is not empty
             if (components[i].length == 0) revert Errors.InvalidEmptyComponentsArray();
 
