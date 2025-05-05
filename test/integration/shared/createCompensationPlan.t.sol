@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import { Integration_Test } from "../Integration.t.sol";
-import { Types } from "./../../../../../src/modules/compensation-module/libraries/Types.sol";
+import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Constants } from "./../../utils/Constants.sol";
 
@@ -31,7 +31,11 @@ abstract contract CreateCompensationPlan_Integration_Shared_Test is Integration_
         _;
     }
 
-    /// @dev Creates a mock compensation plan with a pre-defined rate per second
+    modifier whenPlanNotNull() {
+        _;
+    }
+
+    /// @dev Creates a mock compensation plan with one component with a pre-defined rate per second
     function createMockCompensationPlan(Types.ComponentType componentType)
         internal
         view
