@@ -43,4 +43,10 @@ library Errors {
 
     /// @notice Thrown when the deposit amount is zero
     error InvalidZeroDepositAmount();
+
+    /// @notice Thrown when the compensation plan does not exist
+    error CompensationPlanNull();
+
+    /// @notice Thrown when the compensation component does not exist
+    error CompensationComponentNull();
 }

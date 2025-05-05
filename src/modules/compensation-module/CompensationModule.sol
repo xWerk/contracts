@@ -24,7 +24,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         /// @notice Compensation details mapped by the compensation ID
         mapping(uint256 id => Types.Compensation) compensations;
         /// @notice Counter to keep track of the next ID used to create a new compensation
-        uint256 nextCompensationId;
+        uint256 nextCompensationPlanId;
     }
 
     // keccak256(abi.encode(uint256(keccak256("werk.storage.CompensationModule")) - 1)) & ~bytes32(uint256(0xff))
@@ -65,7 +65,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
 
         // Start the first compensation request ID from 1
-        $.nextCompensationId = 1;
+        $.nextCompensationPlanId = 1;
     }
 
     /// @dev Allows only the owner to upgrade the contract
@@ -88,6 +88,31 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         _;
     }
 
+    /// @dev Checks that `compensationPlanId` does not reference a null compensation plan
+    modifier notNullPlan(uint256 compensationPlanId) {
+        // Retrieve the storage of the {CompensationModule} contract
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Checks: the compensation plan exists
+        if ($.compensations[compensationPlanId].sender == address(0)) {
+            revert Errors.CompensationPlanNull();
+        }
+        _;
+    }
+
+    /// @dev Checks that `componentId` does not reference a null compensation component
+    /// Note: if the `compensationPlanId` does not exist, the component will also be null
+    modifier notNullComponent(uint256 compensationPlanId, uint96 componentId) {
+        // Retrieve the storage of the {CompensationModule} contract
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
+        // Checks: the compensation component exists
+        if ($.compensations[compensationPlanId].components[componentId].streamId == 0) {
+            revert Errors.CompensationComponentNull();
+        }
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -96,7 +121,8 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     function getCompensationPlan(uint256 compensationPlanId)
         external
         view
-        returns (address sender, address recipient, uint96 nextComponentId, Types.Component[] memory components)
+        notNullPlan(compensationPlanId)
+        returns (address sender, address recipient, uint96 numberOfComponents, Types.Component[] memory components)
     {
         // Retrieve the storage of the {CompensationModule} contract
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
@@ -121,6 +147,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     )
         external
         view
+        notNullComponent(compensationPlanId, componentId)
         returns (Flow.Status status)
     {
         // Retrieve the storage of the {CompensationModule} contract
@@ -368,7 +395,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         returns (uint256 compensationPlanId)
     {
         // Get the next compensation plan ID
-        compensationPlanId = $.nextCompensationId;
+        compensationPlanId = $.nextCompensationPlanId;
 
         // Cache the compensation plan details to save on multiple storage reads
         Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
@@ -409,7 +436,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Effects: increment the next compensation ID
         // Use unchecked because the compensation ID cannot realistically overflow
         unchecked {
-            $.nextCompensationId++;
+            $.nextCompensationPlanId++;
         }
 
         // Log the compensation plan creation
