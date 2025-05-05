@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { CreateBatchCompensationPlan_Integration_Shared_Test } from "../../../shared/createBatchCompensationPlan.t.sol";
-import { Errors } from "../../../../utils/Errors.sol";
+import { CreateBatchCompensationPlan_Integration_Shared_Test } from
+    "test/integration/shared/createBatchCompensationPlan.t.sol";
+import { Constants } from "test/utils/Constants.sol";
+import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
 import { Types } from "src/modules/compensation-module/libraries/Types.sol";
+import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
-import { Events } from "./../../../../utils/Events.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Constants } from "./../../../../utils/Constants.sol";
 
 contract CreateBatchCompensationPlan_Integration_Concrete_Test is
     CreateBatchCompensationPlan_Integration_Shared_Test
@@ -259,8 +260,8 @@ contract CreateBatchCompensationPlan_Integration_Concrete_Test is
 
         // Expect one {CompensationPlanCreated} event to be emitted for each recipient
         vm.expectEmit(address(compensationModule));
-        emit Events.CompensationPlanCreated({ compensationPlanId: 1, recipient: users.bob });
-        emit Events.CompensationPlanCreated({ compensationPlanId: 2, recipient: users.alice });
+        emit ICompensationModule.CompensationPlanCreated({ compensationPlanId: 1, recipient: users.bob });
+        emit ICompensationModule.CompensationPlanCreated({ compensationPlanId: 2, recipient: users.alice });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });

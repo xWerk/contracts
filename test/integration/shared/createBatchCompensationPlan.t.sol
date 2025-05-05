@@ -2,9 +2,9 @@
 pragma solidity ^0.8.26;
 
 import { Integration_Test } from "../Integration.t.sol";
-import { Types } from "./../../../../../src/modules/compensation-module/libraries/Types.sol";
+import { Constants } from "test/utils/Constants.sol";
+import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Constants } from "./../../utils/Constants.sol";
 
 abstract contract CreateBatchCompensationPlan_Integration_Shared_Test is Integration_Test {
     function setUp() public virtual override {

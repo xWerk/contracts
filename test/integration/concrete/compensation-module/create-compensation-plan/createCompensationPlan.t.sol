@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { CreateCompensationPlan_Integration_Shared_Test } from "../../../shared/createCompensationPlan.t.sol";
-import { Errors } from "../../../../utils/Errors.sol";
+import { CreateCompensationPlan_Integration_Shared_Test } from "test/integration/shared/createCompensationPlan.t.sol";
+import { Constants } from "test/utils/Constants.sol";
+import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
+import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
 import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
-import { Events } from "./../../../../utils/Events.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Constants } from "./../../../../utils/Constants.sol";
 
 contract CreateCompensationPlan_Integration_Concrete_Test is CreateCompensationPlan_Integration_Shared_Test {
     function setUp() public override {
@@ -157,7 +157,7 @@ contract CreateCompensationPlan_Integration_Concrete_Test is CreateCompensationP
 
         // Expect the {CompensationPlanCreated} event to be emitted
         vm.expectEmit(address(compensationModule));
-        emit Events.CompensationPlanCreated({ compensationPlanId: 1, recipient: users.bob });
+        emit ICompensationModule.CompensationPlanCreated({ compensationPlanId: 1, recipient: users.bob });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
