@@ -154,7 +154,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         CompensationModuleStorage storage $ = _getCompensationModuleStorage();
 
         // Return the status of the compensation component stream
-        return this.statusOfComponentStream($.compensations[compensationPlanId].components[componentId].streamId);
+        return statusOfComponentStream($.compensations[compensationPlanId].components[componentId].streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -248,14 +248,14 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         compensationPlan.components[componentId].ratePerSecond = newRatePerSecond;
 
         // Checks, Effects, Interactions: adjust the compensation component stream rate per second
-        this.adjustComponentStreamRatePerSecond(streamId, newRatePerSecond);
+        _adjustComponentStreamRatePerSecond(streamId, newRatePerSecond);
 
         // Log the compensation component rate per second adjustment
         emit ComponentRatePerSecondAdjusted(compensationPlanId, componentId, newRatePerSecond);
     }
 
     /// @inheritdoc ICompensationModule
-    function depositToComponent(uint256 compensationPlanId, uint96 componentId, uint128 amount) external onlySpace {
+    function depositToComponent(uint256 compensationPlanId, uint96 componentId, uint128 amount) external {
         // Checks: the deposit amount is not zero
         if (amount == 0) revert Errors.InvalidZeroDepositAmount();
 
@@ -270,14 +270,11 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
             revert Errors.InvalidComponentId();
         }
 
-        // Checks: `msg.sender` is the compensation plan sender
-        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
-
         // Checks, Effects, Interactions: deposit the amount to the compensation component stream
-        this.depositToComponentStream({
+        _depositToComponentStream({
             streamId: compensationPlan.components[componentId].streamId,
+            asset: compensationPlan.components[componentId].asset,
             amount: amount,
-            sender: msg.sender,
             recipient: compensationPlan.recipient
         });
 
@@ -309,7 +306,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         if (compensationPlan.recipient != msg.sender) revert Errors.OnlyCompensationPlanRecipient();
 
         // Checks, Effects, Interactions: withdraw the amount from the compensation component stream
-        withdrawnAmount = this.withdrawMaxFromComponentStream({
+        withdrawnAmount = withdrawMaxFromComponentStream({
             streamId: compensationPlan.components[componentId].streamId,
             to: msg.sender
         });
@@ -333,7 +330,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
 
         // Checks, Effects, Interactions: pause the compensation component stream
-        this.pauseComponentStream(compensationPlan.components[componentId].streamId);
+        _pauseComponentStream(compensationPlan.components[componentId].streamId);
 
         // Log the compensation component stream pause
         emit CompensationComponentPaused(compensationPlanId, componentId);
@@ -354,7 +351,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
 
         // Checks, Effects, Interactions: cancel the compensation component stream
-        this.cancelComponentStream(compensationPlan.components[componentId].streamId);
+        _cancelComponentStream(compensationPlan.components[componentId].streamId);
 
         // Log the compensation component stream cancellation
         emit CompensationComponentCancelled(compensationPlanId, componentId);
@@ -375,7 +372,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
 
         // Checks, Effects, Interactions: refund the compensation component stream
-        this.refundComponentStream(compensationPlan.components[componentId].streamId);
+        _refundComponentStream(compensationPlan.components[componentId].streamId);
 
         // Log the compensation component stream refund
         emit CompensationComponentRefunded(compensationPlanId, componentId);
@@ -409,7 +406,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
             if (components[i].ratePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
 
             // Checks, Effects, Interactions: create the flow stream
-            uint256 streamId = this.createComponentStream(recipient, components[i]);
+            uint256 streamId = _createComponentStream(recipient, components[i]);
 
             // Effects: set the compensation component stream ID
             components[i].streamId = streamId;

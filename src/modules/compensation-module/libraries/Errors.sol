@@ -49,4 +49,10 @@ library Errors {
 
     /// @notice Thrown when the compensation component does not exist
     error CompensationComponentNull();
+
+    /// @notice Thrown when the caller is not the initial stream sender
+    error OnlyInitialStreamSender(address initialSender);
+
+    /// @notice Thrown when the foo value is invalid
+    error InvalidFooValue();
 }

@@ -3,16 +3,21 @@ pragma solidity ^0.8.26;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { Broker, Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { IFlowStreamManager } from "./interfaces/IFlowStreamManager.sol";
 import { Types } from "../libraries/Types.sol";
+import { Errors } from "../libraries/Errors.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title FlowStreamManager
 /// @notice See the documentation in {IFlowStreamManager}
 contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradeable {
+    using SafeERC20 for IERC20;
+
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
@@ -82,7 +87,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc IFlowStreamManager
-    function statusOfComponentStream(uint256 streamId) external view returns (Flow.Status status) {
+    function statusOfComponentStream(uint256 streamId) public view returns (Flow.Status status) {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -91,15 +96,19 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /*//////////////////////////////////////////////////////////////////////////
-                                NON-CONSTANT FUNCTIONS
+                        SABLIER FLOW-SPECIFIC INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IFlowStreamManager
-    function createComponentStream(
+    /// @dev Creates a new Sablier flow stream without upfront deposit for a compensation component
+    /// @dev See the documentation in {ISablierFlow-create}
+    /// @param recipient The address of the recipient of the compensation component
+    /// @param component The component of the compensation plan to be streamed
+    /// @return streamId The ID of the newly created stream
+    function _createComponentStream(
         address recipient,
         Types.Component memory component
     )
-        external
+        internal
         returns (uint256 streamId)
     {
         // Retrieve the storage of the {FlowStreamManager} contract
@@ -107,34 +116,43 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
         // Create the flow stream using the `create` function
         streamId = $.SABLIER_FLOW.create({
-            sender: msg.sender, // The sender will be able to pause the stream or change rate per second
+            sender: address(this), // The sender will be able to pause the stream or change rate per second
             recipient: recipient, // The recipient of the streamed tokens
             ratePerSecond: component.ratePerSecond, // The rate per second of the stream
             token: component.asset, // The streaming token
             transferable: false // Whether the stream will be transferable or not
          });
+
+        // Set `msg.sender` as the initial stream sender to allow authenticated stream management
+        $.initialStreamSender[streamId] = msg.sender;
     }
 
-    /// @inheritdoc IFlowStreamManager
-    function adjustComponentStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) external {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+    /// @dev See the documentation in {ISablierFlow-adjustRatePerSecond}
+    function _adjustComponentStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) internal {
+        FlowStreamManagerStorage storage $ = _onlyInitialStreamSender(streamId);
 
         // Adjust the rate per second of the stream
         $.SABLIER_FLOW.adjustRatePerSecond(streamId, newRatePerSecond);
     }
 
-    /// @inheritdoc IFlowStreamManager
-    function depositToComponentStream(uint256 streamId, uint128 amount, address sender, address recipient) external {
+    /// @dev See the documentation in {ISablierFlow-deposit}
+    ///
+    /// Notes:
+    /// - The `sender` is automatically set to the address of the {FlowStreamManager} contract and the access
+    /// control is handled by the private `_onlyInitialStreamSender` function.
+    function _depositToComponentStream(uint256 streamId, IERC20 asset, uint128 amount, address recipient) internal {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
+        // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier Flow contract to spend it
+        _transferFromAndApprove({ asset: asset, amount: amount, spender: address($.SABLIER_FLOW) });
+
         // Deposit the amount to the stream
-        $.SABLIER_FLOW.deposit(streamId, amount, sender, recipient);
+        $.SABLIER_FLOW.deposit({ streamId: streamId, amount: amount, sender: address(this), recipient: recipient });
     }
 
-    /// @inheritdoc IFlowStreamManager
-    function withdrawMaxFromComponentStream(uint256 streamId, address to) external returns (uint128) {
+    /// @dev See the documentation in {ISablierFlow-withdrawMax}
+    function withdrawMaxFromComponentStream(uint256 streamId, address to) internal returns (uint128) {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -145,17 +163,22 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         return withdrawnAmount;
     }
 
-    /// @inheritdoc IFlowStreamManager
-    function pauseComponentStream(uint256 streamId) external {
+    /// @dev See the documentation in {ISablierFlow-pause}
+    function _pauseComponentStream(uint256 streamId) internal {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Checks: the `msg.sender` is the initial stream creator
+        address initialSender = $.initialStreamSender[streamId];
+        if (msg.sender != initialSender) revert Errors.OnlyInitialStreamSender(initialSender);
 
         // Pause the stream
         $.SABLIER_FLOW.pause(streamId);
     }
 
-    /// @inheritdoc IFlowStreamManager
-    function cancelComponentStream(uint256 streamId) external {
+    /// @dev Cancels a compensation component stream by forfeiting its uncovered debt (if any) and marking it as voided
+    /// See the documentation in {ISablierFlow-void}
+    function _cancelComponentStream(uint256 streamId) internal {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -163,12 +186,43 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         $.SABLIER_FLOW.void(streamId);
     }
 
-    /// @inheritdoc IFlowStreamManager
-    function refundComponentStream(uint256 streamId) external {
+    /// @dev Refunds the entire refundable amount of tokens from the compensation component stream to the sender's address
+    /// See the documentation in {ISablierFlow-refundMax}
+    function _refundComponentStream(uint256 streamId) internal {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Refund the stream
         $.SABLIER_FLOW.refundMax(streamId);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                            OTHER INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Allows only the initial stream sender to execute management-related actions
+    ///
+    /// Notes:
+    /// - A private function is used instead of a modifier to avoid two redundant SLOAD operations,
+    /// in a scenario where the storage layout is accessed in both the modifier and the function that
+    /// uses the modifier. As a result, the overall gas cost is reduced because an SLOAD followed by a
+    /// JUMP is cheaper than performing two separate SLOADs.
+    function _onlyInitialStreamSender(uint256 streamId) private view returns (FlowStreamManagerStorage storage $) {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        $ = _getFlowStreamManagerStorage();
+
+        // Checks: the `msg.sender` is the initial stream creator
+        address initialSender = $.initialStreamSender[streamId];
+        if (msg.sender != initialSender) revert Errors.OnlyInitialStreamSender(initialSender);
+    }
+
+    /// @dev Transfers the `amount` of `asset` tokens to this address (or the contract inherting from)
+    /// and approves the `SablierFlow` contract to spend the amount
+    function _transferFromAndApprove(IERC20 asset, uint128 amount, address spender) internal {
+        // Transfer the provided amount of ERC-20 tokens to this contract
+        asset.safeTransferFrom({ from: msg.sender, to: address(this), value: amount });
+
+        // Approve the Sablier Flow contract to spend the ERC-20 tokens
+        asset.approve(spender, amount);
     }
 }
