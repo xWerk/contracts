@@ -98,6 +98,9 @@ abstract contract Base_Test is Test, Events {
         vm.prank({ msgSender: _owner });
         _space = Space(payable(stationRegistry.createAccount({ _admin: _owner, _data: data })));
         vm.stopPrank();
+
+        // Fund the {Space} contract with 1M USDT
+        deal({ token: address(usdt), to: address(_space), give: 1_000_000e6 });
     }
 
     /// @dev Deploys a new {MockBadSpace} smart account based on the provided `owner` and `stationId` input params
@@ -124,7 +127,7 @@ abstract contract Base_Test is Test, Events {
     function createUser(string memory name) internal virtual returns (address payable) {
         address payable user = payable(makeAddr(name));
         vm.deal({ account: user, newBalance: 100 ether });
-        deal({ token: address(usdt), to: user, give: 10_000_000e18 });
+        deal({ token: address(usdt), to: user, give: 10_000_000e6 });
 
         return user;
     }

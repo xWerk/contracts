@@ -57,6 +57,7 @@ abstract contract Integration_Test is Base_Test {
         // Enable the {PaymentModule} and {WerkSubdomainRegistrar} modules on the {Space} contract
         modules.push(address(paymentModule));
         modules.push(address(compensationModule));
+        modules.push(address(usdt));
         modules.push(address(werkSubdomainRegistrar));
 
         // Allowlist the required modules for testing
