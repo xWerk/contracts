@@ -89,28 +89,45 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @dev Checks that `compensationPlanId` does not reference a null compensation plan
-    modifier notNullPlan(uint256 compensationPlanId) {
+    ///
+    /// Notes:
+    /// - A private function is used instead of a modifier to avoid two redundant SLOAD operations,
+    /// in a scenario where the storage layout is accessed in both the modifier and the function that
+    /// uses the modifier. As a result, the overall gas cost is reduced because an SLOAD followed by a
+    /// JUMP is cheaper than performing two separate SLOADs.
+    function _notNullPlan(uint256 compensationPlanId) internal view returns (CompensationModuleStorage storage $) {
         // Retrieve the storage of the {CompensationModule} contract
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+        $ = _getCompensationModuleStorage();
 
         // Checks: the compensation plan exists
         if ($.compensations[compensationPlanId].sender == address(0)) {
             revert Errors.CompensationPlanNull();
         }
-        _;
     }
 
     /// @dev Checks that `componentId` does not reference a null compensation component
-    /// Note: if the `compensationPlanId` does not exist, the component will also be null
-    modifier notNullComponent(uint256 compensationPlanId, uint96 componentId) {
+    ///
+    /// Notes:
+    /// - If the `compensationPlanId` does not exist, the component will also be null
+    /// - A private function is used instead of a modifier to avoid two redundant SLOAD operations,
+    /// in a scenario where the storage layout is accessed in both the modifier and the function that
+    /// uses the modifier. As a result, the overall gas cost is reduced because an SLOAD followed by a
+    /// JUMP is cheaper than performing two separate SLOADs.
+    function _notNullComponent(
+        uint256 compensationPlanId,
+        uint96 componentId
+    )
+        internal
+        view
+        returns (CompensationModuleStorage storage $)
+    {
         // Retrieve the storage of the {CompensationModule} contract
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+        $ = _getCompensationModuleStorage();
 
         // Checks: the compensation component exists
         if ($.compensations[compensationPlanId].components[componentId].streamId == 0) {
             revert Errors.CompensationComponentNull();
         }
-        _;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -121,11 +138,10 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     function getCompensationPlan(uint256 compensationPlanId)
         external
         view
-        notNullPlan(compensationPlanId)
         returns (address sender, address recipient, uint96 numberOfComponents, Types.Component[] memory components)
     {
-        // Retrieve the storage of the {CompensationModule} contract
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+        // Checks: the compensation plan is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullPlan(compensationPlanId);
 
         // Get the compensation plan
         Types.Compensation storage plan = $.compensations[compensationPlanId];
@@ -147,11 +163,10 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     )
         external
         view
-        notNullComponent(compensationPlanId, componentId)
         returns (Flow.Status status)
     {
-        // Retrieve the storage of the {CompensationModule} contract
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
         // Return the status of the compensation component stream
         return statusOfComponentStream($.compensations[compensationPlanId].components[componentId].streamId);
@@ -224,16 +239,11 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         external
         onlySpace
     {
-        // Retrieve the contract storage
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
         // Cache the compensation plan details to save on multiple storage reads
         Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
-        // Checks: the compensation component exists
-        if (compensationPlan.components[componentId].streamId == 0) {
-            revert Errors.InvalidComponentId();
-        }
 
         // Checks: `msg.sender` is the compensation plan sender
         if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
@@ -256,19 +266,14 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
     /// @inheritdoc ICompensationModule
     function depositToComponent(uint256 compensationPlanId, uint96 componentId, uint128 amount) external {
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
+
         // Checks: the deposit amount is not zero
         if (amount == 0) revert Errors.InvalidZeroDepositAmount();
 
-        // Retrieve the contract storage
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
-
         // Cache the compensation plan details to save on multiple storage reads
         Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
-        // Checks: the compensation component exists
-        if (compensationPlan.components[componentId].streamId == 0) {
-            revert Errors.InvalidComponentId();
-        }
 
         // Checks, Effects, Interactions: deposit the amount to the compensation component stream
         _depositToComponentStream({
@@ -291,16 +296,11 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         onlySpace
         returns (uint128 withdrawnAmount)
     {
-        // Retrieve the contract storage
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
         // Cache the compensation plan details to save on multiple storage reads
         Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
-        // Checks: the compensation component exists
-        if (compensationPlan.components[componentId].streamId == 0) {
-            revert Errors.InvalidComponentId();
-        }
 
         // Checks: `msg.sender` is the compensation plan recipient
         if (compensationPlan.recipient != msg.sender) revert Errors.OnlyCompensationPlanRecipient();
@@ -317,14 +317,11 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
     /// @inheritdoc ICompensationModule
     function pauseComponent(uint256 compensationPlanId, uint96 componentId) external onlySpace {
-        // Retrieve the contract storage
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
         // Cache the compensation plan details to save on multiple storage reads
         Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
-        // Checks: the compensation component exists
-        if (compensationPlan.components[componentId].streamId == 0) revert Errors.InvalidComponentId();
 
         // Checks: `msg.sender` is the compensation plan sender
         if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
@@ -338,14 +335,11 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
     /// @inheritdoc ICompensationModule
     function cancelComponent(uint256 compensationPlanId, uint96 componentId) external onlySpace {
-        // Retrieve the contract storage
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
         // Cache the compensation plan details to save on multiple storage reads
         Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
-        // Checks: the compensation component exists
-        if (compensationPlan.components[componentId].streamId == 0) revert Errors.InvalidComponentId();
 
         // Checks: `msg.sender` is the compensation plan sender
         if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
@@ -359,14 +353,11 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
     /// @inheritdoc ICompensationModule
     function refundComponent(uint256 compensationPlanId, uint96 componentId) external onlySpace {
-        // Retrieve the contract storage
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
         // Cache the compensation plan details to save on multiple storage reads
         Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
-        // Checks: the compensation component exists
-        if (compensationPlan.components[componentId].streamId == 0) revert Errors.InvalidComponentId();
 
         // Checks: `msg.sender` is the compensation plan sender
         if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
