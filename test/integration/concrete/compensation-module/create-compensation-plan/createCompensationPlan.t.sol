@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { CreateCompensationPlan_Integration_Shared_Test } from "test/integration/shared/createCompensationPlan.t.sol";
+import { CompensationModule_Integration_Test } from "test/integration/CompensationModule.t.sol";
 import { Constants } from "test/utils/Constants.sol";
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
@@ -9,9 +9,9 @@ import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract CreateCompensationPlan_Integration_Concrete_Test is CreateCompensationPlan_Integration_Shared_Test {
+contract CreateCompensationPlan_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
-        CreateCompensationPlan_Integration_Shared_Test.setUp();
+        CompensationModule_Integration_Test.setUp();
     }
 
     function test_RevertWhen_CallerNotSpace() external {

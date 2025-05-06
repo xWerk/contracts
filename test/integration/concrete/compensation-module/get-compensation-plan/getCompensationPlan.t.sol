@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { CreateCompensationPlan_Integration_Shared_Test } from "test/integration/shared/createCompensationPlan.t.sol";
+import { CompensationModule_Integration_Test } from "test/integration/CompensationModule.t.sol";
 import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 
-contract GetCompensationPlan_Integration_Concrete_Test is CreateCompensationPlan_Integration_Shared_Test {
+contract GetCompensationPlan_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
-        CreateCompensationPlan_Integration_Shared_Test.setUp();
+        CompensationModule_Integration_Test.setUp();
     }
 
     function test_RevertWhen_CompensationPlanNull() public {

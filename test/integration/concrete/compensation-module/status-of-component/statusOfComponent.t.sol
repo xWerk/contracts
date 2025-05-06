@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { StatusOfComponent_Integration_Shared_Test } from "test/integration/shared/statusOfComponent.t.sol";
+import { CompensationModule_Integration_Test } from "test/integration/CompensationModule.t.sol";
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
-import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 
-contract StatusOfComponent_Integration_Concrete_Test is StatusOfComponent_Integration_Shared_Test {
+contract StatusOfComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
-        StatusOfComponent_Integration_Shared_Test.setUp();
+        CompensationModule_Integration_Test.setUp();
 
         // Make Eve the caller by default in all test suites as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });

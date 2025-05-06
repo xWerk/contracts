@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.26;
 
-import { Types } from "./../../src/modules/payment-module/libraries/Types.sol";
-import { Helpers as PaymentHelpers } from "./../../src/modules/payment-module/libraries/Helpers.sol";
+import { Types } from "src/modules/payment-module/libraries/Types.sol";
+import { Helpers as PaymentHelpers } from "src/modules/payment-module/libraries/Helpers.sol";
 
 library Helpers {
     /// @dev Calculates the number of payments that must be done based on a Recurring paymentRequest
