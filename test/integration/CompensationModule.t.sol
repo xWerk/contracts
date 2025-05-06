@@ -19,6 +19,10 @@ contract CompensationModule_Integration_Test is Integration_Test {
         _;
     }
 
+    modifier whenCallerCompensationPlanSender() {
+        _;
+    }
+
     modifier whenCompliantSpace() {
         _;
     }
