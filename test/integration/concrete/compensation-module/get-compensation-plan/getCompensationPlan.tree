@@ -1,4 +1,4 @@
-getCompensationPlan.tree
+getCompensationPlan.t.sol
 ├── when the compensation plan IS null
 │   └── it should revert with the {CompensationPlanNull} error
 └── when the compensation plan IS NOT null
