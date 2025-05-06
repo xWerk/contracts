@@ -67,6 +67,21 @@ interface ICompensationModule {
         view
         returns (address sender, address recipient, uint96 nextComponentId, Types.Component[] memory components);
 
+    /// @notice Returns the compensation plan component details with the given ID
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    function getComponent(
+        uint256 compensationPlanId,
+        uint96 componentId
+    )
+        external
+        view
+        returns (Types.Component memory);
+
+    /// @notice Returns the compensation plan component stream details with the given ID
+    /// @param streamId The ID of the compensation plan component stream
+    function getComponentStream(uint256 streamId) external view returns (Flow.Stream memory stream);
+
     /// @notice Returns the status of a compensation plan component stream
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component

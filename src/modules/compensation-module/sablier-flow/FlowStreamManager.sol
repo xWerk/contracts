@@ -152,7 +152,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @dev See the documentation in {ISablierFlow-withdrawMax}
-    function withdrawMaxFromComponentStream(uint256 streamId, address to) internal returns (uint128) {
+    function _withdrawMaxFromComponentStream(uint256 streamId, address to) internal returns (uint128) {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -194,6 +194,15 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
         // Refund the stream
         $.SABLIER_FLOW.refundMax(streamId);
+    }
+
+    /// @dev See the documentation in {ISablierFlow-getStream}
+    function _getStream(uint256 streamId) internal view returns (Flow.Stream memory stream) {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Return the stream
+        return $.SABLIER_FLOW.getStream(streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

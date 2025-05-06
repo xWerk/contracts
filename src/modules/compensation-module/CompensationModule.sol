@@ -157,6 +157,27 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @inheritdoc ICompensationModule
+    function getComponent(
+        uint256 compensationPlanId,
+        uint96 componentId
+    )
+        external
+        view
+        returns (Types.Component memory)
+    {
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
+
+        // Return the compensation component
+        return $.compensations[compensationPlanId].components[componentId];
+    }
+
+    /// @inheritdoc ICompensationModule
+    function getComponentStream(uint256 streamId) external view returns (Flow.Stream memory stream) {
+        return _getStream(streamId);
+    }
+
+    /// @inheritdoc ICompensationModule
     function statusOfComponent(
         uint256 compensationPlanId,
         uint96 componentId
@@ -237,7 +258,6 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         UD21x18 newRatePerSecond
     )
         external
-        onlySpace
     {
         // Checks: the compensation component is not null then cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
@@ -293,7 +313,6 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         uint96 componentId
     )
         external
-        onlySpace
         returns (uint128 withdrawnAmount)
     {
         // Checks: the compensation component is not null then cache the storage pointer
@@ -306,7 +325,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         if (compensationPlan.recipient != msg.sender) revert Errors.OnlyCompensationPlanRecipient();
 
         // Checks, Effects, Interactions: withdraw the amount from the compensation component stream
-        withdrawnAmount = withdrawMaxFromComponentStream({
+        withdrawnAmount = _withdrawMaxFromComponentStream({
             streamId: compensationPlan.components[componentId].streamId,
             to: msg.sender
         });
@@ -316,7 +335,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @inheritdoc ICompensationModule
-    function pauseComponent(uint256 compensationPlanId, uint96 componentId) external onlySpace {
+    function pauseComponent(uint256 compensationPlanId, uint96 componentId) external {
         // Checks: the compensation component is not null then cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
@@ -334,7 +353,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @inheritdoc ICompensationModule
-    function cancelComponent(uint256 compensationPlanId, uint96 componentId) external onlySpace {
+    function cancelComponent(uint256 compensationPlanId, uint96 componentId) external {
         // Checks: the compensation component is not null then cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
@@ -352,7 +371,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @inheritdoc ICompensationModule
-    function refundComponent(uint256 compensationPlanId, uint96 componentId) external onlySpace {
+    function refundComponent(uint256 compensationPlanId, uint96 componentId) external {
         // Checks: the compensation component is not null then cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
