@@ -15,7 +15,6 @@ import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { FlowNFTDescriptor } from "@sablier/flow/src/FlowNFTDescriptor.sol";
 import { MockNFTDescriptor } from "../mocks/MockNFTDescriptor.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { MockStreamManager } from "../mocks/MockStreamManager.sol";
 import { MockBadSpace } from "../mocks/MockBadSpace.sol";
 import { ud } from "@prb/math/src/UD60x18.sol";
 import { Space } from "./../../src/Space.sol";
@@ -36,7 +35,6 @@ abstract contract Integration_Test is Base_Test {
     SablierV2LockupTranched internal sablierV2LockupTranched;
     ISablierFlow internal sablierFlow;
     // Mock test contracts
-    MockStreamManager internal mockStreamManager;
     MockBadSpace internal badSpace;
     // ENS related test contracts
     WerkSubdomainRegistrar internal werkSubdomainRegistrar;
@@ -95,8 +93,15 @@ abstract contract Integration_Test is Base_Test {
 
     /// @dev Deploys the {PaymentModule} module
     function deployPaymentModule() internal {
-        address implementation = address(new PaymentModule(sablierV2LockupLinear, sablierV2LockupTranched));
-        bytes memory data = abi.encodeWithSelector(PaymentModule.initialize.selector, users.admin, users.admin, ud(0));
+        address implementation = address(new PaymentModule());
+        bytes memory data = abi.encodeWithSelector(
+            PaymentModule.initialize.selector,
+            sablierV2LockupLinear,
+            sablierV2LockupTranched,
+            users.admin,
+            users.admin,
+            ud(0)
+        );
         paymentModule = PaymentModule(address(new ERC1967Proxy(implementation, data)));
     }
 

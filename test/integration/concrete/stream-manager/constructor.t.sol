@@ -12,7 +12,7 @@ contract Constructor_StreamManager_Integration_Concret_Test is Integration_Test 
     function test_Constructor() external view {
         assertEq(UD60x18.unwrap(paymentModule.broker().fee), 0);
         assertEq(paymentModule.broker().account, users.admin);
-        assertEq(address(paymentModule.LOCKUP_TRANCHED()), address(sablierV2LockupTranched));
-        assertEq(address(paymentModule.LOCKUP_LINEAR()), address(sablierV2LockupLinear));
+        assertEq(address(paymentModule.SABLIER_LOCKUP_TRANCHED()), address(sablierV2LockupTranched));
+        assertEq(address(paymentModule.SABLIER_LOCKUP_LINEAR()), address(sablierV2LockupLinear));
     }
 }

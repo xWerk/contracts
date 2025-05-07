@@ -49,7 +49,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
                             CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev  Deploys and locks the implementation contract
+    /// @dev Deploys and locks the implementation contract
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();

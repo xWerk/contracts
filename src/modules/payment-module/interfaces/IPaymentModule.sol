@@ -30,6 +30,11 @@ interface IPaymentModule {
     /// @param requestId The ID of the payment request
     event RequestCanceled(uint256 indexed requestId);
 
+    /// @notice Emitted when a payment request stream is withdrawn
+    /// @param requestId The ID of the payment request
+    /// @param withdrawnAmount The amount withdrawn from the stream
+    event RequestStreamWithdrawn(uint256 indexed requestId, uint128 withdrawnAmount);
+
     /*//////////////////////////////////////////////////////////////////////////
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/

@@ -58,18 +58,22 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
     /// @dev Deploys and locks the implementation contract
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        ISablierV2LockupLinear _sablierLockupLinear,
-        ISablierV2LockupTranched _sablierLockupTranched
-    )
-        StreamManager(_sablierLockupLinear, _sablierLockupTranched)
-    {
+    constructor() StreamManager() {
         _disableInitializers();
     }
 
     /// @dev Initializes the proxy and the {Ownable} contract
-    function initialize(address _initialOwner, address _brokerAccount, UD60x18 _brokerFee) public initializer {
-        __StreamManager_init(_initialOwner, _brokerAccount, _brokerFee);
+    function initialize(
+        ISablierV2LockupLinear _sablierLockupLinear,
+        ISablierV2LockupTranched _sablierLockupTranched,
+        address _initialOwner,
+        address _brokerAccount,
+        UD60x18 _brokerFee
+    )
+        public
+        initializer
+    {
+        __StreamManager_init(_sablierLockupLinear, _sablierLockupTranched, _initialOwner, _brokerAccount, _brokerFee);
         __UUPSUpgradeable_init();
 
         // Retrieve the contract storage
@@ -346,11 +350,14 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         Types.PaymentRequest memory request = $.requests[requestId];
 
         // Check, Effects, Interactions: withdraw from the stream
-        return withdrawMaxStream({
+        withdrawnAmount = withdrawMaxStream({
             streamType: request.config.method,
             streamId: request.config.streamId,
             to: request.recipient
         });
+
+        // Log the stream withdrawal
+        emit RequestStreamWithdrawn(requestId, withdrawnAmount);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
