@@ -2,9 +2,9 @@
 pragma solidity ^0.8.26;
 
 import { StationRegistry_Unit_Concrete_Test } from "../StationRegistry.t.sol";
-import { Space } from "./../../../../../src/Space.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { Space } from "src/Space.sol";
+import { IStationRegistry } from "src/interfaces/IStationRegistry.sol";
+import { Errors } from "src/libraries/Errors.sol";
 
 contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test {
     function setUp() public virtual override {
@@ -24,7 +24,7 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
 
         // Expect the {SpaceCreated} to be emitted
         vm.expectEmit();
-        emit Events.SpaceCreated({ owner: users.bob, stationId: 1, space: Space(payable(expectedSpace)) });
+        emit IStationRegistry.SpaceCreated({ owner: users.bob, stationId: 1, space: expectedSpace });
 
         // Make Bob the caller in this test suite
         vm.prank({ msgSender: users.bob });
@@ -74,7 +74,7 @@ contract CreateAccount_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test 
 
         // Expect the {SpaceCreated} event to be emitted
         vm.expectEmit();
-        emit Events.SpaceCreated({ owner: users.bob, stationId: 1, space: Space(payable(expectedSpace)) });
+        emit IStationRegistry.SpaceCreated({ owner: users.bob, stationId: 1, space: expectedSpace });
 
         // Make Bob the caller in this test suite
         vm.prank({ msgSender: users.bob });

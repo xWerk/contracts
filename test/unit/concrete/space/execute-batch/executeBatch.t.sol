@@ -2,8 +2,8 @@
 pragma solidity ^0.8.26;
 
 import { Space_Unit_Concrete_Test } from "../Space.t.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { MockModule } from "../../../../mocks/MockModule.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { MockModule } from "test/mocks/MockModule.sol";
 
 contract ExecuteBatch_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     address[] modules;

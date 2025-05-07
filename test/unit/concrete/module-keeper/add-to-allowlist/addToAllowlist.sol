@@ -2,9 +2,9 @@
 pragma solidity ^0.8.26;
 
 import { ModuleKeeper_Unit_Concrete_Test } from "../ModuleKeeper.t.sol";
-import { MockModule } from "../../../../mocks/MockModule.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { MockModule } from "test/mocks/MockModule.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { IModuleKeeper } from "src/interfaces/IModuleKeeper.sol";
 
 contract AddToAllowlist_Unit_Concrete_Test is ModuleKeeper_Unit_Concrete_Test {
     function setUp() public virtual override {
@@ -58,7 +58,7 @@ contract AddToAllowlist_Unit_Concrete_Test is ModuleKeeper_Unit_Concrete_Test {
 
         // Expect the {ModuleAllowlisted} event to be emitted
         vm.expectEmit();
-        emit Events.ModulesAllowlisted({ owner: users.admin, modules: modules });
+        emit IModuleKeeper.ModulesAllowlisted({ owner: users.admin, modules: modules });
 
         // Run the test
         moduleKeeper.addToAllowlist(modules);

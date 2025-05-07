@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-import { Events } from "./utils/Events.sol";
 import { Users } from "./utils/Types.sol";
 import { Test } from "forge-std/Test.sol";
 import { MockERC20NoReturn } from "./mocks/MockERC20NoReturn.sol";
@@ -17,7 +16,7 @@ import { MockBadSpace } from "./mocks/MockBadSpace.sol";
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 
-abstract contract Base_Test is Test, Events {
+abstract contract Base_Test is Test {
     /*//////////////////////////////////////////////////////////////////////////
                                      VARIABLES
     //////////////////////////////////////////////////////////////////////////*/

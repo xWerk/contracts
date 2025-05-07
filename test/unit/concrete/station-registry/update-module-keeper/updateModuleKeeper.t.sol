@@ -2,10 +2,9 @@
 pragma solidity ^0.8.26;
 
 import { StationRegistry_Unit_Concrete_Test } from "../StationRegistry.t.sol";
-import { ModuleKeeper } from "./../../../../../src/ModuleKeeper.sol";
-import { Events } from "../../../../utils/Events.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Constants } from "../../../../utils/Constants.sol";
+import { ModuleKeeper } from "src/ModuleKeeper.sol";
+import { IStationRegistry } from "src/interfaces/IStationRegistry.sol";
+import { Constants } from "test/utils/Constants.sol";
 
 contract UpdateModuleKeeper_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test {
     function setUp() public virtual override {
@@ -19,7 +18,9 @@ contract UpdateModuleKeeper_Unit_Concrete_Test is StationRegistry_Unit_Concrete_
         // Expect the next call to revert with the {PermissionsUnauthorizedAccount} error
         vm.expectRevert(
             abi.encodeWithSelector(
-                Errors.PermissionsUnauthorizedAccount.selector, users.bob, Constants.DEFAULT_ADMIN_ROLE
+                bytes4(keccak256(bytes("PermissionsUnauthorizedAccount(address,bytes32)"))),
+                users.bob,
+                Constants.DEFAULT_ADMIN_ROLE
             )
         );
 
@@ -38,7 +39,7 @@ contract UpdateModuleKeeper_Unit_Concrete_Test is StationRegistry_Unit_Concrete_
 
         // Expect the {ModuleKeeperUpdated} to be emitted
         vm.expectEmit();
-        emit Events.ModuleKeeperUpdated(newModuleKeeper);
+        emit IStationRegistry.ModuleKeeperUpdated(newModuleKeeper);
 
         // Run the test
         stationRegistry.updateModuleKeeper(newModuleKeeper);
