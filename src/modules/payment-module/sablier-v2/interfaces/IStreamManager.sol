@@ -29,12 +29,12 @@ interface IStreamManager {
     /// @notice The address of the {SablierV2LockupLinear} contract used to create linear streams
     /// @dev This is initialized at construction time and it might be different depending on the deployment chain
     /// See https://docs.sablier.com/contracts/v2/deployments
-    function LOCKUP_LINEAR() external view returns (ISablierV2LockupLinear);
+    function SABLIER_LOCKUP_LINEAR() external view returns (ISablierV2LockupLinear);
 
     /// @notice The address of the {SablierV2LockupTranched} contract used to create tranched streams
     /// @dev This is initialized at construction time and it might be different depending on the deployment chain
     /// See https://docs.sablier.com/contracts/v2/deployments
-    function LOCKUP_TRANCHED() external view returns (ISablierV2LockupTranched);
+    function SABLIER_LOCKUP_TRANCHED() external view returns (ISablierV2LockupTranched);
 
     /// @notice The broker account andfee charged to create Sablier V2 stream
     function broker() external view returns (Broker memory brokerConfig);

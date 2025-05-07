@@ -19,13 +19,8 @@ import { Types } from "./../libraries/Types.sol";
 abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
-    /// @inheritdoc IStreamManager
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    ISablierV2LockupLinear public immutable override LOCKUP_LINEAR;
-
-    /// @inheritdoc IStreamManager
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    ISablierV2LockupTranched public immutable override LOCKUP_TRANCHED;
+    /// @dev Version identifier for the current implementation of the contract
+    string public constant VERSION = "1.0.0";
 
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
@@ -33,6 +28,10 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
 
     /// @custom:storage-location erc7201:werk.storage.StreamManager
     struct StreamManagerStorage {
+        /// @notice The Sablier V2 Lockup Linear contract address
+        ISablierV2LockupLinear SABLIER_LOCKUP_LINEAR;
+        /// @notice The Sablier V2 Lockup Tranched contract address
+        ISablierV2LockupTranched SABLIER_LOCKUP_TRANCHED;
         /// @notice Stores the initial address of the account that started the stream
         /// By default, each stream will be created by this contract (the sender address of each stream will be address(this))
         /// therefore this mapping is used to allow only authorized senders to execute management-related actions i.e. cancellations
@@ -56,16 +55,15 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
                             CONSTRUCTOR & INITIALIZER
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Initializes the address of the {SablierV2LockupLinear} and {SablierV2LockupTranched} contracts
+    /// @dev Deploys and locks the implementation contract
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(ISablierV2LockupLinear _sablierLockupLinear, ISablierV2LockupTranched _sablierLockupTranched) {
-        LOCKUP_LINEAR = _sablierLockupLinear;
-        LOCKUP_TRANCHED = _sablierLockupTranched;
-
+    constructor() {
         _disableInitializers();
     }
 
     function __StreamManager_init(
+        ISablierV2LockupLinear _sablierLockupLinear,
+        ISablierV2LockupTranched _sablierLockupTranched,
         address _initialAdmin,
         address _brokerAccount,
         UD60x18 _brokerFee
@@ -77,6 +75,12 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
 
         // Retrieve the storage of the {StreamManager} contract
         StreamManagerStorage storage $ = _getStreamManagerStorage();
+
+        // Set the Sablier V2 Lockup Linear contract address
+        $.SABLIER_LOCKUP_LINEAR = _sablierLockupLinear;
+
+        // Set the Sablier V2 Lockup Tranched contract address
+        $.SABLIER_LOCKUP_TRANCHED = _sablierLockupTranched;
 
         // Set the broker account and fee
         $.broker = Broker({ account: _brokerAccount, fee: _brokerFee });
@@ -96,13 +100,23 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     }
 
     /// @inheritdoc IStreamManager
+    function SABLIER_LOCKUP_LINEAR() public view returns (ISablierV2LockupLinear) {
+        return _getStreamManagerStorage().SABLIER_LOCKUP_LINEAR;
+    }
+
+    /// @inheritdoc IStreamManager
+    function SABLIER_LOCKUP_TRANCHED() public view returns (ISablierV2LockupTranched) {
+        return _getStreamManagerStorage().SABLIER_LOCKUP_TRANCHED;
+    }
+
+    /// @inheritdoc IStreamManager
     function getLinearStream(uint256 streamId) public view returns (LockupLinear.StreamLL memory stream) {
-        stream = LOCKUP_LINEAR.getStream(streamId);
+        stream = SABLIER_LOCKUP_LINEAR().getStream(streamId);
     }
 
     /// @inheritdoc IStreamManager
     function getTranchedStream(uint256 streamId) public view returns (LockupTranched.StreamLT memory stream) {
-        stream = LOCKUP_TRANCHED.getStream(streamId);
+        stream = SABLIER_LOCKUP_TRANCHED().getStream(streamId);
     }
 
     /// @inheritdoc IStreamManager
@@ -142,14 +156,14 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         public
         returns (uint256 streamId)
     {
-        // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
-        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address(LOCKUP_LINEAR) });
-
-        // Create the Lockup Linear stream
-        streamId = _createLinearStream(asset, totalAmount, startTime, endTime, recipient);
-
         // Retrieve the storage of the {StreamManager} contract
         StreamManagerStorage storage $ = _getStreamManagerStorage();
+
+        // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
+        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address($.SABLIER_LOCKUP_LINEAR) });
+
+        // Create the Lockup Linear stream
+        streamId = _createLinearStream($, asset, totalAmount, startTime, endTime, recipient);
 
         // Set `msg.sender` as the initial stream sender to allow authenticated stream management
         $.initialStreamSender[streamId] = msg.sender;
@@ -167,14 +181,14 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         public
         returns (uint256 streamId)
     {
-        // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
-        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address(LOCKUP_TRANCHED) });
-
-        // Create the Lockup Linear stream
-        streamId = _createTranchedStream(asset, totalAmount, startTime, recipient, numberOfTranches, recurrence);
-
         // Retrieve the storage of the {StreamManager} contract
         StreamManagerStorage storage $ = _getStreamManagerStorage();
+
+        // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
+        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address($.SABLIER_LOCKUP_TRANCHED) });
+
+        // Create the Lockup Linear stream
+        streamId = _createTranchedStream($, asset, totalAmount, startTime, recipient, numberOfTranches, recurrence);
 
         // Set `msg.sender` as the initial stream sender to allow authenticated stream management
         $.initialStreamSender[streamId] = msg.sender;
@@ -216,6 +230,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     /// @dev Creates a Lockup Linear streams
     /// See https://docs.sablier.com/concepts/protocol/stream-types#lockup-linear
     function _createLinearStream(
+        StreamManagerStorage storage $,
         IERC20 asset,
         uint128 totalAmount,
         uint40 startTime,
@@ -225,9 +240,6 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         internal
         returns (uint256 streamId)
     {
-        // Retrieve the storage of the {StreamManager} contract
-        StreamManagerStorage storage $ = _getStreamManagerStorage();
-
         // Declare the params struct
         LockupLinear.CreateWithTimestamps memory params;
 
@@ -242,12 +254,13 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         params.broker = Broker({ account: $.broker.account, fee: $.broker.fee }); // Optional parameter for charging a fee
 
         // Create the LockupLinear stream using a function that sets the start time to `startTime` timestamp
-        streamId = LOCKUP_LINEAR.createWithTimestamps(params);
+        streamId = $.SABLIER_LOCKUP_LINEAR.createWithTimestamps(params);
     }
 
     /// @dev Creates a Lockup Tranched stream
     /// See https://docs.sablier.com/concepts/protocol/stream-types#unlock-monthly
     function _createTranchedStream(
+        StreamManagerStorage storage $,
         IERC20 asset,
         uint128 totalAmount,
         uint40 startTime,
@@ -258,9 +271,6 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         internal
         returns (uint256 streamId)
     {
-        // Retrieve the storage of the {StreamManager} contract
-        StreamManagerStorage storage $ = _getStreamManagerStorage();
-
         // Declare the params struct
         LockupTranched.CreateWithTimestamps memory params;
 
@@ -306,7 +316,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         params.broker = Broker({ account: $.broker.account, fee: $.broker.fee });
 
         // Create the LockupTranched stream
-        streamId = LOCKUP_TRANCHED.createWithTimestamps(params);
+        streamId = $.SABLIER_LOCKUP_TRANCHED.createWithTimestamps(params);
     }
 
     /// @dev See the documentation in {ISablierV2Lockup-withdrawMax}
@@ -369,10 +379,13 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
 
     /// @dev Retrieves the according {ISablierV2Lockup} contract based on the stream type
     function _getISablierV2Lockup(Types.Method streamType) internal view returns (ISablierV2Lockup sablier) {
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
         if (streamType == Types.Method.LinearStream) {
-            sablier = LOCKUP_LINEAR;
+            sablier = $.SABLIER_LOCKUP_LINEAR;
         } else {
-            sablier = LOCKUP_TRANCHED;
+            sablier = $.SABLIER_LOCKUP_TRANCHED;
         }
     }
 }
