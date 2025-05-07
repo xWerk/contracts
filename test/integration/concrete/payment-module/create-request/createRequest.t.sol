@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { CreateRequest_Integration_Shared_Test } from "../../../shared/createRequest.t.sol";
-import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
-import { Constants } from "../../../../utils/Constants.sol";
+import { Types } from "src/modules/payment-module/libraries/Types.sol";
+import { Errors } from "src/modules/payment-module/libraries/Errors.sol";
+import { IPaymentModule } from "src/modules/payment-module/interfaces/IPaymentModule.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
+import { CreateRequest_Integration_Shared_Test } from "test/integration/shared/createRequest.t.sol";
+import { Constants } from "test/utils/Constants.sol";
 
 contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Shared_Test {
     Types.PaymentRequest paymentRequest;
@@ -158,7 +159,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Expect the module call to emit an {RequestCreated} event
         vm.expectEmit();
-        emit Events.RequestCreated({
+        emit IPaymentModule.RequestCreated({
             requestId: 1,
             recipient: address(space),
             startTime: paymentRequest.startTime,
@@ -168,7 +169,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
-        emit Events.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
+        emit ISpace.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
 
         // Run the test
         space.execute({ module: address(paymentModule), value: 0, data: data });
@@ -247,7 +248,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Expect the module call to emit an {RequestCreated} event
         vm.expectEmit();
-        emit Events.RequestCreated({
+        emit IPaymentModule.RequestCreated({
             requestId: 1,
             recipient: address(space),
             startTime: paymentRequest.startTime,
@@ -257,7 +258,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
-        emit Events.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
+        emit ISpace.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
 
         // Run the test
         space.execute({ module: address(paymentModule), value: 0, data: data });
@@ -402,7 +403,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Expect the module call to emit an {RequestCreated} event
         vm.expectEmit();
-        emit Events.RequestCreated({
+        emit IPaymentModule.RequestCreated({
             requestId: 1,
             recipient: address(space),
             startTime: paymentRequest.startTime,
@@ -412,7 +413,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
-        emit Events.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
+        emit ISpace.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
 
         // Run the test
         space.execute({ module: address(paymentModule), value: 0, data: data });
@@ -488,7 +489,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Expect the module call to emit an {RequestCreated} event
         vm.expectEmit();
-        emit Events.RequestCreated({
+        emit IPaymentModule.RequestCreated({
             requestId: 1,
             recipient: address(space),
             startTime: paymentRequest.startTime,
@@ -498,7 +499,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
-        emit Events.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
+        emit ISpace.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
 
         // Run the test
         space.execute({ module: address(paymentModule), value: 0, data: data });
