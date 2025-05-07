@@ -34,9 +34,12 @@ contract DeployDeterministicPaymentModule is BaseScript {
         paymentModule = PaymentModule(
             deployDetermisticUUPSProxy(
                 salt,
-                abi.encode(sablierLockupLinear, sablierLockupTranched),
+                "",
                 "PaymentModule.sol",
-                abi.encodeCall(PaymentModule.initialize, (initialOwner, brokerAccount, ud(0)))
+                abi.encodeCall(
+                    PaymentModule.initialize,
+                    (sablierLockupLinear, sablierLockupTranched, initialOwner, brokerAccount, ud(0))
+                )
             )
         );
     }
