@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import { CompensationModule_Integration_Test } from "test/integration/CompensationModule.t.sol";
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
+import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
 
 contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
@@ -43,7 +44,7 @@ contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_I
 
         // Expect the {CompensationComponentWithdrawn} event to be emitted
         vm.expectEmit();
-        emit CompensationComponentWithdrawn(1, 0, 10e6);
+        emit ICompensationModule.CompensationComponentWithdrawn(1, 0, 10e6);
 
         // Run the test
         compensationModule.withdrawFromComponent(1, 0);

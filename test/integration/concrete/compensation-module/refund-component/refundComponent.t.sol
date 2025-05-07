@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import { CompensationModule_Integration_Test } from "test/integration/CompensationModule.t.sol";
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
+import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
 
 contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
@@ -54,7 +55,7 @@ contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integra
 
         // Expect the {CompensationComponentRefunded} event to be emitted
         vm.expectEmit();
-        emit CompensationComponentRefunded(1, 0);
+        emit ICompensationModule.CompensationComponentRefunded(1, 0);
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
