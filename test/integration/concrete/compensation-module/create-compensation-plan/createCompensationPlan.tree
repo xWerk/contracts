@@ -1,0 +1,19 @@
+createCompensationPlan.t.sol
+├── when the caller IS NOT a contract
+│   └── it should revert with the {SpaceZeroCodeSize} error
+└── when the caller IS a contract
+    ├── when the caller contract DOES NOT implement the ERC-165 {ISpace} interface
+    │   └── it should revert with the {SpaceUnsupportedInterface} error
+    └── when the caller contract DOES implement the ERC-165 {ISpace} interface
+        ├── when the recipient IS the zero address
+        │   └── it should revert with the {InvalidZeroAddressRecipient} error
+        └── when the recipient IS NOT the zero address
+            ├── when the components array IS empty
+            │   └── it should revert with the {InvalidEmptyComponentsArray} error
+            └── when the components array IS NOT empty
+                ├── when any component has a zero rate per second
+                │   └── it should revert with the {InvalidZeroRatePerSecond} error
+                └── when all components have non-zero rates per second
+                    ├── it should create the compensation plan
+                    ├── it should create each component with their own stream
+                    └── it should emit the {CompensationPlanCreated} event
