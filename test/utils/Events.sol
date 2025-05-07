@@ -5,6 +5,7 @@ import { Types } from "./../../src/modules/payment-module/libraries/Types.sol";
 import { Space } from "./../../src/Space.sol";
 import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
+import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 
 /// @notice Abstract contract to store all the events emitted in the tested contracts
 abstract contract Events {
@@ -118,6 +119,54 @@ abstract contract Events {
     /// @param oldFee The old broker fee
     /// @param newFee The new broker fee
     event BrokerFeeUpdated(UD60x18 oldFee, UD60x18 newFee);
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                COMPENSATION-MODULE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a compensation plan is created
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param recipient The address of the recipient of the compensation plan
+    event CompensationPlanCreated(uint256 indexed compensationPlanId, address indexed recipient);
+
+    /// @notice Emitted when a compensation plan component rate per second is adjusted
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    /// @param newRatePerSecond The new rate per second of the compensation plan component
+    event ComponentRatePerSecondAdjusted(
+        uint256 indexed compensationPlanId, uint96 indexed componentId, UD21x18 newRatePerSecond
+    );
+
+    /// @notice Emitted when a compensation plan component stream is deposited
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    /// @param amount The amount deposited to the compensation plan component stream
+    event CompensationComponentDeposited(
+        uint256 indexed compensationPlanId, uint96 indexed componentId, uint128 amount
+    );
+
+    /// @notice Emitted when a compensation plan component stream is withdrawn
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    /// @param withdrawnAmount The amount withdrawn from the compensation plan component stream
+    event CompensationComponentWithdrawn(
+        uint256 indexed compensationPlanId, uint96 indexed componentId, uint128 withdrawnAmount
+    );
+
+    /// @notice Emitted when a compensation plan component stream is paused
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    event CompensationComponentPaused(uint256 indexed compensationPlanId, uint96 indexed componentId);
+
+    /// @notice Emitted when a compensation plan component stream is cancelled
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    event CompensationComponentCancelled(uint256 indexed compensationPlanId, uint96 indexed componentId);
+
+    /// @notice Emitted when a compensation plan component stream is refunded
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    event CompensationComponentRefunded(uint256 indexed compensationPlanId, uint96 indexed componentId);
 
     /*//////////////////////////////////////////////////////////////////////////
                                     OWNABLE

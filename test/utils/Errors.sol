@@ -113,6 +113,28 @@ library Errors {
     error InvalidZeroAddressRecipient();
 
     /*//////////////////////////////////////////////////////////////////////////
+                                COMPENSATION-MODULE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when the components array is empty
+    error InvalidEmptyComponentsArray();
+
+    /// @notice Thrown when the compensation component rate per second is zero
+    error InvalidZeroRatePerSecond();
+
+    /// @notice Thrown when the recipients array is empty
+    error InvalidEmptyRecipientsArray();
+
+    /// @notice Thrown when the recipients and components arrays have different lengths
+    error InvalidRecipientsAndComponentsArraysLength();
+
+    /// @notice Thrown when the compensation plan does not exist
+    error CompensationPlanNull();
+
+    /// @notice Thrown when the compensation component does not exist
+    error CompensationComponentNull();
+
+    /*//////////////////////////////////////////////////////////////////////////
                                     STREAM-MANAGER
     //////////////////////////////////////////////////////////////////////////*/
 

@@ -1,0 +1,12 @@
+adjustComponentRatePerSecond.t.sol
+├── when the compensation component IS null
+│   └── it should revert with the {CompensationComponentNull} error
+└── when the compensation component IS NOT null
+    ├── when the caller IS NOT the compensation plan sender
+    │   └── it should revert with the {OnlyCompensationPlanSender} error
+    └── when the caller IS the compensation plan sender
+        ├── when the new rate per second IS zero
+        │   └── it should revert with the {InvalidZeroRatePerSecond} error
+        └── when the new rate per second IS NOT zero
+            ├── it should adjust the compensation component stream rate per second
+            └── it should emit a {ComponentRatePerSecondAdjusted} event

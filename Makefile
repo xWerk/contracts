@@ -68,11 +68,24 @@ deploy-payment-module:
 					--sig "run(string,address,address,address,address)" --rpc-url $(RPC_URL) --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) 
 					--broadcast --verify	
 
+# Deploys the {CompensationModule} contract deterministically 
+#
+# Update the following configs before running the script:
+#	- {SABLIER_FLOW} with the according {SablierFlow} deployment address
+#	- {INITIAL_OWNER} with the address of the initial admin of the {CompensationModule}
+#	- {BROKER_ACCOUNT} with the address of the account responsible for collecting the broker fees (multisig vault)
+deploy-compensation-module:
+					forge script script/DeployDeterministicCompensationModule.s.sol:DeployDeterministicCompensationModule \
+					$(CREATE2SALT) $(SABLIER_FLOW) $(INITIAL_OWNER) $(BROKER_ACCOUNT) \
+					--sig "run(string,address,address,address)" --rpc-url $(RPC_URL) --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) 
+					--broadcast --verify
+
 # Deploys the core contracts deterministically 
 #
 # Update the following configs before running the script:
 #	- {SABLIER_LOCKUP_LINEAR} with the according {SablierV2LockupLinear} deployment address
 #	- {SABLIER_LOCKUP_TRANCHED} with the according {SablierV2LockupTranched} deployment address
+#	- {SABLIER_FLOW} with the according {SablierFlow} deployment address
 #	- {INITIAL_OWNER} with the address of the initial admin of the {StationRegistry} and {PaymentModule}
 #	- {BROKER_ACCOUNT} with the address of the account responsible for collecting the broker fees (multisig vault)
 #	- {ENTRYPOINT} with the address of the {Entrypoint} contract (currently v6)
@@ -80,8 +93,8 @@ deploy-payment-module:
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-core: 
 					forge script script/DeployDeterministicCore.s.sol:DeployDeterministicCore \
-					$(CREATE2SALT) $(SABLIER_LOCKUP_LINEAR) $(SABLIER_LOCKUP_TRANCHED) $(INITIAL_OWNER) $(BROKER_ACCOUNT) $(ENTRYPOINT) \
-					--sig "run(string,address,address,address,address,address)" --rpc-url $(RPC_URL) --account dev \
+					$(CREATE2SALT) $(SABLIER_LOCKUP_LINEAR) $(SABLIER_LOCKUP_TRANCHED) $(SABLIER_FLOW) $(INITIAL_OWNER) $(BROKER_ACCOUNT) $(ENTRYPOINT) \
+					--sig "run(string,address,address,address,address,address,address)" --rpc-url $(RPC_URL) --account dev \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
 
 # Deploys the {WerkSubdomainCore} contract deterministically 

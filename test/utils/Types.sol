@@ -8,4 +8,6 @@ struct Users {
     address eve;
     // Account to interact with the protocol
     address bob;
+    // Account to interact with the protocol
+    address alice;
 }

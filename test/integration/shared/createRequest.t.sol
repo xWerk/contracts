@@ -113,7 +113,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
             recurrence: Types.Recurrence.OneOff,
             paymentsLeft: 1,
             asset: asset,
-            amount: 100e18,
+            amount: 100e6,
             streamId: 0
         });
     }
@@ -135,7 +135,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
             recurrence: recurrence,
             paymentsLeft: 0,
             asset: address(usdt),
-            amount: 100e18,
+            amount: 100e6,
             streamId: 0
         });
     }
@@ -154,7 +154,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
             recurrence: Types.Recurrence.Weekly, // doesn't matter
             paymentsLeft: 0,
             asset: address(usdt),
-            amount: 100e18,
+            amount: 100e6,
             streamId: 0
         });
     }
@@ -176,7 +176,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
             recurrence: recurrence,
             paymentsLeft: 0,
             asset: address(usdt),
-            amount: 100e18,
+            amount: 100e6,
             streamId: 0
         });
     }
