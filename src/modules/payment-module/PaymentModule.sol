@@ -346,11 +346,14 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         Types.PaymentRequest memory request = $.requests[requestId];
 
         // Check, Effects, Interactions: withdraw from the stream
-        return withdrawMaxStream({
+        withdrawnAmount = withdrawMaxStream({
             streamType: request.config.method,
             streamId: request.config.streamId,
             to: request.recipient
         });
+
+        // Log the stream withdrawal
+        emit RequestStreamWithdrawn(requestId, withdrawnAmount);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
