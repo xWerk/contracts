@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { CancelRequest_Integration_Shared_Test } from "../../../shared/cancelRequest.t.sol";
-import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
-import { Events } from "../../../../utils/Events.sol";
-import { Errors } from "../../../../utils/Errors.sol";
+import { CancelRequest_Integration_Shared_Test } from "test/integration/shared/cancelRequest.t.sol";
+import { Types } from "src/modules/payment-module/libraries/Types.sol";
+import { IPaymentModule } from "src/modules/payment-module/interfaces/IPaymentModule.sol";
+import { Errors } from "src/modules/payment-module/libraries/Errors.sol";
 
 contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Shared_Test {
     function setUp() public virtual override {
@@ -114,7 +114,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit Events.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
 
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
@@ -160,7 +160,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit Events.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
 
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
@@ -227,7 +227,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit Events.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
 
         // Make Bob the caller who is the sender of the payment request stream
         vm.startPrank({ msgSender: users.bob });
@@ -276,7 +276,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit Events.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
 
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
@@ -343,7 +343,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit Events.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
 
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });

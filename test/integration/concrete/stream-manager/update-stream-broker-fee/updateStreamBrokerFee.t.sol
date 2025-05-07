@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { Integration_Test } from "../../../Integration.t.sol";
-import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { Types } from "src/modules/payment-module/libraries/Types.sol";
+import { IStreamManager } from "src/modules/payment-module/sablier-v2/interfaces/IStreamManager.sol";
 import { ud, UD60x18 } from "@prb/math/src/UD60x18.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { Integration_Test } from "test/integration/Integration.t.sol";
 
 contract UpdateStreamBrokerFee_Integration_Concret_Test is Integration_Test {
     Types.PaymentRequest paymentRequest;
@@ -18,8 +18,10 @@ contract UpdateStreamBrokerFee_Integration_Concret_Test is Integration_Test {
         // Make Bob the caller in this test suite who is not the broker admin
         vm.startPrank({ msgSender: users.bob });
 
-        // Expect the call to revert with the {OnlyBrokerAdmin} error
-        vm.expectRevert(abi.encodeWithSelector(Errors.OwnableUnauthorizedAccount.selector, users.bob));
+        // Expect the call to revert with the {OwnableUnauthorizedAccount} error
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256(bytes("OwnableUnauthorizedAccount(address)"))), users.bob)
+        );
 
         // Run the test
         paymentModule.updateStreamBrokerFee({ newBrokerFee: ud(0.05e18) });
@@ -37,7 +39,7 @@ contract UpdateStreamBrokerFee_Integration_Concret_Test is Integration_Test {
 
         // Expect the {BrokerFeeUpdated} to be emitted
         vm.expectEmit();
-        emit Events.BrokerFeeUpdated({ oldFee: ud(0), newFee: newBrokerFee });
+        emit IStreamManager.BrokerFeeUpdated({ oldFee: ud(0), newFee: newBrokerFee });
 
         // Run the test
         paymentModule.updateStreamBrokerFee(newBrokerFee);

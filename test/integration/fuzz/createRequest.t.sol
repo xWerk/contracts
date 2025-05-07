@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { CreateRequest_Integration_Shared_Test } from "../shared/createRequest.t.sol";
-import { Types } from "./../../../src/modules/payment-module/libraries/Types.sol";
-import { Helpers } from "../../utils/Helpers.sol";
-import { Events } from "../../utils/Events.sol";
+import { Types } from "src/modules/payment-module/libraries/Types.sol";
+import { Helpers } from "test/utils/Helpers.sol";
+import { IPaymentModule } from "src/modules/payment-module/interfaces/IPaymentModule.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
+import { CreateRequest_Integration_Shared_Test } from "test/integration/shared/createRequest.t.sol";
 
 contract CreateRequest_Integration_Fuzz_Test is CreateRequest_Integration_Shared_Test {
     Types.PaymentRequest paymentRequest;
@@ -71,7 +72,7 @@ contract CreateRequest_Integration_Fuzz_Test is CreateRequest_Integration_Shared
 
         // Expect the module call to emit an {RequestCreated} event
         vm.expectEmit();
-        emit Events.RequestCreated({
+        emit IPaymentModule.RequestCreated({
             requestId: 1,
             recipient: paymentRequest.recipient,
             startTime: paymentRequest.startTime,
@@ -81,7 +82,7 @@ contract CreateRequest_Integration_Fuzz_Test is CreateRequest_Integration_Shared
 
         // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
         vm.expectEmit();
-        emit Events.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
+        emit ISpace.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
 
         // Run the test
         space.execute({ module: address(paymentModule), value: 0, data: data });

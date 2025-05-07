@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { PayRequest_Integration_Shared_Test } from "../../../shared/payRequest.t.sol";
-import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
-import { Events } from "../../../../utils/Events.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Constants } from "../../../../utils/Constants.sol";
+import { Types } from "src/modules/payment-module/libraries/Types.sol";
+import { IPaymentModule } from "src/modules/payment-module/interfaces/IPaymentModule.sol";
+import { Errors } from "src/modules/payment-module/libraries/Errors.sol";
+import { Constants } from "test/utils/Constants.sol";
+import { PayRequest_Integration_Shared_Test } from "test/integration/shared/payRequest.t.sol";
 
 import { LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
 
@@ -140,7 +140,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
 
         // Expect the {RequestPaid} event to be emitted
         vm.expectEmit();
-        emit Events.RequestPaid({
+        emit IPaymentModule.RequestPaid({
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
@@ -194,7 +194,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
 
         // Expect the {RequestPaid} event to be emitted
         vm.expectEmit();
-        emit Events.RequestPaid({
+        emit IPaymentModule.RequestPaid({
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
@@ -246,7 +246,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
 
         // Expect the {RequestPaid} event to be emitted
         vm.expectEmit();
-        emit Events.RequestPaid({
+        emit IPaymentModule.RequestPaid({
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
@@ -301,7 +301,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
 
         // Expect the {RequestPaid} event to be emitted
         vm.expectEmit();
-        emit Events.RequestPaid({
+        emit IPaymentModule.RequestPaid({
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({

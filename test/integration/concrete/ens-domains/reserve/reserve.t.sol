@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { Integration_Test } from "../../../Integration.t.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { WerkSubdomainRegistrar } from "src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
+import { Integration_Test } from "test/integration/Integration.t.sol";
+import { Errors } from "src/modules/payment-module/libraries/Errors.sol";
 
 contract Reserve_Integration_Concret_Test is Integration_Test {
     function setUp() public virtual override {
@@ -57,7 +57,7 @@ contract Reserve_Integration_Concret_Test is Integration_Test {
         space.execute({ module: address(werkSubdomainRegistrar), value: 0, data: data });
 
         // Expect the call to revert with the {AlreadyReserved} error
-        vm.expectRevert(abi.encodeWithSelector(Errors.AlreadyReserved.selector, expiresAt));
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256(bytes("AlreadyReserved(uint40)"))), expiresAt));
 
         // Run the test
         space.execute({ module: address(werkSubdomainRegistrar), value: 0, data: data });
@@ -79,7 +79,11 @@ contract Reserve_Integration_Concret_Test is Integration_Test {
 
         // Expect the reservation call to emit a {SubdomainReserved} event
         vm.expectEmit();
-        emit Events.SubdomainReserved({ label: "test", owner: address(space), expiresAt: expectedExpiresAt });
+        emit WerkSubdomainRegistrar.SubdomainReserved({
+            label: "test",
+            owner: address(space),
+            expiresAt: expectedExpiresAt
+        });
 
         // Run the test
         space.execute({ module: address(werkSubdomainRegistrar), value: 0, data: data });

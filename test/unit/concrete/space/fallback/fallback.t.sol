@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import { Space_Unit_Concrete_Test } from "../Space.t.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
 
 contract Fallback_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     function setUp() public virtual override {
@@ -15,7 +15,7 @@ contract Fallback_Unit_Concrete_Test is Space_Unit_Concrete_Test {
 
         // Expect the {NativeReceived} event to be emitted upon ETH deposit with data
         vm.expectEmit();
-        emit Events.NativeReceived({ from: users.bob, amount: 1 ether });
+        emit ISpace.NativeReceived({ from: users.bob, amount: 1 ether });
 
         // Run the test
         (bool success,) = address(space).call{ value: 1 ether }("test");

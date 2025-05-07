@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { Ownable_Shared_Test } from "../shared/Ownable.t.sol";
-import { Errors } from "../../utils/Errors.sol";
-import { Events } from "../../utils/Events.sol";
+import { IOwnable } from "src/interfaces/IOwnable.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { Ownable_Shared_Test } from "test/unit/shared/Ownable.t.sol";
 
 contract TransferOwnership_Unit_Fuzz_Test is Ownable_Shared_Test {
     function setUp() public virtual override {
@@ -30,7 +30,7 @@ contract TransferOwnership_Unit_Fuzz_Test is Ownable_Shared_Test {
 
         // Expect the {OwnershipTransferred} event to be emitted
         vm.expectEmit();
-        emit Events.OwnershipTransferred({ oldOwner: users.admin, newOwner: newOwner });
+        emit IOwnable.OwnershipTransferred({ oldOwner: users.admin, newOwner: newOwner });
 
         // Run the test
         ownableMock.transferOwnership({ newOwner: newOwner });

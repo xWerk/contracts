@@ -3,9 +3,9 @@ pragma solidity ^0.8.26;
 
 import { MockBadReceiver } from "../../../../mocks/MockBadReceiver.sol";
 import { Space_Unit_Concrete_Test } from "../Space.t.sol";
-import { Space } from "./../../../../../src/Space.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { Space } from "src/Space.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
 
 contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     address badReceiver;
@@ -83,7 +83,7 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
 
         // Expect the {AssetWithdrawn} event to be emitted
         vm.expectEmit();
-        emit Events.AssetWithdrawn({ to: users.eve, asset: address(0x0), amount: ethToWithdraw });
+        emit ISpace.AssetWithdrawn({ to: users.eve, asset: address(0x0), amount: ethToWithdraw });
 
         // Run the test
         space.withdrawNative({ to: users.eve, amount: ethToWithdraw });

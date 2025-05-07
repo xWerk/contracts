@@ -2,8 +2,8 @@
 pragma solidity ^0.8.26;
 
 import { Space_Unit_Concrete_Test } from "../Space.t.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
 import { IERC721 } from "@openzeppelin/contracts/interfaces/IERC721.sol";
 
 contract WithdrawERC721_Unit_Concrete_Test is Space_Unit_Concrete_Test {
@@ -30,7 +30,7 @@ contract WithdrawERC721_Unit_Concrete_Test is Space_Unit_Concrete_Test {
 
     function test_RevertWhen_NonexistentERC721Token() external whenCallerOwner {
         // Expect the next call to revert with the {ERC721NonexistentToken} error
-        vm.expectRevert(abi.encodeWithSelector(Errors.ERC721NonexistentToken.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256(bytes("ERC721NonexistentToken(uint256)"))), 1));
 
         // Run the test by attempting to withdraw a nonexistent ERC721 token
         space.withdrawERC721({ to: users.eve, collection: mockERC721, tokenId: 1 });
@@ -45,7 +45,7 @@ contract WithdrawERC721_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     function test_WithdrawERC721() external whenCallerOwner whenExistingERC721Token {
         // Expect the {ERC721Withdrawn} event to be emitted
         vm.expectEmit();
-        emit Events.ERC721Withdrawn({ to: users.eve, collection: address(mockERC721), tokenId: 1 });
+        emit ISpace.ERC721Withdrawn({ to: users.eve, collection: address(mockERC721), tokenId: 1 });
 
         // Run the test
         space.withdrawERC721({ to: users.eve, collection: mockERC721, tokenId: 1 });

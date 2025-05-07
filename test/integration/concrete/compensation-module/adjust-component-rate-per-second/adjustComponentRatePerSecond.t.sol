@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import { CompensationModule_Integration_Test } from "test/integration/CompensationModule.t.sol";
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
+import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 
@@ -55,7 +56,7 @@ contract AdjustComponentRatePerSecond_Integration_Concrete_Test is CompensationM
 
         // Expect the {ComponentRatePerSecondAdjusted} event to be emitted
         vm.expectEmit();
-        emit ComponentRatePerSecondAdjusted(1, 0, UD21x18.wrap(0.002e18));
+        emit ICompensationModule.ComponentRatePerSecondAdjusted(1, 0, UD21x18.wrap(0.002e18));
 
         // Run the test by executing the `adjustComponentRatePerSecond` method from Eve's Space which is the compensation plan sender
         space.execute({ module: address(compensationModule), value: 0, data: data });

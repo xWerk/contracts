@@ -1,6 +1,6 @@
 updateStreamBrokerFee.t.sol
 ├── when the caller IS NOT the broker admin
-│   └── it should revert with the {OnlyBrokerAdmin} error
+│   └── it should revert with the {OwnableUnauthorizedAccount} error
 └── when the caller IS the broker admin
     └── it should update the broker admin
     └── it should emit a {BrokerFeeUpdated} event

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.26;
 
 import { Space_Unit_Concrete_Test } from "../Space.t.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
 import { IERC1155 } from "@openzeppelin/contracts/interfaces/IERC1155.sol";
 
 contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
@@ -42,7 +42,13 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     function test_RevertWhen_InsufficientERC1155Balance() external whenCallerOwner {
         // Expect the next call to revert with the {ERC1155InsufficientBalance} error
         vm.expectRevert(
-            abi.encodeWithSelector(Errors.ERC1155InsufficientBalance.selector, address(space), 0, amounts[0], ids[0])
+            abi.encodeWithSelector(
+                bytes4(keccak256(bytes("ERC1155InsufficientBalance(address,uint256,uint256,uint256)"))),
+                address(space),
+                0,
+                amounts[0],
+                ids[0]
+            )
         );
 
         // Run the test by attempting to withdraw a nonexistent ERC1155 token
@@ -63,11 +69,11 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
 
         // Expect the {ERC721Withdrawn} event to be emitted
         vm.expectEmit();
-        emit Events.ERC1155Withdrawn({
+        emit ISpace.ERC1155Withdrawn({
             to: users.eve,
             collection: address(mockERC1155),
             ids: idsToWithdraw,
-            amounts: amountsToWithdraw
+            values: amountsToWithdraw
         });
 
         // Run the test
@@ -81,7 +87,7 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     function test_WithdrawERC1155_Batch() external whenCallerOwner whenExistingERC1155Token {
         // Expect the {ERC721Withdrawn} event to be emitted
         vm.expectEmit();
-        emit Events.ERC1155Withdrawn({ to: users.eve, collection: address(mockERC1155), ids: ids, amounts: amounts });
+        emit ISpace.ERC1155Withdrawn({ to: users.eve, collection: address(mockERC1155), ids: ids, values: amounts });
 
         // Run the test
         space.withdrawERC1155({ to: users.eve, collection: mockERC1155, ids: ids, amounts: amounts });

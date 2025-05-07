@@ -2,8 +2,8 @@
 pragma solidity ^0.8.26;
 
 import { Space_Unit_Concrete_Test } from "../Space.t.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract WithdrawERC20_Unit_Concrete_Test is Space_Unit_Concrete_Test {
@@ -54,7 +54,7 @@ contract WithdrawERC20_Unit_Concrete_Test is Space_Unit_Concrete_Test {
 
         // Expect the {AssetWithdrawn} event to be emitted
         vm.expectEmit();
-        emit Events.AssetWithdrawn({ to: users.eve, asset: address(usdt), amount: 10e6 });
+        emit ISpace.AssetWithdrawn({ to: users.eve, asset: address(usdt), amount: 10e6 });
 
         // Run the test
         space.withdrawERC20({ to: users.eve, asset: IERC20(address(usdt)), amount: 10e6 });

@@ -5,6 +5,7 @@ import { CompensationModule_Integration_Test } from "test/integration/Compensati
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
+import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
 
 contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     uint128 constant DEPOSIT_AMOUNT = 10e6;
@@ -44,7 +45,7 @@ contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Inte
 
         // Expect the {CompensationComponentDeposited} event to be emitted
         vm.expectEmit();
-        emit CompensationComponentDeposited(1, 0, DEPOSIT_AMOUNT);
+        emit ICompensationModule.CompensationComponentDeposited(1, 0, DEPOSIT_AMOUNT);
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
