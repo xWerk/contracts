@@ -19,9 +19,6 @@ import { Types } from "./../libraries/Types.sol";
 abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
-    /// @dev Version identifier for the current implementation of the contract
-    string public constant VERSION = "1.0.0";
-
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
