@@ -15,6 +15,8 @@ import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 /// @title CompensationModule
 /// @notice See the documentation in {ICompensationModule}
 contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgradeable {
+    /// @dev Version identifier for the current implementation of the contract
+    string public constant VERSION = "1.0.0";
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
