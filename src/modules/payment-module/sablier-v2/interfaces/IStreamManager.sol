@@ -78,40 +78,6 @@ interface IStreamManager {
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Creates a Lockup Linear stream; See https://docs.sablier.com/concepts/protocol/stream-types#lockup-linear
-    /// @param asset The address of the ERC-20 token to be streamed
-    /// @param totalAmount The total amount of ERC-20 tokens to be streamed
-    /// @param startTime The timestamp when the stream takes effect
-    /// @param endTime The timestamp by which the stream must be paid
-    /// @param recipient The address receiving the ERC-20 tokens
-    function createLinearStream(
-        IERC20 asset,
-        uint128 totalAmount,
-        uint40 startTime,
-        uint40 endTime,
-        address recipient
-    )
-        external
-        returns (uint256 streamId);
-
-    /// @notice Creates a Lockup Tranched stream; See https://docs.sablier.com/concepts/protocol/stream-types#lockup-tranched
-    /// @param asset The address of the ERC-20 token to be streamed
-    /// @param totalAmount The total amount of ERC-20 tokens to be streamed
-    /// @param startTime The timestamp when the stream takes effect
-    /// @param recipient The address receiving the ERC-20 tokens
-    /// @param numberOfTranches The number of tranches paid by the stream
-    /// @param recurrence The recurrence of each tranche
-    function createTranchedStream(
-        IERC20 asset,
-        uint128 totalAmount,
-        uint40 startTime,
-        address recipient,
-        uint128 numberOfTranches,
-        Types.Recurrence recurrence
-    )
-        external
-        returns (uint256 streamId);
-
     /// @notice Updates the fee charged by the broker
     ///
     /// Notes:
@@ -120,20 +86,4 @@ interface IStreamManager {
     ///
     /// @param newBrokerFee The new broker fee
     function updateStreamBrokerFee(UD60x18 newBrokerFee) external;
-
-    /// @notice See the documentation in {ISablierV2Lockup-withdrawMax}
-    /// Notes:
-    /// - `streamType` parameter has been added to get the correct {ISablierV2Lockup} implementation
-    function withdrawMaxStream(
-        Types.Method streamType,
-        uint256 streamId,
-        address to
-    )
-        external
-        returns (uint128 withdrawnAmount);
-
-    /// @notice See the documentation in {ISablierV2Lockup-cancel}
-    /// Notes:
-    /// - `streamType` parameter has been added to get the correct {ISablierV2Lockup} implementation
-    function cancelStream(Types.Method streamType, uint256 streamId) external;
 }

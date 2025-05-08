@@ -143,55 +143,6 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IStreamManager
-    function createLinearStream(
-        IERC20 asset,
-        uint128 totalAmount,
-        uint40 startTime,
-        uint40 endTime,
-        address recipient
-    )
-        public
-        returns (uint256 streamId)
-    {
-        // Retrieve the storage of the {StreamManager} contract
-        StreamManagerStorage storage $ = _getStreamManagerStorage();
-
-        // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
-        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address($.SABLIER_LOCKUP_LINEAR) });
-
-        // Create the Lockup Linear stream
-        streamId = _createLinearStream($, asset, totalAmount, startTime, endTime, recipient);
-
-        // Set `msg.sender` as the initial stream sender to allow authenticated stream management
-        $.initialStreamSender[streamId] = msg.sender;
-    }
-
-    /// @inheritdoc IStreamManager
-    function createTranchedStream(
-        IERC20 asset,
-        uint128 totalAmount,
-        uint40 startTime,
-        address recipient,
-        uint128 numberOfTranches,
-        Types.Recurrence recurrence
-    )
-        public
-        returns (uint256 streamId)
-    {
-        // Retrieve the storage of the {StreamManager} contract
-        StreamManagerStorage storage $ = _getStreamManagerStorage();
-
-        // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
-        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address($.SABLIER_LOCKUP_TRANCHED) });
-
-        // Create the Lockup Linear stream
-        streamId = _createTranchedStream($, asset, totalAmount, startTime, recipient, numberOfTranches, recurrence);
-
-        // Set `msg.sender` as the initial stream sender to allow authenticated stream management
-        $.initialStreamSender[streamId] = msg.sender;
-    }
-
-    /// @inheritdoc IStreamManager
     function updateStreamBrokerFee(UD60x18 newBrokerFee) public onlyOwner {
         // Retrieve the storage of the {StreamManager} contract
         StreamManagerStorage storage $ = _getStreamManagerStorage();
@@ -203,31 +154,19 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         $.broker.fee = newBrokerFee;
     }
 
-    /// @inheritdoc IStreamManager
-    function withdrawMaxStream(
-        Types.Method streamType,
-        uint256 streamId,
-        address to
-    )
-        public
-        returns (uint128 withdrawnAmount)
-    {
-        withdrawnAmount = _withdrawMaxStream({ streamType: streamType, streamId: streamId, to: to });
-    }
-
-    /// @inheritdoc IStreamManager
-    function cancelStream(Types.Method streamType, uint256 streamId) public {
-        _cancelStream({ streamType: streamType, streamId: streamId });
-    }
-
     /*//////////////////////////////////////////////////////////////////////////
-                             INTERNAL MANAGEMENT FUNCTIONS
+                        SABLIER LOCKUP INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Creates a Lockup Linear streams
     /// See https://docs.sablier.com/concepts/protocol/stream-types#lockup-linear
+    ///
+    /// @param asset The address of the ERC-20 token to be streamed
+    /// @param totalAmount The total amount of ERC-20 tokens to be streamed
+    /// @param startTime The timestamp when the stream takes effect
+    /// @param endTime The timestamp by which the stream must be paid
+    /// @param recipient The address receiving the ERC-20 tokens
     function _createLinearStream(
-        StreamManagerStorage storage $,
         IERC20 asset,
         uint128 totalAmount,
         uint40 startTime,
@@ -237,6 +176,12 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         internal
         returns (uint256 streamId)
     {
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
+        // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
+        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address($.SABLIER_LOCKUP_LINEAR) });
+
         // Declare the params struct
         LockupLinear.CreateWithTimestamps memory params;
 
@@ -252,12 +197,21 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
 
         // Create the LockupLinear stream using a function that sets the start time to `startTime` timestamp
         streamId = $.SABLIER_LOCKUP_LINEAR.createWithTimestamps(params);
+
+        // Set `msg.sender` as the initial stream sender to allow authenticated stream management
+        $.initialStreamSender[streamId] = msg.sender;
     }
 
     /// @dev Creates a Lockup Tranched stream
     /// See https://docs.sablier.com/concepts/protocol/stream-types#unlock-monthly
+    ///
+    /// @param asset The address of the ERC-20 token to be streamed
+    /// @param totalAmount The total amount of ERC-20 tokens to be streamed
+    /// @param startTime The timestamp when the stream takes effect
+    /// @param recipient The address receiving the ERC-20 tokens
+    /// @param numberOfTranches The number of tranches paid by the stream
+    /// @param recurrence The recurrence of each tranche
     function _createTranchedStream(
-        StreamManagerStorage storage $,
         IERC20 asset,
         uint128 totalAmount,
         uint40 startTime,
@@ -268,6 +222,12 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         internal
         returns (uint256 streamId)
     {
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
+        // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
+        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address($.SABLIER_LOCKUP_TRANCHED) });
+
         // Declare the params struct
         LockupTranched.CreateWithTimestamps memory params;
 
@@ -314,12 +274,16 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
 
         // Create the LockupTranched stream
         streamId = $.SABLIER_LOCKUP_TRANCHED.createWithTimestamps(params);
+
+        // Set `msg.sender` as the initial stream sender to allow authenticated stream management
+        $.initialStreamSender[streamId] = msg.sender;
     }
 
     /// @dev See the documentation in {ISablierV2Lockup-withdrawMax}
+    ///
     /// Notes:
     /// - `streamType` parameter has been added to withdraw from the according {ISablierV2Lockup} contract
-    function _withdrawMaxStream(
+    function _withdrawStream(
         Types.Method streamType,
         uint256 streamId,
         address to

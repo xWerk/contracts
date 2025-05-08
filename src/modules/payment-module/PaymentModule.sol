@@ -331,7 +331,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // - A linear or tranched stream MUST be canceled by calling the `cancel` method on the according
         // {ISablierV2Lockup} contract
         else {
-            cancelStream({ streamType: request.config.method, streamId: request.config.streamId });
+            _cancelStream({ streamType: request.config.method, streamId: request.config.streamId });
         }
 
         // Effects: mark the payment request as canceled
@@ -350,7 +350,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         Types.PaymentRequest memory request = $.requests[requestId];
 
         // Check, Effects, Interactions: withdraw from the stream
-        withdrawnAmount = withdrawMaxStream({
+        withdrawnAmount = _withdrawStream({
             streamType: request.config.method,
             streamId: request.config.streamId,
             to: request.recipient
@@ -388,7 +388,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
     /// @dev Create the linear stream payment
     function _payByLinearStream(Types.PaymentRequest memory request) internal returns (uint256 streamId) {
-        streamId = createLinearStream({
+        streamId = _createLinearStream({
             asset: IERC20(request.config.asset),
             totalAmount: request.config.amount,
             startTime: request.startTime,
@@ -402,7 +402,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         uint40 numberOfTranches =
             Helpers.computeNumberOfPayments(request.config.recurrence, request.endTime - request.startTime);
 
-        streamId = createTranchedStream({
+        streamId = _createTranchedStream({
             asset: IERC20(request.config.asset),
             totalAmount: request.config.amount,
             startTime: request.startTime,
