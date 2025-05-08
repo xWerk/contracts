@@ -5,5 +5,7 @@ depositToComponent.t.sol
     ├── when the deposit amount IS zero
     │   └── it should revert with the {InvalidZeroDepositAmount} error
     └── when the deposit amount IS NOT zero
+        ├── given the broker fee IS NOT zero
+        │   └── it should deduct the broker fee from the deposit amount
         ├── it should deposit the amount to the compensation component stream
         └── it should emit a {CompensationComponentDeposited} event

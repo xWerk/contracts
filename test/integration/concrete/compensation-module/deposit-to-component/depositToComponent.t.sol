@@ -6,6 +6,7 @@ import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
+import { ud, UD60x18 } from "@prb/math/src/UD60x18.sol";
 
 contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     uint128 constant DEPOSIT_AMOUNT = 10e6;
@@ -31,6 +32,46 @@ contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Inte
 
         // Run the test
         compensationModule.depositToComponent(1, 0, 0);
+    }
+
+    function test_GivenNonZeroBrokerFee_DepositToComponent() public whenComponentNotNull {
+        // Change the prank to the admin to update the broker fee
+        vm.startPrank({ msgSender: users.admin });
+
+        // Update the broker fee
+        UD60x18 BROKER_FEE = ud(0.005e18);
+        compensationModule.updateStreamBrokerFee(BROKER_FEE);
+
+        // Calculate the fee amount based on the fee percentage.
+        uint128 feeAmount = ud(DEPOSIT_AMOUNT).mul(BROKER_FEE).intoUint128();
+
+        // Switch the prank back to Eve
+        vm.startPrank({ msgSender: users.eve });
+
+        // Create the calldata for the ERC-20 `approve` call to approve the compensation module to spend the ERC-20 tokens
+        bytes memory data = abi.encodeWithSignature("approve(address,uint256)", address(compensationModule), 10e6);
+
+        // Approve the compensation module to spend the ERC-20 tokens from Eve's Space
+        space.execute({ module: address(usdt), value: 0, data: data });
+
+        // Create the calldata for the `depositToComponent` call
+        data = abi.encodeWithSelector(compensationModule.depositToComponent.selector, 1, 0, DEPOSIT_AMOUNT);
+
+        // Expect the {CompensationComponentDeposited} event to be emitted
+        vm.expectEmit();
+        emit ICompensationModule.CompensationComponentDeposited(1, 0, DEPOSIT_AMOUNT);
+
+        // Run the test
+        space.execute({ module: address(compensationModule), value: 0, data: data });
+
+        // Retrieve the compensation plan
+        Types.Component memory component = compensationModule.getComponent(1, 0);
+
+        // Retrieve the compensation plan component stream
+        Flow.Stream memory stream = compensationModule.getComponentStream(component.streamId);
+
+        // Assert the actual and expected stream balance
+        assertEq(stream.balance, DEPOSIT_AMOUNT - feeAmount);
     }
 
     function test_DepositToComponent() public whenComponentNotNull {

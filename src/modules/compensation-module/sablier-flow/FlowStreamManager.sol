@@ -82,6 +82,15 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IFlowStreamManager
+    function broker() public view override returns (Broker memory brokerConfig) {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Return the broker fee
+        brokerConfig = $.broker;
+    }
+
+    /// @inheritdoc IFlowStreamManager
     function SABLIER_FLOW() public view override returns (ISablierFlow) {
         return _getFlowStreamManagerStorage().SABLIER_FLOW;
     }
@@ -93,6 +102,22 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
         // Return the status of the stream
         return $.SABLIER_FLOW.statusOf(streamId);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                NON-CONSTANT FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IFlowStreamManager
+    function updateStreamBrokerFee(UD60x18 newBrokerFee) public onlyOwner {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Log the broker fee update
+        emit BrokerFeeUpdated({ oldFee: $.broker.fee, newFee: newBrokerFee });
+
+        // Update the fee charged by the broker
+        $.broker.fee = newBrokerFee;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -148,7 +173,13 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         _transferFromAndApprove({ asset: asset, amount: amount, spender: address($.SABLIER_FLOW) });
 
         // Deposit the amount to the stream
-        $.SABLIER_FLOW.deposit({ streamId: streamId, amount: amount, sender: address(this), recipient: recipient });
+        $.SABLIER_FLOW.depositViaBroker({
+            streamId: streamId,
+            totalAmount: amount,
+            sender: address(this),
+            recipient: recipient,
+            broker: $.broker
+        });
     }
 
     /// @dev See the documentation in {ISablierFlow-withdrawMax}
