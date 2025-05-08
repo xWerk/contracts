@@ -23,7 +23,7 @@ contract UpdateStreamBrokerFee_Integration_Concret_Test is Integration_Test {
         );
 
         // Run the test
-        paymentModule.updateStreamBrokerFee({ newBrokerFee: ud(0.05e18) });
+        compensationModule.updateStreamBrokerFee({ newBrokerFee: ud(0.05e18) });
     }
 
     modifier whenCallerBrokerAdmin() {
