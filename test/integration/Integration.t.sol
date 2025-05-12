@@ -2,21 +2,20 @@
 pragma solidity ^0.8.26;
 
 import { Base_Test } from "../Base.t.sol";
-import { PaymentModule } from "./../../src/modules/payment-module/PaymentModule.sol";
-import { CompensationModule } from "./../../src/modules/compensation-module/CompensationModule.sol";
-import { InvoiceCollection } from "./../../src/peripherals/invoice-collection/InvoiceCollection.sol";
-import { WerkSubdomainRegistrar } from "./../../src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
-import { WerkSubdomainRegistry } from "./../../src/peripherals/ens-domains/WerkSubdomainRegistry.sol";
-import { IWerkSubdomainRegistry } from "./../../src/peripherals/ens-domains/interfaces/IWerkSubdomainRegistry.sol";
+import { PaymentModule } from "src/modules/payment-module/PaymentModule.sol";
+import { CompensationModule } from "src/modules/compensation-module/CompensationModule.sol";
+import { InvoiceCollection } from "src/peripherals/invoice-collection/InvoiceCollection.sol";
+import { WerkSubdomainRegistrar } from "src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
+import { WerkSubdomainRegistry } from "src/peripherals/ens-domains/WerkSubdomainRegistry.sol";
+import { IWerkSubdomainRegistry } from "src/peripherals/ens-domains/interfaces/IWerkSubdomainRegistry.sol";
 import { SablierLockup } from "@sablier/lockup/src/SablierLockup.sol";
 import { SablierFlow } from "@sablier/flow/src/SablierFlow.sol";
-import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { FlowNFTDescriptor } from "@sablier/flow/src/FlowNFTDescriptor.sol";
-import { MockNFTDescriptor } from "../mocks/MockNFTDescriptor.sol";
+import { LockupNFTDescriptor } from "@sablier/lockup/src/LockupNFTDescriptor.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockBadSpace } from "../mocks/MockBadSpace.sol";
 import { ud } from "@prb/math/src/UD60x18.sol";
-import { Space } from "./../../src/Space.sol";
+import { Space } from "src/Space.sol";
 
 abstract contract Integration_Test is Base_Test {
     /*//////////////////////////////////////////////////////////////////////////
@@ -27,11 +26,11 @@ abstract contract Integration_Test is Base_Test {
     PaymentModule internal paymentModule;
     CompensationModule internal compensationModule;
     InvoiceCollection internal invoiceCollection;
-    // Sablier Lockup related test contracts
-    MockNFTDescriptor internal mockNFTDescriptor;
+    // Sablier Lockup & Flow related test contracts
+    LockupNFTDescriptor internal loclupNFTDescriptor;
     FlowNFTDescriptor internal flowNFTDescriptor;
     SablierLockup internal sablierLockup;
-    ISablierFlow internal sablierFlow;
+    SablierFlow internal sablierFlow;
     // Mock test contracts
     MockBadSpace internal badSpace;
     // ENS related test contracts
@@ -113,9 +112,12 @@ abstract contract Integration_Test is Base_Test {
     /// @dev Deploys the Sablier Lockup-required contracts
     function deploySablierContracts() internal {
         // Deploy the Sablier Lockup contracts
-        mockNFTDescriptor = new MockNFTDescriptor();
-        sablierLockup =
-            new SablierLockup({ initialAdmin: users.admin, initialNFTDescriptor: mockNFTDescriptor, maxCount: 10_000 });
+        loclupNFTDescriptor = new LockupNFTDescriptor();
+        sablierLockup = new SablierLockup({
+            initialAdmin: users.admin,
+            initialNFTDescriptor: loclupNFTDescriptor,
+            maxCount: 10_000
+        });
 
         // Deploy the Sablier Flow contracts
         flowNFTDescriptor = new FlowNFTDescriptor();
