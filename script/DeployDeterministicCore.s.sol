@@ -10,8 +10,7 @@ import { ModuleKeeper } from "src/ModuleKeeper.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { Options } from "@openzeppelin/foundry-upgrades/src/Options.sol";
 import { Core } from "@openzeppelin/foundry-upgrades/src/internal/Core.sol";
-import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
-import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
+import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { ud } from "@prb/math/src/UD60x18.sol";
@@ -25,8 +24,7 @@ contract DeployDeterministicCore is BaseScript {
     /// https://book.getfoundry.sh/tutorials/create2-tutorial?highlight=deter#deterministic-deployment-using-create2
     function run(
         string memory create2Salt,
-        ISablierV2LockupLinear sablierLockupLinear,
-        ISablierV2LockupTranched sablierLockupTranched,
+        ISablierLockup sablierLockup,
         ISablierFlow sablierFlow,
         address initialOwner,
         address brokerAccount,
@@ -56,10 +54,7 @@ contract DeployDeterministicCore is BaseScript {
                 salt,
                 "",
                 "PaymentModule.sol",
-                abi.encodeCall(
-                    PaymentModule.initialize,
-                    (sablierLockupLinear, sablierLockupTranched, initialOwner, brokerAccount, ud(0))
-                )
+                abi.encodeCall(PaymentModule.initialize, (sablierLockup, initialOwner, brokerAccount, ud(0)))
             )
         );
 

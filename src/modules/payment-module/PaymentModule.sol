@@ -4,12 +4,11 @@ pragma solidity ^0.8.26;
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
-import { Lockup } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
-import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
+import { Lockup } from "@sablier/lockup/src/types/DataTypes.sol";
+import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { UD60x18 } from "@prb/math/src/ud60x18/ValueType.sol";
-import { StreamManager } from "./sablier-v2/StreamManager.sol";
+import { StreamManager } from "./sablier-lockup/StreamManager.sol";
 
 import { Types } from "./libraries/Types.sol";
 import { Errors } from "./libraries/Errors.sol";
@@ -64,8 +63,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
     /// @dev Initializes the proxy and the {Ownable} contract
     function initialize(
-        ISablierV2LockupLinear _sablierLockupLinear,
-        ISablierV2LockupTranched _sablierLockupTranched,
+        ISablierLockup _sablierLinear,
         address _initialOwner,
         address _brokerAccount,
         UD60x18 _brokerFee
@@ -73,7 +71,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         public
         initializer
     {
-        __StreamManager_init(_sablierLockupLinear, _sablierLockupTranched, _initialOwner, _brokerAccount, _brokerFee);
+        __StreamManager_init(_sablierLinear, _initialOwner, _brokerAccount, _brokerFee);
         __UUPSUpgradeable_init();
 
         // Retrieve the contract storage
@@ -331,7 +329,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // - A linear or tranched stream MUST be canceled by calling the `cancel` method on the according
         // {ISablierV2Lockup} contract
         else {
-            _cancelStream({ streamType: request.config.method, streamId: request.config.streamId });
+            _cancelStream({ streamId: request.config.streamId });
         }
 
         // Effects: mark the payment request as canceled
@@ -350,11 +348,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         Types.PaymentRequest memory request = $.requests[requestId];
 
         // Check, Effects, Interactions: withdraw from the stream
-        withdrawnAmount = _withdrawStream({
-            streamType: request.config.method,
-            streamId: request.config.streamId,
-            to: request.recipient
-        });
+        withdrawnAmount = _withdrawStream({ streamId: request.config.streamId, to: request.recipient });
 
         // Log the stream withdrawal
         emit RequestStreamWithdrawn(requestId, withdrawnAmount);
@@ -458,14 +452,13 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         // Check if dealing with a stream-based payment request
         if (request.config.streamId != 0) {
-            Lockup.Status statusOfStream = statusOfStream(request.config.method, request.config.streamId);
+            Lockup.Status statusOfStream = statusOfStream({ streamId: request.config.streamId });
 
             if (statusOfStream == Lockup.Status.SETTLED) {
                 return Types.Status.Paid;
             } else if (statusOfStream == Lockup.Status.DEPLETED) {
                 // Retrieve the total streamed amount until now
-                uint128 streamedAmount =
-                    streamedAmountOf({ streamType: request.config.method, streamId: request.config.streamId });
+                uint128 streamedAmount = streamedAmountOf({ streamId: request.config.streamId });
 
                 // Check if the payment request is canceled or paid
                 return streamedAmount < request.config.amount ? Types.Status.Canceled : Types.Status.Paid;

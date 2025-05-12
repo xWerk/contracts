@@ -49,8 +49,19 @@ can be paid in any ERC-20 token or native ETH using various methods, such as tra
 [linear](https://docs.sablier.com/concepts/protocol/stream-types#lockup-linear) or
 [tranched](https://docs.sablier.com/concepts/protocol/stream-types#lockup-tranched) stream.
 
-The `PaymentModule` relies on the [Sablier V2](https://docs.sablier.com/concepts/what-is-sablier) protocol for stream
-creation and management.
+The `PaymentModule` relies on the [Sablier Lockup](https://docs.sablier.com/concepts/lockup/overview) protocol for
+stream creation and management.
+
+### Compensation Module
+
+In contrast to the PaymentModule, where an employee or contractor creates a payment request that must be approved and
+paid by the employer, the `CompensationModule` introduces a new paradigm that allows employers (companies or business
+owners) to create and stream compensation plans directly to their employees.
+
+A compensation plan can be composed by multiple components such as a base salary, token ESOP or other bonuses.
+
+The `CompensationModule` relies on the [Sablier Flow](https://docs.sablier.com/concepts/flow/overview) protocol for
+stream creation and management.
 
 ### ENS Subdomains
 

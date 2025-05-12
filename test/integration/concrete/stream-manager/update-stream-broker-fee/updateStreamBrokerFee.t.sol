@@ -2,9 +2,8 @@
 pragma solidity ^0.8.26;
 
 import { Types } from "src/modules/payment-module/libraries/Types.sol";
-import { IStreamManager } from "src/modules/payment-module/sablier-v2/interfaces/IStreamManager.sol";
+import { IStreamManager } from "src/modules/payment-module/sablier-lockup/interfaces/IStreamManager.sol";
 import { ud, UD60x18 } from "@prb/math/src/UD60x18.sol";
-import { Errors } from "src/libraries/Errors.sol";
 import { Integration_Test } from "test/integration/Integration.t.sol";
 
 contract UpdateStreamBrokerFee_Integration_Concret_Test is Integration_Test {
