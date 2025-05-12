@@ -28,12 +28,12 @@ payRequest.t.sol
             │       ├── it should transfer the payment amount to the payment request recipient
             │       └── it should emit an {RequestPaid} event
             ├── given the payment method is linear stream
-            │   ├── it should create a Sablier v2 linear stream
+            │   ├── it should create a Sablier Lockup linear stream
             │   ├── it should update the payment request status to Ongoing
             │   ├── it should update the payment request stream ID
             │   └── it should emit an {RequestPaid} event
             └── given the payment method is tranched stream
-                ├── it should create a Sablier v2 tranched stream
+                ├── it should create a Sablier Lockup tranched stream
                 ├── it should update the payment request status to Ongoing
                 ├── it should update the payment request stream ID
                 └── it should emit an {RequestPaid} event

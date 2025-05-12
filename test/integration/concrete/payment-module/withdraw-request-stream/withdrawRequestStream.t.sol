@@ -33,8 +33,7 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         uint256 balanceOfBefore = usdt.balanceOf(address(space));
 
         // Get the maximum withdrawable amount from the stream
-        uint128 maxWithdrawableAmount =
-            paymentModule.withdrawableAmountOf({ streamType: Types.Method.LinearStream, streamId: streamId });
+        uint128 maxWithdrawableAmount = paymentModule.withdrawableAmountOf({ streamId: streamId });
 
         // Make Eve's space the caller in this test suite as his space is the recipient of the payment request
         vm.startPrank({ msgSender: address(space) });
@@ -70,8 +69,7 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         uint256 balanceOfBefore = usdt.balanceOf(address(space));
 
         // Get the maximum withdrawable amount from the stream
-        uint128 maxWithdrawableAmount =
-            paymentModule.withdrawableAmountOf({ streamType: Types.Method.TranchedStream, streamId: streamId });
+        uint128 maxWithdrawableAmount = paymentModule.withdrawableAmountOf({ streamId: streamId });
 
         // Make Eve's space the caller in this test suite as her space is the owner of the payment request
         vm.startPrank({ msgSender: address(space) });

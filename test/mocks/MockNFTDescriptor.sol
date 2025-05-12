@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.22;
 
-import { IERC721Metadata } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-
-import { NFTSVG } from "@sablier/v2-core/src/libraries/NFTSVG.sol";
-import { SVGElements } from "@sablier/v2-core/src/libraries/SVGElements.sol";
-import { Lockup } from "@sablier/v2-core/src/types/DataTypes.sol";
-import { SablierV2NFTDescriptor } from "@sablier/v2-core/src/SablierV2NFTDescriptor.sol";
+import { NFTSVG } from "@sablier/lockup/src/libraries/NFTSVG.sol";
+import { SVGElements } from "@sablier/lockup/src/libraries/SVGElements.sol";
+import { Lockup } from "@sablier/lockup/src/types/DataTypes.sol";
+import { LockupNFTDescriptor } from "@sablier/lockup/src/LockupNFTDescriptor.sol";
 
 /// @dev This mock is needed for:
 /// - Running the tests against the `--via-ir` precompiles
 /// - Testing reverts: https://github.com/foundry-rs/foundry/issues/864
-contract MockNFTDescriptor is SablierV2NFTDescriptor {
+contract MockNFTDescriptor is LockupNFTDescriptor {
     function abbreviateAmount_(uint256 amount, uint256 decimals) external pure returns (string memory) {
         return abbreviateAmount(amount, decimals);
     }
@@ -40,7 +38,7 @@ contract MockNFTDescriptor is SablierV2NFTDescriptor {
     }
 
     function generateAttributes_(
-        string memory assetSymbol,
+        string memory tokenSymbol,
         string memory sender,
         string memory status
     )
@@ -48,14 +46,13 @@ contract MockNFTDescriptor is SablierV2NFTDescriptor {
         pure
         returns (string memory)
     {
-        return generateAttributes(assetSymbol, sender, status);
+        return generateAttributes(tokenSymbol, sender, status);
     }
 
     function generateDescription_(
-        string memory sablierModel,
-        string memory assetSymbol,
-        string memory sablierAddress,
-        string memory assetAddress,
+        string memory tokenSymbol,
+        string memory lockupAddress,
+        string memory tokenAddress,
         string memory streamId,
         bool isTransferable
     )
@@ -63,11 +60,7 @@ contract MockNFTDescriptor is SablierV2NFTDescriptor {
         pure
         returns (string memory)
     {
-        return generateDescription(sablierModel, assetSymbol, sablierAddress, assetAddress, streamId, isTransferable);
-    }
-
-    function generateName_(string memory sablierModel, string memory streamId) external pure returns (string memory) {
-        return generateName(sablierModel, streamId);
+        return generateDescription(tokenSymbol, lockupAddress, tokenAddress, streamId, isTransferable);
     }
 
     function generateSVG_(NFTSVG.SVGParams memory params) external pure returns (string memory) {
@@ -82,16 +75,12 @@ contract MockNFTDescriptor is SablierV2NFTDescriptor {
         return isAllowedCharacter(symbol);
     }
 
-    function mapSymbol_(IERC721Metadata nft) external view returns (string memory) {
-        return mapSymbol(nft);
+    function safeTokenDecimals_(address token) external view returns (uint8) {
+        return safeTokenDecimals(token);
     }
 
-    function safeAssetDecimals_(address asset) external view returns (uint8) {
-        return safeAssetDecimals(asset);
-    }
-
-    function safeAssetSymbol_(address asset) external view returns (string memory) {
-        return safeAssetSymbol(asset);
+    function safeTokenSymbol_(address token) external view returns (string memory) {
+        return safeTokenSymbol(token);
     }
 
     function stringifyCardType_(SVGElements.CardType cardType) external pure returns (string memory) {

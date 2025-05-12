@@ -8,8 +8,7 @@ import { InvoiceCollection } from "./../../src/peripherals/invoice-collection/In
 import { WerkSubdomainRegistrar } from "./../../src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
 import { WerkSubdomainRegistry } from "./../../src/peripherals/ens-domains/WerkSubdomainRegistry.sol";
 import { IWerkSubdomainRegistry } from "./../../src/peripherals/ens-domains/interfaces/IWerkSubdomainRegistry.sol";
-import { SablierV2LockupLinear } from "@sablier/v2-core/src/SablierV2LockupLinear.sol";
-import { SablierV2LockupTranched } from "@sablier/v2-core/src/SablierV2LockupTranched.sol";
+import { SablierLockup } from "@sablier/lockup/src/SablierLockup.sol";
 import { SablierFlow } from "@sablier/flow/src/SablierFlow.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { FlowNFTDescriptor } from "@sablier/flow/src/FlowNFTDescriptor.sol";
@@ -28,11 +27,10 @@ abstract contract Integration_Test is Base_Test {
     PaymentModule internal paymentModule;
     CompensationModule internal compensationModule;
     InvoiceCollection internal invoiceCollection;
-    // Sablier V2 related test contracts
+    // Sablier Lockup related test contracts
     MockNFTDescriptor internal mockNFTDescriptor;
     FlowNFTDescriptor internal flowNFTDescriptor;
-    SablierV2LockupLinear internal sablierV2LockupLinear;
-    SablierV2LockupTranched internal sablierV2LockupTranched;
+    SablierLockup internal sablierLockup;
     ISablierFlow internal sablierFlow;
     // Mock test contracts
     MockBadSpace internal badSpace;
@@ -71,8 +69,7 @@ abstract contract Integration_Test is Base_Test {
         vm.label({ account: address(paymentModule), newLabel: "PaymentModule" });
         vm.label({ account: address(compensationModule), newLabel: "CompensationModule" });
         vm.label({ account: address(invoiceCollection), newLabel: "InvoiceCollection" });
-        vm.label({ account: address(sablierV2LockupLinear), newLabel: "SablierV2LockupLinear" });
-        vm.label({ account: address(sablierV2LockupTranched), newLabel: "SablierV2LockupTranched" });
+        vm.label({ account: address(sablierLockup), newLabel: "SablierLockup" });
         vm.label({ account: address(sablierFlow), newLabel: "SablierFlow" });
         vm.label({ account: address(space), newLabel: "Eve's Space" });
         vm.label({ account: address(badSpace), newLabel: "Bad receiver's Space" });
@@ -94,14 +91,8 @@ abstract contract Integration_Test is Base_Test {
     /// @dev Deploys the {PaymentModule} module
     function deployPaymentModule() internal {
         address implementation = address(new PaymentModule());
-        bytes memory data = abi.encodeWithSelector(
-            PaymentModule.initialize.selector,
-            sablierV2LockupLinear,
-            sablierV2LockupTranched,
-            users.admin,
-            users.admin,
-            ud(0)
-        );
+        bytes memory data =
+            abi.encodeWithSelector(PaymentModule.initialize.selector, sablierLockup, users.admin, users.admin, ud(0));
         paymentModule = PaymentModule(address(new ERC1967Proxy(implementation, data)));
     }
 
@@ -119,17 +110,12 @@ abstract contract Integration_Test is Base_Test {
             new InvoiceCollection({ _relayer: users.admin, _name: "Werk Invoice NFTs", _symbol: "WERK-INVOICES" });
     }
 
-    /// @dev Deploys the Sablier v2-required contracts
+    /// @dev Deploys the Sablier Lockup-required contracts
     function deploySablierContracts() internal {
         // Deploy the Sablier Lockup contracts
         mockNFTDescriptor = new MockNFTDescriptor();
-        sablierV2LockupLinear =
-            new SablierV2LockupLinear({ initialAdmin: users.admin, initialNFTDescriptor: mockNFTDescriptor });
-        sablierV2LockupTranched = new SablierV2LockupTranched({
-            initialAdmin: users.admin,
-            initialNFTDescriptor: mockNFTDescriptor,
-            maxTrancheCount: 1000
-        });
+        sablierLockup =
+            new SablierLockup({ initialAdmin: users.admin, initialNFTDescriptor: mockNFTDescriptor, maxCount: 10_000 });
 
         // Deploy the Sablier Flow contracts
         flowNFTDescriptor = new FlowNFTDescriptor();
