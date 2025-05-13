@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { Integration_Test } from "../../../Integration.t.sol";
+import { Integration_Test } from "test/integration/Integration.t.sol";
 
 contract TransferFrom_Integration_Concret_Test is Integration_Test {
     function setUp() public virtual override {

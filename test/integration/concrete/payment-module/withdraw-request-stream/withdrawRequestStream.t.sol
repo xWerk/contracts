@@ -14,14 +14,14 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         uint256 paymentRequestId = 4;
         uint256 streamId = 1;
 
-        // The payment request must be paid in order to update its status to `Accepted`
+        // The payment request must be paid in order to update its status to `Ongoing`
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
         // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
-        // Pay the payment request first (status will be updated to `Accepted`)
+        // Pay the payment request first (status will be updated to `Ongoing`)
         paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
             requestId: paymentRequestId
         });
@@ -33,8 +33,7 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         uint256 balanceOfBefore = usdt.balanceOf(address(space));
 
         // Get the maximum withdrawable amount from the stream
-        uint128 maxWithdrawableAmount =
-            paymentModule.withdrawableAmountOf({ streamType: Types.Method.LinearStream, streamId: streamId });
+        uint128 maxWithdrawableAmount = paymentModule.withdrawableAmountOf({ streamId: streamId });
 
         // Make Eve's space the caller in this test suite as his space is the recipient of the payment request
         vm.startPrank({ msgSender: address(space) });
@@ -51,14 +50,14 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         uint256 paymentRequestId = 5;
         uint256 streamId = 1;
 
-        // The payment request must be paid for its status to be updated to `Accepted`
+        // The payment request must be paid for its status to be updated to `Ongoing`
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
         // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
         usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
 
-        // Pay the payment request first (status will be updated to `Accepted`)
+        // Pay the payment request first (status will be updated to `Ongoing`)
         paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
             requestId: paymentRequestId
         });
@@ -70,8 +69,7 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         uint256 balanceOfBefore = usdt.balanceOf(address(space));
 
         // Get the maximum withdrawable amount from the stream
-        uint128 maxWithdrawableAmount =
-            paymentModule.withdrawableAmountOf({ streamType: Types.Method.TranchedStream, streamId: streamId });
+        uint128 maxWithdrawableAmount = paymentModule.withdrawableAmountOf({ streamId: streamId });
 
         // Make Eve's space the caller in this test suite as her space is the owner of the payment request
         vm.startPrank({ msgSender: address(space) });

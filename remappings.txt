@@ -2,7 +2,8 @@
 @openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/
 @openzeppelin/foundry-upgrades/=node_modules/@openzeppelin/foundry-upgrades/
 solidity-stringutils/=node_modules/@openzeppelin/foundry-upgrades/lib/solidity-stringutils/
-@sablier/v2-core/=node_modules/@sablier/v2-core/
+@sablier/lockup/=node_modules/@sablier/lockup/
+@sablier/flow/=node_modules/@sablier/flow/
 @prb/math/=node_modules/@prb/math/
 @thirdweb/contracts/=node_modules/@thirdweb-dev/contracts/
 @ensdomains/ens-contracts/=node_modules/@ensdomains/ens-contracts/

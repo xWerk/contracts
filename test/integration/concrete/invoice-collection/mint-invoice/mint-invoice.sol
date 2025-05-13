@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { Integration_Test } from "../../../Integration.t.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { IInvoiceCollection } from "src/peripherals/invoice-collection/interfaces/IInvoiceCollection.sol";
+import { Errors } from "src/peripherals/invoice-collection/libraries/Errors.sol";
+import { Integration_Test } from "test/integration/Integration.t.sol";
 
 contract MintInvoice_Integration_Concret_Test is Integration_Test {
     function setUp() public virtual override {
@@ -35,7 +35,7 @@ contract MintInvoice_Integration_Concret_Test is Integration_Test {
     function test_MintInvoice() external whenCallerRelayer {
         // Expect the {MintInvoice} event to be emitted
         vm.expectEmit();
-        emit Events.InvoiceMinted({ to: users.bob, tokenId: 1, paymentRequestId: "1" });
+        emit IInvoiceCollection.InvoiceMinted({ to: users.bob, tokenId: 1, paymentRequestId: "1" });
 
         // Run the test
         invoiceCollection.mintInvoice({

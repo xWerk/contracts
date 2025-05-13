@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { PayRequest_Integration_Shared_Test } from "../shared/payRequest.t.sol";
-import { Types } from "./../../../src/modules/payment-module/libraries/Types.sol";
-import { Events } from "../../utils/Events.sol";
-import { Helpers } from "../../utils/Helpers.sol";
+import { Types } from "src/modules/payment-module/libraries/Types.sol";
+import { IPaymentModule } from "src/modules/payment-module/interfaces/IPaymentModule.sol";
+import { Helpers } from "test/utils/Helpers.sol";
+import { PayRequest_Integration_Shared_Test } from "test/integration/shared/payRequest.t.sol";
 
 contract PayRequest_Integration_Fuzz_Test is PayRequest_Integration_Shared_Test {
     Types.PaymentRequest paymentRequest;
@@ -90,11 +90,11 @@ contract PayRequest_Integration_Fuzz_Test is PayRequest_Integration_Shared_Test 
         uint40 expectedNumberOfPaymentsLeft = expectedNumberOfPayments > 0 ? expectedNumberOfPayments - 1 : 0;
 
         Types.Status expectedRequestStatus = expectedNumberOfPaymentsLeft == 0
-            && paymentRequest.config.method == Types.Method.Transfer ? Types.Status.Paid : Types.Status.Accepted;
+            && paymentRequest.config.method == Types.Method.Transfer ? Types.Status.Paid : Types.Status.Ongoing;
 
         // Expect the {RequestPaid} event to be emitted
         vm.expectEmit();
-        emit Events.RequestPaid({
+        emit IPaymentModule.RequestPaid({
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({

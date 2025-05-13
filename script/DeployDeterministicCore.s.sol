@@ -2,17 +2,15 @@
 pragma solidity ^0.8.26;
 
 import { BaseScript } from "./Base.s.sol";
-import { PaymentModule } from "./../src/modules/payment-module/PaymentModule.sol";
-import { StationRegistry } from "./../src/StationRegistry.sol";
-import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
-
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { Options } from "@openzeppelin/foundry-upgrades/src/Options.sol";
+import { PaymentModule } from "src/modules/payment-module/PaymentModule.sol";
+import { CompensationModule } from "src/modules/compensation-module/CompensationModule.sol";
+import { StationRegistry } from "src/StationRegistry.sol";
+import { ModuleKeeper } from "src/ModuleKeeper.sol";
+import { Upgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
 import { Core } from "@openzeppelin/foundry-upgrades/src/internal/Core.sol";
-import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
-import { ISablierV2LockupTranched } from "@sablier/v2-core/src/interfaces/ISablierV2LockupTranched.sol";
+import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
+import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
-import { ud } from "@prb/math/src/UD60x18.sol";
 
 /// @notice Deploys at deterministic addresses across chains the core contracts of the Werk Protocol
 /// @dev Reverts if any contract has already been deployed
@@ -21,60 +19,68 @@ contract DeployDeterministicCore is BaseScript {
 
     /// @dev By using a salt, Forge will deploy the contract via a deterministic CREATE2 factory
     /// https://book.getfoundry.sh/tutorials/create2-tutorial?highlight=deter#deterministic-deployment-using-create2
-    function run(
-        string memory create2Salt,
-        ISablierV2LockupLinear sablierLockupLinear,
-        ISablierV2LockupTranched sablierLockupTranched,
-        address initialOwner,
-        address brokerAccount,
-        IEntryPoint entrypoint
-    )
+    function run(string memory create2Salt)
         public
         virtual
         broadcast
-        returns (ModuleKeeper moduleKeeper, StationRegistry stationRegistry, PaymentModule paymentModule)
+        returns (
+            ModuleKeeper moduleKeeper,
+            StationRegistry stationRegistry,
+            PaymentModule paymentModule,
+            CompensationModule compensationModule
+        )
     {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));
 
         // Deterministically deploy the {ModuleKeeper} contract
-        moduleKeeper = new ModuleKeeper{ salt: salt }(initialOwner);
+        moduleKeeper = new ModuleKeeper{ salt: salt }(DEFAULT_PROTOCOL_OWNER);
 
         // Deterministically deploy the {StationRegistry} contract
-        stationRegistry = new StationRegistry{ salt: salt }(initialOwner, entrypoint, moduleKeeper);
+        stationRegistry =
+            new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_OWNER, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
 
-        // Deterministically deploy the {PaymentModule} module
+        // Deploy the {PaymentModule} module
+        // The proxy cannot be deterministically deployed because the `initializerData` which is passed in the constructor, differ between chains
         paymentModule = PaymentModule(
-            deployDetermisticUUPSProxy(
-                salt,
-                abi.encode(sablierLockupLinear, sablierLockupTranched),
+            Upgrades.deployUUPSProxy(
                 "PaymentModule.sol",
-                abi.encodeCall(PaymentModule.initialize, (initialOwner, brokerAccount, ud(0)))
+                abi.encodeCall(
+                    PaymentModule.initialize,
+                    (
+                        ISablierLockup(sablierLockupMap[block.chainid]),
+                        DEFAULT_PROTOCOL_OWNER,
+                        DEFAULT_BROKER_ADMIN,
+                        DEFAULT_BROKER_FEE
+                    )
+                )
             )
         );
 
-        // Add the {PaymentModule} module to the allowlist of the {ModuleKeeper}
+        // Deploy the {CompensationModule} module
+        // The proxy cannot be deterministically deployed because the `initializerData` which is passed in the constructor, differ between chains
+        compensationModule = CompensationModule(
+            Upgrades.deployUUPSProxy(
+                "CompensationModule.sol",
+                abi.encodeCall(
+                    CompensationModule.initialize,
+                    (
+                        ISablierFlow(sablierFlowMap[block.chainid]),
+                        DEFAULT_PROTOCOL_OWNER,
+                        DEFAULT_BROKER_ADMIN,
+                        DEFAULT_BROKER_FEE
+                    )
+                )
+            )
+        );
+
+        // Add the {PaymentModule} and {CompensationModule} modules to the allowlist of the {ModuleKeeper}
         modules.push(address(paymentModule));
+        modules.push(address(compensationModule));
+
+        // Add the USDC and WETH deployments to the allowlist of the {ModuleKeeper}
+        modules.push(address(usdcMap[block.chainid]));
+        modules.push(address(wethMap[block.chainid]));
+
         moduleKeeper.addToAllowlist(modules);
-    }
-
-    /// @dev Deploys a UUPS proxy at deterministic addresses across chains based on a provided salt
-    /// @param salt Salt to use for deterministic deployment
-    /// @param contractName The name of the implementation contract
-    /// @param initializerData The ABI encoded call to be made to the initialize method
-    function deployDetermisticUUPSProxy(
-        bytes32 salt,
-        bytes memory constructorData,
-        string memory contractName,
-        bytes memory initializerData
-    )
-        internal
-        returns (address)
-    {
-        Options memory opts;
-        opts.constructorData = constructorData;
-
-        address impl = Core.deployImplementation(contractName, opts);
-
-        return address(new ERC1967Proxy{ salt: salt }(impl, initializerData));
     }
 }

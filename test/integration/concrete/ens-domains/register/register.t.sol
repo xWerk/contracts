@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { Integration_Test } from "../../../Integration.t.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Events } from "../../../../utils/Events.sol";
+import { WerkSubdomainRegistrar } from "src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
+import { Integration_Test } from "test/integration/Integration.t.sol";
+import { Errors } from "src/modules/payment-module/libraries/Errors.sol";
 
 contract Register_Integration_Concret_Test is Integration_Test {
     function setUp() public virtual override {
@@ -51,7 +51,7 @@ contract Register_Integration_Concret_Test is Integration_Test {
         bytes memory data = abi.encodeWithSignature("register(string)", "test");
 
         // Expect the call to revert with the {ReservationNotFound} error
-        vm.expectRevert(Errors.ReservationNotFound.selector);
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256(bytes("ReservationNotFound()")))));
 
         // Run the test
         space.execute({ module: address(werkSubdomainRegistrar), value: 0, data: data });
@@ -81,7 +81,7 @@ contract Register_Integration_Concret_Test is Integration_Test {
         data = abi.encodeWithSignature("register(string)", "test");
 
         // Expect the call to revert with the {ReservationExpired} error
-        vm.expectRevert(Errors.ReservationExpired.selector);
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256(bytes("ReservationExpired()")))));
 
         // Run the test
         space.execute({ module: address(werkSubdomainRegistrar), value: 0, data: data });
@@ -122,7 +122,7 @@ contract Register_Integration_Concret_Test is Integration_Test {
         uint40 expiresAt = uint40(block.timestamp + 30 minutes);
 
         // Expect the call to revert with the {NotReservationOwner} error
-        vm.expectRevert(abi.encodeWithSelector(Errors.NotReservationOwner.selector, expiresAt));
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256(bytes("NotReservationOwner(uint40)"))), expiresAt));
 
         // Run the test
         space.execute({ module: address(werkSubdomainRegistrar), value: 0, data: data });
@@ -155,7 +155,7 @@ contract Register_Integration_Concret_Test is Integration_Test {
 
         // Expect the register call to emit a {NameRegistered} event
         vm.expectEmit();
-        emit Events.NameRegistered({ label: label, owner: address(space) });
+        emit WerkSubdomainRegistrar.NameRegistered({ label: label, owner: address(space) });
 
         // Run the test
         space.execute({ module: address(werkSubdomainRegistrar), value: 0, data: data });

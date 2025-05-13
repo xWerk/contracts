@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { PayRequest_Integration_Shared_Test } from "../../../shared/payRequest.t.sol";
-import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
-import { Events } from "../../../../utils/Events.sol";
-import { Errors } from "../../../../utils/Errors.sol";
-import { Constants } from "../../../../utils/Constants.sol";
-
-import { LockupLinear, LockupTranched } from "@sablier/v2-core/src/types/DataTypes.sol";
+import { Types } from "src/modules/payment-module/libraries/Types.sol";
+import { IPaymentModule } from "src/modules/payment-module/interfaces/IPaymentModule.sol";
+import { Errors } from "src/modules/payment-module/libraries/Errors.sol";
+import { Constants } from "test/utils/Constants.sol";
+import { PayRequest_Integration_Shared_Test } from "test/integration/shared/payRequest.t.sol";
+import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Broker, Lockup, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Helpers } from "test/utils/Helpers.sol";
+import { ud } from "@prb/math/src/UD60x18.sol";
 
 contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Test {
     function setUp() public virtual override {
@@ -140,7 +143,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
 
         // Expect the {RequestPaid} event to be emitted
         vm.expectEmit();
-        emit Events.RequestPaid({
+        emit IPaymentModule.RequestPaid({
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
@@ -194,7 +197,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
 
         // Expect the {RequestPaid} event to be emitted
         vm.expectEmit();
-        emit Events.RequestPaid({
+        emit IPaymentModule.RequestPaid({
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
@@ -216,7 +219,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         Types.PaymentRequest memory paymentRequest = paymentModule.getRequest({ requestId: paymentRequestId });
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
 
-        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Accepted));
+        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Ongoing));
         assertEq(paymentRequest.config.paymentsLeft, 3);
 
         // Assert the balances of payer and recipient
@@ -246,7 +249,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
 
         // Expect the {RequestPaid} event to be emitted
         vm.expectEmit();
-        emit Events.RequestPaid({
+        emit IPaymentModule.RequestPaid({
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
@@ -268,17 +271,16 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         Types.PaymentRequest memory paymentRequest = paymentModule.getRequest({ requestId: paymentRequestId });
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
 
-        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Accepted));
+        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Ongoing));
         assertEq(paymentRequest.config.streamId, 1);
         assertEq(paymentRequest.config.paymentsLeft, 0);
 
-        // Assert the actual and the expected state of the Sablier v2 linear stream
-        LockupLinear.StreamLL memory stream = paymentModule.getLinearStream({ streamId: 1 });
-        assertEq(stream.sender, address(paymentModule));
-        assertEq(stream.recipient, address(space));
-        assertEq(address(stream.asset), address(usdt));
-        assertEq(stream.startTime, paymentRequest.startTime);
-        assertEq(stream.endTime, paymentRequest.endTime);
+        // Assert the actual and the expected state of the Sablier Lockup linear stream
+        assertEq(paymentModule.getSender(1), address(paymentModule));
+        assertEq(paymentModule.getRecipient(1), address(space));
+        assertEq(address(paymentModule.getUnderlyingToken(1)), address(usdt));
+        assertEq(paymentModule.getStartTime(1), paymentRequest.startTime);
+        assertEq(paymentModule.getEndTime(1), paymentRequest.endTime);
     }
 
     function test_PayRequest_PaymentMethodTranchedStream()
@@ -290,18 +292,62 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         givenPaymentAmountInERC20Tokens
         whenPaymentAmountEqualToPaymentValue
     {
-        // Set the tranched USDT stream-based paymentRequest as current one
+        // Set the tranched USDT stream-based payment request as current one
         uint256 paymentRequestId = 5;
 
-        // Make Bob the payer for the default paymentRequest
+        // Cache the according payment request for this test suite
+        Types.PaymentRequest memory paymentRequest = paymentRequests[paymentRequestId];
+
+        // Make Bob the payer for the default payment request
         vm.startPrank({ msgSender: users.bob });
 
         // Approve the {PaymentModule} to transfer the ERC-20 tokens on Bob's behalf
-        usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
+        usdt.approve({ spender: address(paymentModule), amount: paymentRequest.config.amount });
 
-        // Expect the {RequestPaid} event to be emitted
+        // Calculate the total number of tranches
+        uint128 totalTranches = Helpers.computeNumberOfRecurringPayments(
+            paymentRequest.config.recurrence, paymentRequest.endTime - paymentRequest.startTime
+        );
+
+        // Create the tranches array
+        LockupTranched.Tranche[] memory tranches = new LockupTranched.Tranche[](totalTranches);
+
+        // Populate tranches array
+        uint40 trancheTimestamp = paymentRequest.startTime;
+        uint40 durationPerTranche = Helpers._getDurationPerTrache(paymentRequest.config.recurrence);
+        uint128 estimatedDepositAmount;
+        uint128 amountPerTranche = paymentRequest.config.amount / totalTranches;
+        for (uint256 i = 0; i < totalTranches; ++i) {
+            trancheTimestamp += durationPerTranche;
+            tranches[i] = (LockupTranched.Tranche({ amount: amountPerTranche, timestamp: trancheTimestamp }));
+            estimatedDepositAmount += amountPerTranche;
+        }
+
+        // Account for rounding errors by adjusting the last tranche
+        tranches[totalTranches - 1].amount += paymentRequest.config.amount - estimatedDepositAmount;
+
+        // Create the common parameters for the Lockup.CreateEvent
+        Lockup.CreateEventCommon memory commonParams = Lockup.CreateEventCommon({
+            funder: address(paymentModule),
+            sender: address(paymentModule),
+            recipient: address(space),
+            amounts: Lockup.CreateAmounts({ deposit: paymentRequest.config.amount, brokerFee: 0 }),
+            token: IERC20(address(usdt)),
+            cancelable: true,
+            transferable: false,
+            timestamps: Lockup.Timestamps({ start: paymentRequest.startTime, end: paymentRequest.endTime }),
+            shape: "",
+            broker: address(users.admin)
+        });
+
+        // Expect the {CreateLockupTranchedStream} and {RequestPaid} events to be emitted
         vm.expectEmit();
-        emit Events.RequestPaid({
+
+        // Emit the {CreateLockupTranchedStream} event
+        emit ISablierLockup.CreateLockupTranchedStream({ streamId: 1, commonParams: commonParams, tranches: tranches });
+
+        // Emit the {RequestPaid} event
+        emit IPaymentModule.RequestPaid({
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
@@ -320,20 +366,18 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         });
 
         // Assert the actual and the expected state of the payment request
-        Types.PaymentRequest memory paymentRequest = paymentModule.getRequest({ requestId: paymentRequestId });
-        Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
+        Types.PaymentRequest memory actualPaymentRequest = paymentModule.getRequest({ requestId: paymentRequestId });
+        Types.Status actualPaymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
 
-        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Accepted));
-        assertEq(paymentRequest.config.streamId, 1);
-        assertEq(paymentRequest.config.paymentsLeft, 0);
+        assertEq(uint8(actualPaymentRequestStatus), uint8(Types.Status.Ongoing));
+        assertEq(actualPaymentRequest.config.streamId, 1);
+        assertEq(actualPaymentRequest.config.paymentsLeft, 0);
 
-        // Assert the actual and the expected state of the Sablier v2 tranched stream
-        LockupTranched.StreamLT memory stream = paymentModule.getTranchedStream({ streamId: 1 });
-        assertEq(stream.sender, address(paymentModule));
-        assertEq(stream.recipient, address(space));
-        assertEq(address(stream.asset), address(usdt));
-        assertEq(stream.startTime, paymentRequest.startTime);
-        assertEq(stream.endTime, paymentRequest.endTime);
-        assertEq(stream.tranches.length, 4);
+        // Assert the actual and the expected state of the Sablier Lockup tranched stream
+        assertEq(paymentModule.getSender(1), address(paymentModule));
+        assertEq(paymentModule.getRecipient(1), address(space));
+        assertEq(address(paymentModule.getUnderlyingToken(1)), address(usdt));
+        assertEq(paymentModule.getStartTime(1), paymentRequest.startTime);
+        assertEq(paymentModule.getEndTime(1), paymentRequest.endTime);
     }
 }

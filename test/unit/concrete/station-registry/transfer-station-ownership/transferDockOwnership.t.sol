@@ -4,8 +4,8 @@ pragma solidity ^0.8.26;
 import { StationRegistry_Unit_Concrete_Test } from "../StationRegistry.t.sol";
 import { MockModule } from "../../../../mocks/MockModule.sol";
 import { Space } from "./../../../../../src/Space.sol";
-import { Events } from "../../../../utils/Events.sol";
-import { Errors } from "../../../../utils/Errors.sol";
+import { IStationRegistry } from "src/interfaces/IStationRegistry.sol";
+import { Errors } from "src/libraries/Errors.sol";
 
 contract TransferStationOwnership_Unit_Concrete_Test is StationRegistry_Unit_Concrete_Test {
     function setUp() public virtual override {
@@ -41,7 +41,7 @@ contract TransferStationOwnership_Unit_Concrete_Test is StationRegistry_Unit_Con
     function test_TransferStationOwnership() external givenStationCreated whenCallerOwner {
         // Expect the {StationOwnershipTransferred} to be emitted
         vm.expectEmit();
-        emit Events.StationOwnershipTransferred({ stationId: 1, oldOwner: users.eve, newOwner: users.bob });
+        emit IStationRegistry.StationOwnershipTransferred({ stationId: 1, oldOwner: users.eve, newOwner: users.bob });
 
         // Run the test
         stationRegistry.transferStationOwnership({ stationId: 1, newOwner: users.bob });

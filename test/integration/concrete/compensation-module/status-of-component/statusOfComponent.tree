@@ -1,0 +1,14 @@
+statusOfComponent.t.sol
+├── given the compensation plan component IS null
+│   └── it should revert with the {CompensationComponentNull} error
+└── given the compensation plan component IS NOT null
+    ├── when the compensation plan created and NOT funded
+    │   └── it should return the {Flow.Status.STREAMING_SOLVENT} status
+    ├── when the compensation plan created and partiallyfunded
+    │   └── it should return the {Flow.Status.STREAMING_INSOLVENT} status
+    ├── when the compensation plan created and NOT funded and paused
+    │   └── it should return the {Flow.Status.PAUSED_SOLVENT} status
+    ├── when the compensation plan created and partially funded and paused
+    │   └── it should return the {Flow.Status.PAUSED_INSOLVENT} status
+    └── when the compensation plan created and cancelled
+        └── it should return the {Flow.Status.VOIDED} status

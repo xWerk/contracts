@@ -56,11 +56,4 @@ library Errors {
 
     /// @notice Thrown when the payment request is null
     error NullRequest();
-
-    /*//////////////////////////////////////////////////////////////////////////
-                                    STREAM-MANAGER
-    //////////////////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when the caller is not the broker admin
-    error OnlyBrokerAdmin();
 }
