@@ -9,18 +9,10 @@ import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
 contract DeployDeterministicModuleKeeper is BaseScript {
     /// @dev By using a salt, Forge will deploy the contract via a deterministic CREATE2 factory
     /// https://book.getfoundry.sh/tutorials/create2-tutorial?highlight=deter#deterministic-deployment-using-create2
-    function run(
-        string memory create2Salt,
-        address initialOwner
-    )
-        public
-        virtual
-        broadcast
-        returns (ModuleKeeper moduleKeeper)
-    {
+    function run(string memory create2Salt) public virtual broadcast returns (ModuleKeeper moduleKeeper) {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));
 
         // Deterministically deploy the {ModuleKeeper} contract
-        moduleKeeper = new ModuleKeeper{ salt: salt }(initialOwner);
+        moduleKeeper = new ModuleKeeper{ salt: salt }(DEFAULT_PROTOCOL_OWNER);
     }
 }

@@ -15,8 +15,7 @@ contract DeployDeterministicWerkSubdomainCore is BaseScript {
     function run(
         string memory create2Salt,
         string memory ensDomain,
-        string memory baseUri,
-        address owner
+        string memory baseUri
     )
         public
         virtual
@@ -32,7 +31,8 @@ contract DeployDeterministicWerkSubdomainCore is BaseScript {
         registry.initialize({ tokenName: ensDomain, tokenSymbol: ensDomain, _baseUri: baseUri });
 
         // Deterministically deploy the {WerkSubdomainRegistrar} contract
-        subdomainRegistrar = new WerkSubdomainRegistrar{ salt: salt }(IWerkSubdomainRegistry(address(registry)), owner);
+        subdomainRegistrar =
+            new WerkSubdomainRegistrar{ salt: salt }(IWerkSubdomainRegistry(address(registry)), DEFAULT_PROTOCOL_OWNER);
 
         // Add the registrar to the registry
         registry.addRegistrar({ registrar: address(subdomainRegistrar) });

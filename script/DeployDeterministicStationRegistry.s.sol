@@ -13,8 +13,6 @@ contract DeployDeterministicStationRegistry is BaseScript {
     /// https://book.getfoundry.sh/tutorials/create2-tutorial?highlight=deter#deterministic-deployment-using-create2
     function run(
         string memory create2Salt,
-        address initialAdmin,
-        IEntryPoint entrypoint,
         ModuleKeeper moduleKeeper
     )
         public
@@ -25,6 +23,7 @@ contract DeployDeterministicStationRegistry is BaseScript {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));
 
         // Deterministically deploy the {StationRegistry} smart account factory
-        stationRegistry = new StationRegistry{ salt: salt }(initialAdmin, entrypoint, moduleKeeper);
+        stationRegistry =
+            new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_OWNER, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
     }
 }
