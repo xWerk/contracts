@@ -12,8 +12,7 @@ contract DeployDeterministicWerkSubdomainRegistrar is BaseScript {
     /// https://book.getfoundry.sh/tutorials/create2-tutorial?highlight=deter#deterministic-deployment-using-create2
     function run(
         string memory create2Salt,
-        IWerkSubdomainRegistry registry,
-        address owner
+        IWerkSubdomainRegistry registry
     )
         public
         virtual
@@ -23,6 +22,6 @@ contract DeployDeterministicWerkSubdomainRegistrar is BaseScript {
         bytes32 salt = bytes32(abi.encodePacked(create2Salt));
 
         // Deterministically deploy the {WerkSubdomainRegistrar} contract
-        subdomainRegistrar = new WerkSubdomainRegistrar{ salt: salt }(registry, owner);
+        subdomainRegistrar = new WerkSubdomainRegistrar{ salt: salt }(registry, DEFAULT_PROTOCOL_OWNER);
     }
 }
