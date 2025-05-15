@@ -207,6 +207,15 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         $.SABLIER_FLOW.pause(streamId);
     }
 
+    /// @dev See the documentation in {ISablierFlow-restart}
+    function _restartComponentStream(uint256 streamId, UD21x18 newRatePerSecond) internal {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Restart the stream
+        $.SABLIER_FLOW.restart(streamId, newRatePerSecond);
+    }
+
     /// @dev Cancels a compensation component stream by forfeiting its uncovered debt (if any) and marking it as voided
     /// See the documentation in {ISablierFlow-void}
     function _cancelComponentStream(uint256 streamId) internal {

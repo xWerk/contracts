@@ -132,6 +132,21 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         }
     }
 
+    function _onlyCompensationOwner(
+        CompensationModuleStorage storage $,
+        uint256 compensationPlanId
+    )
+        internal
+        view
+        returns (Types.Compensation storage compensationPlan)
+    {
+        // Cache the compensation plan details to save on multiple storage reads
+        compensationPlan = $.compensations[compensationPlanId];
+
+        // Checks: `msg.sender` is the compensation plan sender
+        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -264,11 +279,8 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: the compensation component is not null then cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
-        // Cache the compensation plan details to save on multiple storage reads
-        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
         // Checks: `msg.sender` is the compensation plan sender
-        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+        Types.Compensation storage compensationPlan = _onlyCompensationOwner($, compensationPlanId);
 
         // Checks: the new rate per second is not zero
         if (newRatePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
@@ -341,11 +353,8 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: the compensation component is not null then cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
-        // Cache the compensation plan details to save on multiple storage reads
-        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
         // Checks: `msg.sender` is the compensation plan sender
-        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+        Types.Compensation storage compensationPlan = _onlyCompensationOwner($, compensationPlanId);
 
         // Checks, Effects, Interactions: pause the compensation component stream
         _pauseComponentStream(compensationPlan.components[componentId].streamId);
@@ -354,16 +363,30 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         emit CompensationComponentPaused(compensationPlanId, componentId);
     }
 
+    function restartComponent(uint256 compensationPlanId, uint96 componentId, UD21x18 newRatePerSecond) external {
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
+
+        // Checks: `msg.sender` is the compensation plan sender
+        Types.Compensation storage compensationPlan = _onlyCompensationOwner($, compensationPlanId);
+
+        // Checks: the new rate per second is not zero
+        if (newRatePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
+
+        // Checks, Effects, Interactions: restart the compensation component stream with a new rate per second
+        _restartComponentStream(compensationPlan.components[componentId].streamId, newRatePerSecond);
+
+        // Log the compensation component stream restart
+        emit CompensationComponentRestarted(compensationPlanId, componentId, newRatePerSecond);
+    }
+
     /// @inheritdoc ICompensationModule
     function cancelComponent(uint256 compensationPlanId, uint96 componentId) external {
         // Checks: the compensation component is not null then cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
-        // Cache the compensation plan details to save on multiple storage reads
-        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
         // Checks: `msg.sender` is the compensation plan sender
-        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+        Types.Compensation storage compensationPlan = _onlyCompensationOwner($, compensationPlanId);
 
         // Checks, Effects, Interactions: cancel the compensation component stream
         _cancelComponentStream(compensationPlan.components[componentId].streamId);
@@ -377,11 +400,8 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: the compensation component is not null then cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(compensationPlanId, componentId);
 
-        // Cache the compensation plan details to save on multiple storage reads
-        Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
-
         // Checks: `msg.sender` is the compensation plan sender
-        if (compensationPlan.sender != msg.sender) revert Errors.OnlyCompensationPlanSender();
+        Types.Compensation storage compensationPlan = _onlyCompensationOwner($, compensationPlanId);
 
         // Checks, Effects, Interactions: refund the compensation component stream
         _refundComponentStream(compensationPlan.components[componentId].streamId);
