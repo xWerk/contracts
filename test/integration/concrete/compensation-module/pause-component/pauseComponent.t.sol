@@ -30,7 +30,11 @@ contract PauseComponent_Integration_Concrete_Test is CompensationModule_Integrat
         compensationModule.pauseComponent(1, 0);
     }
 
-    function test_GivenComponentNotFunded_PauseComponent() public whenComponentNotNull {
+    function test_GivenComponentNotFunded_PauseComponent()
+        public
+        whenComponentNotNull
+        whenCallerCompensationPlanSender
+    {
         // Create the calldata for the `pauseComponent` call
         bytes memory data = abi.encodeWithSelector(compensationModule.pauseComponent.selector, 1, 0);
 
@@ -52,6 +56,7 @@ contract PauseComponent_Integration_Concrete_Test is CompensationModule_Integrat
     function test_GivenComponentPartiallyFunded_PauseComponent()
         public
         whenComponentNotNull
+        whenCallerCompensationPlanSender
         whenComponentPartiallyFunded
     {
         // Create the calldata for the `pauseComponent` call

@@ -30,7 +30,7 @@ contract CancelComponent_Integration_Concrete_Test is CompensationModule_Integra
         compensationModule.cancelComponent(1, 0);
     }
 
-    function test_CancelComponent() public whenComponentNotNull {
+    function test_CancelComponent() public whenComponentNotNull whenCallerCompensationPlanSender {
         // Create the calldata for the `cancelComponent` call
         bytes memory data = abi.encodeWithSelector(compensationModule.cancelComponent.selector, 1, 0);
 
