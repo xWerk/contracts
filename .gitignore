@@ -1,8 +1,7 @@
 # Directories
 cache/
-out/
 old-out/
-out-optimized/
+out*
 node_modules
 
 # Coverage
