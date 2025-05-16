@@ -46,6 +46,14 @@ interface ICompensationModule {
     /// @param componentId The ID of the compensation plan component
     event CompensationComponentPaused(uint256 indexed compensationPlanId, uint96 indexed componentId);
 
+    /// @notice Emitted when a compensation plan component stream is restarted
+    /// @param compensationPlanId The ID of the compensation plan
+    /// @param componentId The ID of the compensation plan component
+    /// @param newRatePerSecond The new rate per second of the compensation plan component
+    event CompensationComponentRestarted(
+        uint256 indexed compensationPlanId, uint96 indexed componentId, UD21x18 newRatePerSecond
+    );
+
     /// @notice Emitted when a compensation plan component stream is cancelled
     /// @param compensationPlanId The ID of the compensation plan
     /// @param componentId The ID of the compensation plan component
