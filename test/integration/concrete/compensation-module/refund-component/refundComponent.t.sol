@@ -30,7 +30,7 @@ contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integra
         compensationModule.refundComponent(1, 0);
     }
 
-    function test_RefundComponent() public whenComponentNotNull {
+    function test_RefundComponent() public whenComponentNotNull whenCallerCompensationPlanSender {
         // Cache the balance of the {Space} contract before the refund
         uint256 balanceOfSpaceBefore = usdt.balanceOf(address(space));
 

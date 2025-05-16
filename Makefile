@@ -114,6 +114,18 @@ configure-ens-subdomain-registry:
 #   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 upgrade-payment-module:
 					forge script script/upgrade/UpgradePaymentModule.s.sol:UpgradePaymentModule \
-					$(PAYMENT_MODULE_PROXY) 
+					$(PAYMENT_MODULE_PROXY) \
+					--sig "run(address)" --rpc-url $(RPC_URL) --account dev \
+					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
+
+# Upgrades the {CompensationModule} contract
+#
+# Update the following configs before running the script:
+#   - {COMPENSATION_MODULE_PROXY} with the address of the {CompensationModule} proxy on the target chain
+#   - {RPC_URL} with the network RPC used for deployment
+#   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
+upgrade-compensation-module:
+					forge script script/upgrade/UpgradeCompensationModule.s.sol:UpgradeCompensationModule \
+					$(COMPENSATION_MODULE_PROXY) \
 					--sig "run(address)" --rpc-url $(RPC_URL) --account dev \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
