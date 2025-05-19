@@ -228,6 +228,9 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
         // Checks, Effects, Interactions: create the compensation plan
         (compensationPlanId, streamId) = _createCompensationPlan(recipient, component);
+
+        // Log the compensation plan creation
+        emit CompensationPlanCreated(compensationPlanId, recipient, streamId);
     }
 
     /// @inheritdoc ICompensationModule
@@ -425,8 +428,5 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         unchecked {
             $.nextCompensationPlanId++;
         }
-
-        // Log the compensation plan creation
-        emit CompensationPlanCreated(compensationPlanId, recipient, streamId);
     }
 }
