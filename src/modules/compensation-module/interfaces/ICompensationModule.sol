@@ -15,7 +15,10 @@ interface ICompensationModule {
     /// @notice Emitted when a compensation plan is created
     /// @param compensationPlanId The ID of the compensation plan
     /// @param recipient The address of the recipient of the compensation plan
-    event CompensationPlanCreated(uint256 indexed compensationPlanId, address indexed recipient);
+    /// @param streamId The ID of the compensation plan component stream
+    event CompensationPlanCreated(
+        uint256 indexed compensationPlanId, address indexed recipient, uint256 indexed streamId
+    );
 
     /// @notice Emitted when a compensation plan component rate per second is adjusted
     /// @param compensationPlanId The ID of the compensation plan
@@ -111,23 +114,15 @@ interface ICompensationModule {
     /// - `msg.sender` must be a valid Space account
     ///
     /// @param recipient The address of the recipient of the compensation
-    /// @param components The components included in the compensation plan (salary, ESOPs, bonuses, etc.)
+    /// @param component The initial component included in the compensation plan (salary, ESOPs, bonuses, etc.)
     /// @return compensationPlanId The ID of the newly created compensation
+    /// @return streamId The ID of the newly created compensation plan component stream
     function createCompensationPlan(
         address recipient,
-        Types.Component[] memory components
+        Types.Component memory component
     )
         external
-        returns (uint256 compensationPlanId);
-
-    /// @notice Creates new compensation plans in batch for the `recipients` recipients
-    ///
-    /// Notes:
-    /// - `msg.sender` must be a valid Space account
-    ///
-    /// @param recipients The addresses of the recipients of the compensation plans
-    /// @param components The components included in the compensation plans (salary, ESOPs, bonuses, etc.) of each recipient
-    function createBatchCompensationPlan(address[] memory recipients, Types.Component[][] memory components) external;
+        returns (uint256 compensationPlanId, uint256 streamId);
 
     /// @notice Adjusts the rate per second of a compensation plan component
     ///
