@@ -26,12 +26,12 @@ contract GetCompensationPlan_Integration_Concrete_Test is CompensationModule_Int
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
-        // Create a mock compensation plan with 1 component
-        Types.Component[] memory expectedComponents = createMockCompensationPlan(Types.ComponentType.Payroll);
+        // Create a mock compensation plan with an initial Payroll component
+        Types.Component memory expectedComponent = createMockCompensationPlan(Types.ComponentType.Payroll);
 
         // Create the calldata for the `createCompensationPlan` function call with Bob as the recipient
         bytes memory data = abi.encodeWithSignature(
-            "createCompensationPlan(address,(uint8,address,uint128,uint256)[])", users.bob, expectedComponents
+            "createCompensationPlan(address,(uint8,address,uint128,uint256))", users.bob, expectedComponent
         );
 
         // Create the compensation plan
@@ -45,16 +45,16 @@ contract GetCompensationPlan_Integration_Concrete_Test is CompensationModule_Int
         assertEq(sender, address(space));
         assertEq(recipient, users.bob);
         assertEq(numberOfComponents, 1);
-        assertEq(actualComponents.length, expectedComponents.length);
+        assertEq(actualComponents.length, 1);
 
         // Decode the first component of the compensation plan
         (uint8 componentType, address asset, UD21x18 ratePerSecond, uint256 streamId) =
             abi.decode(abi.encode(actualComponents[0]), (uint8, address, UD21x18, uint256));
 
         // Assert the component fields
-        assertEq(componentType, uint8(expectedComponents[0].componentType));
-        assertEq(asset, address(expectedComponents[0].asset));
-        assertEq(ratePerSecond.unwrap(), expectedComponents[0].ratePerSecond.unwrap());
+        assertEq(componentType, uint8(expectedComponent.componentType));
+        assertEq(asset, address(expectedComponent.asset));
+        assertEq(ratePerSecond.unwrap(), expectedComponent.ratePerSecond.unwrap());
 
         // Component's stream ID must be 1 as the Sablier Flow stream gets created when the component is created
         assertEq(streamId, 1);

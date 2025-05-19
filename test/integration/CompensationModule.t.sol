@@ -31,10 +31,6 @@ contract CompensationModule_Integration_Test is Integration_Test {
         _;
     }
 
-    modifier whenNonZeroComponentsArray() {
-        _;
-    }
-
     modifier whenNonZeroAddressRecipients() {
         _;
     }
@@ -61,11 +57,11 @@ contract CompensationModule_Integration_Test is Integration_Test {
 
     modifier whenComponentNotNull() {
         // Create a mock compensation plan with 1 component
-        Types.Component[] memory expectedComponents = createMockCompensationPlan(Types.ComponentType.Payroll);
+        Types.Component memory expectedComponent = createMockCompensationPlan(Types.ComponentType.Payroll);
 
         // Create the calldata for the `createCompensationPlan` function call with Bob as the recipient
         bytes memory data = abi.encodeWithSignature(
-            "createCompensationPlan(address,(uint8,address,uint128,uint256)[])", users.bob, expectedComponents
+            "createCompensationPlan(address,(uint8,address,uint128,uint256))", users.bob, expectedComponent
         );
 
         // Create the compensation plan
@@ -129,16 +125,13 @@ contract CompensationModule_Integration_Test is Integration_Test {
     function createMockCompensationPlan(Types.ComponentType componentType)
         internal
         view
-        returns (Types.Component[] memory components)
+        returns (Types.Component memory component)
     {
-        components = new Types.Component[](1);
-        components[0] = Types.Component({
+        component = Types.Component({
             componentType: componentType,
             asset: IERC20(address(usdt)),
             ratePerSecond: Constants.RATE_PER_SECOND,
             streamId: 0
         });
-
-        return components;
     }
 }
