@@ -75,18 +75,18 @@ contract BaseScript is Script {
         // Mainnets
 
         // Ethereum Mainnet deployment
-        sablierLockupMap[1] = 0x3DF2AAEdE81D2F6b261F79047517713B8E844E04;
+        sablierFlowMap[1] = 0x3DF2AAEdE81D2F6b261F79047517713B8E844E04;
 
         // Base deployment
-        sablierLockupMap[8453] = 0x6FE93c7f6cd1DC394e71591E3c42715Be7180A6A;
+        sablierFlowMap[8453] = 0x6FE93c7f6cd1DC394e71591E3c42715Be7180A6A;
 
         // Testnets
 
         // Ethereum Sepolia deployment
-        sablierLockupMap[11_155_111] = 0x93FE8f86e881a23e5A2FEB4B160514Fd332576A6;
+        sablierFlowMap[11_155_111] = 0x93FE8f86e881a23e5A2FEB4B160514Fd332576A6;
 
         // Base Sepolia deployment
-        sablierLockupMap[84_532] = 0xFB6B72a5988A7701a9090C56936269241693a9CC;
+        sablierFlowMap[84_532] = 0xFB6B72a5988A7701a9090C56936269241693a9CC;
     }
 
     /// @dev Populates the USDC deployments map
