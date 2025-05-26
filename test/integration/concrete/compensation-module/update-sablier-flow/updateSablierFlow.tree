@@ -1,0 +1,6 @@
+updateSablierFlow.t.sol
+├── when the caller IS NOT the owner
+│   └── it should revert with the {OwnableUnauthorizedAccount} error
+└── when the caller IS the owner
+    └── it should update the address of the {SablierFlow} contract
+    └── it should emit a {SablierFlowAddressUpdated} event

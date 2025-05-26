@@ -62,7 +62,7 @@ contract AdjustComponentRatePerSecond_Integration_Concrete_Test is CompensationM
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
         // Create a mock compensation plan with 1 component to help us assert the compensation plan fields
-        Types.Component[] memory expectedComponents = createMockCompensationPlan(Types.ComponentType.Payroll);
+        Types.Component memory expectedComponent = createMockCompensationPlan(Types.ComponentType.Payroll);
 
         // Retrieve the compensation plan
         (address sender, address recipient, uint96 numberOfComponents, Types.Component[] memory actualComponents) =
@@ -72,15 +72,15 @@ contract AdjustComponentRatePerSecond_Integration_Concrete_Test is CompensationM
         assertEq(sender, address(space));
         assertEq(recipient, users.bob);
         assertEq(numberOfComponents, 1);
-        assertEq(actualComponents.length, expectedComponents.length);
+        assertEq(actualComponents.length, 1);
 
         // Decode the first component of the compensation plan
         (uint8 componentType, address asset, UD21x18 ratePerSecond,) =
             abi.decode(abi.encode(actualComponents[0]), (uint8, address, UD21x18, uint256));
 
         // Assert the component fields
-        assertEq(componentType, uint8(expectedComponents[0].componentType));
-        assertEq(asset, address(expectedComponents[0].asset));
+        assertEq(componentType, uint8(expectedComponent.componentType));
+        assertEq(asset, address(expectedComponent.asset));
         assertEq(ratePerSecond.unwrap(), UD21x18.wrap(0.002e18).unwrap());
     }
 }

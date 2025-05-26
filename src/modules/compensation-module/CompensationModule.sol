@@ -217,55 +217,20 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     /// @inheritdoc ICompensationModule
     function createCompensationPlan(
         address recipient,
-        Types.Component[] memory components
+        Types.Component memory component
     )
         external
         onlySpace
-        returns (uint256 compensationPlanId)
+        returns (uint256 compensationPlanId, uint256 streamId)
     {
         // Checks: the recipient is not the zero address
         if (recipient == address(0)) revert Errors.InvalidZeroAddressRecipient();
 
-        // Checks: the compensation components array is not empty
-        if (components.length == 0) revert Errors.InvalidEmptyComponentsArray();
-
-        // Retrieve the contract storage
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
-
         // Checks, Effects, Interactions: create the compensation plan
-        compensationPlanId = _createCompensationPlan($, recipient, components);
-    }
+        (compensationPlanId, streamId) = _createCompensationPlan(recipient, component);
 
-    /// @inheritdoc ICompensationModule
-    function createBatchCompensationPlan(
-        address[] memory recipients,
-        Types.Component[][] memory components
-    )
-        external
-        onlySpace
-    {
-        // Cache the recipients length to save on gas costs
-        uint256 recipientsLength = recipients.length;
-
-        // Checks: the recipients array is not empty
-        if (recipientsLength == 0) revert Errors.InvalidEmptyRecipientsArray();
-
-        // Checks: the recipients and components arrays have the same length
-        if (recipientsLength != components.length) revert Errors.InvalidRecipientsAndComponentsArraysLength();
-
-        // Retrieve the contract storage
-        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
-
-        for (uint256 i; i < recipientsLength; ++i) {
-            // Checks: the recipient is not the zero address
-            if (recipients[i] == address(0)) revert Errors.InvalidZeroAddressRecipient();
-
-            // Checks: the components array is not empty
-            if (components[i].length == 0) revert Errors.InvalidEmptyComponentsArray();
-
-            // Checks, Effects, Interactions: create the compensation plan for the current recipient
-            _createCompensationPlan($, recipients[i], components[i]);
-        }
+        // Log the compensation plan creation
+        emit CompensationPlanCreated(compensationPlanId, recipient, streamId);
     }
 
     /// @inheritdoc ICompensationModule
@@ -416,44 +381,40 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
     /// @dev See the documentation for the user-facing functions that call this internal function
     function _createCompensationPlan(
-        CompensationModuleStorage storage $,
         address recipient,
-        Types.Component[] memory components
+        Types.Component memory component
     )
         internal
-        returns (uint256 compensationPlanId)
+        returns (uint256 compensationPlanId, uint256 streamId)
     {
+        // Retrieve the contract storage
+        CompensationModuleStorage storage $ = _getCompensationModuleStorage();
+
         // Get the next compensation plan ID
         compensationPlanId = $.nextCompensationPlanId;
 
         // Cache the compensation plan details to save on multiple storage reads
         Types.Compensation storage compensationPlan = $.compensations[compensationPlanId];
 
-        // Cache the components length to save on gas costs
-        uint256 componentsLength = components.length;
+        // Checks: the compensation component rate per second is not zero
+        if (component.ratePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
 
-        // Create the compensation components
-        for (uint256 i; i < componentsLength; ++i) {
-            // Checks: the compensation component rate per second is not zero
-            if (components[i].ratePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
+        // Checks, Effects, Interactions: create the flow stream
+        streamId = _createComponentStream(recipient, component);
 
-            // Checks, Effects, Interactions: create the flow stream
-            uint256 streamId = _createComponentStream(recipient, components[i]);
+        // Effects: set the compensation component stream ID
+        component.streamId = streamId;
 
-            // Effects: set the compensation component stream ID
-            components[i].streamId = streamId;
+        // Get the next compensation component ID
+        uint96 componentId = compensationPlan.nextComponentId;
 
-            // Get the next compensation component ID
-            uint96 componentId = compensationPlan.nextComponentId;
+        // Effects: add the compensation component to the compensation plan
+        compensationPlan.components[componentId] = component;
 
-            // Effects: add the compensation component to the compensation plan
-            compensationPlan.components[componentId] = components[i];
-
-            // Effects: increment the next compensation component ID
-            // Use unchecked because the compensation component ID cannot realistically overflow
-            unchecked {
-                compensationPlan.nextComponentId++;
-            }
+        // Effects: increment the next compensation component ID
+        // Use unchecked because the compensation component ID cannot realistically overflow
+        unchecked {
+            compensationPlan.nextComponentId++;
         }
 
         // Effects: set the recipient address of the current compensation plan
@@ -467,8 +428,5 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         unchecked {
             $.nextCompensationPlanId++;
         }
-
-        // Log the compensation plan creation
-        emit CompensationPlanCreated(compensationPlanId, recipient);
     }
 }

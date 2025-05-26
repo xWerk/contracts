@@ -120,6 +120,17 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         $.broker.fee = newBrokerFee;
     }
 
+    /// @inheritdoc IFlowStreamManager
+    function updateSablierFlow(ISablierFlow newSablierFlow) public onlyOwner {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        emit SablierFlowAddressUpdated({ oldAddress: $.SABLIER_FLOW, newAddress: newSablierFlow });
+
+        // Update the address of the {SablierFlow} contract
+        $.SABLIER_FLOW = newSablierFlow;
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                         SABLIER FLOW-SPECIFIC INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -146,6 +157,31 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
             ratePerSecond: component.ratePerSecond, // The rate per second of the stream
             token: component.asset, // The streaming token
             transferable: false // Whether the stream will be transferable or not
+         });
+
+        // Set `msg.sender` as the initial stream sender to allow authenticated stream management
+        $.initialStreamSender[streamId] = msg.sender;
+    }
+
+    function _createAndDepositComponentStream(
+        address recipient,
+        uint128 amount,
+        Types.Component memory component
+    )
+        internal
+        returns (uint256 streamId)
+    {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Create the flow stream using the `create` function
+        streamId = $.SABLIER_FLOW.createAndDeposit({
+            sender: address(this), // The sender will be able to pause the stream or change rate per second
+            recipient: recipient, // The recipient of the streamed tokens
+            ratePerSecond: component.ratePerSecond, // The rate per second of the stream
+            token: component.asset, // The streaming token
+            transferable: false, // Whether the stream will be transferable or not
+            amount: amount // The deposit amount, denoted in token's decimals
          });
 
         // Set `msg.sender` as the initial stream sender to allow authenticated stream management
