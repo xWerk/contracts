@@ -19,6 +19,11 @@ interface IFlowStreamManager {
     /// @param newFee The new broker fee
     event BrokerFeeUpdated(UD60x18 oldFee, UD60x18 newFee);
 
+    /// @notice Emitted when the address of the {SablierFlow} contract is updated
+    /// @param oldAddress The old address of the {SablierFlow} contract
+    /// @param newAddress The new address of the {SablierFlow} contract
+    event SablierFlowAddressUpdated(ISablierFlow oldAddress, ISablierFlow newAddress);
+
     /*//////////////////////////////////////////////////////////////////////////
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -44,9 +49,17 @@ interface IFlowStreamManager {
     /// @notice Updates the fee charged by the broker
     ///
     /// Notes:
-    /// - `msg.sender` must be the broker admin
+    /// - `msg.sender` must be the owner
     /// - The new fee will be applied only to the new streams hence it can't be retrospectively updated
     ///
     /// @param newBrokerFee The new broker fee
     function updateStreamBrokerFee(UD60x18 newBrokerFee) external;
+
+    /// @notice Updates the address of the {SablierFlow} contract used to create and manage compensation streams
+    ///
+    /// Notes:
+    /// - `msg.sender` must be the owner
+    ///
+    /// @param newSablierFlow The new address of the {SablierFlow} contract
+    function updateSablierFlow(ISablierFlow newSablierFlow) external;
 }
