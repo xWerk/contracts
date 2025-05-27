@@ -1,9 +1,9 @@
 pauseComponent.t.sol
 ├── when the compensation component IS null
-│   └── it should revert with the {CompensationComponentNull} error
+│   └── it should revert with the {ComponentNull} error
 └── when the compensation component IS NOT null
-    ├── when the caller IS NOT the compensation plan sender
-    │   └── it should revert with the {OnlyCompensationPlanSender} error
-    └── when the caller IS the compensation plan sender
+    ├── when the caller IS NOT the compensation component sender
+    │   └── it should revert with the {OnlyComponentSender} error
+    └── when the caller IS the compensation component sender
         ├── it should pause the compensation component stream
-        └── it should emit a {CompensationComponentPaused} event
+        └── it should emit a {ComponentPaused} event

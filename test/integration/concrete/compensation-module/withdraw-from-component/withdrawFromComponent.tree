@@ -1,9 +1,9 @@
 withdrawFromComponent.t.sol
 ├── when the compensation component IS null
-│   └── it should revert with the {CompensationComponentNull} error
+│   └── it should revert with the {ComponentNull} error
 └── when the compensation component IS NOT null and funded
-    ├── when the caller IS NOT the compensation plan recipient
-    │   └── it should revert with the {OnlyCompensationPlanRecipient} error
-    └── when the caller IS the compensation plan recipient
+    ├── when the caller IS NOT the compensation component recipient
+    │   └── it should revert with the {OnlyComponentRecipient} error
+    └── when the caller IS the compensation component recipient
         ├── it should withdraw the maximum amount from the compensation component stream
-        └── it should emit a {CompensationComponentWithdrawn} event
+        └── it should emit a {ComponentWithdrawn} event
