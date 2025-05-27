@@ -14,21 +14,24 @@ contract GetComponent_Integration_Concrete_Test is CompensationModule_Integratio
         vm.startPrank({ msgSender: users.eve });
     }
 
-    function test_RevertWhen_CompensationComponentNull() public {
-        // Expect the call to revert with the {CompensationComponentNull} error
-        vm.expectRevert(Errors.CompensationComponentNull.selector);
+    function test_RevertWhen_ComponentNull() public {
+        // Expect the call to revert with the {ComponentNull} error
+        vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.getComponent(1, 0);
+        compensationModule.getComponent({ componentId: 1 });
     }
 
     function test_GetComponent() public whenComponentNotNull {
         // Run the test
-        Types.Component memory component = compensationModule.getComponent(1, 0);
+        Types.CompensationComponent memory component = compensationModule.getComponent({ componentId: 1 });
 
-        // Assert the component is not null
+        // Assert the component fields
         assertEq(address(component.asset), address(usdt));
         assertEq(component.ratePerSecond.unwrap(), Constants.RATE_PER_SECOND.unwrap());
         assertEq(component.streamId, 1);
+        assertEq(uint8(component.componentType), uint8(Types.ComponentType.Payroll));
+        assertEq(component.sender, address(space));
+        assertEq(component.recipient, users.bob);
     }
 }

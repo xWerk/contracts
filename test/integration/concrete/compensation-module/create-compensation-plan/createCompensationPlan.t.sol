@@ -9,7 +9,7 @@ import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract CreateCompensationPlan_Integration_Concrete_Test is CompensationModule_Integration_Test {
+contract createComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
         CompensationModule_Integration_Test.setUp();
     }
@@ -18,26 +18,32 @@ contract CreateCompensationPlan_Integration_Concrete_Test is CompensationModule_
         // Make Bob the caller in this test suite which is an EOA
         vm.startPrank({ msgSender: users.bob });
 
-        // Create a mock compensation plan with 1 component
-        Types.Component memory initialComponent = createMockCompensationPlan(Types.ComponentType.Payroll);
-
         // Expect the call to revert with the {SpaceZeroCodeSize} error
         vm.expectRevert(Errors.SpaceZeroCodeSize.selector);
 
         // Run the test
-        compensationModule.createCompensationPlan({ recipient: users.bob, component: initialComponent });
+        compensationModule.createComponent({
+            recipient: users.bob,
+            ratePerSecond: Constants.RATE_PER_SECOND,
+            componentType: Types.ComponentType.Payroll,
+            asset: IERC20(address(usdt))
+        });
     }
 
     function test_RevertWhen_NonCompliantSpace() external whenCallerContract {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
-        // Create a mock compensation plan with 1 component
-        Types.Component memory initialComponent = createMockCompensationPlan(Types.ComponentType.Payroll);
+        // Create a mock compensation component with 1 component
+        Types.CompensationComponent memory initialComponent = createMockComponent(Types.ComponentType.Payroll);
 
-        // Create the calldata for the `createCompensationPlan` function call
+        // Create the calldata for the `createComponent` function call
         bytes memory data = abi.encodeWithSignature(
-            "createCompensationPlan(address,(uint8,address,uint128,uint256))", users.bob, initialComponent
+            "createComponent(address,uint128,uint8,address)",
+            users.bob,
+            initialComponent.ratePerSecond,
+            uint8(initialComponent.componentType),
+            address(initialComponent.asset)
         );
 
         // Expect the call to revert with the {SpaceUnsupportedInterface} error
@@ -51,12 +57,16 @@ contract CreateCompensationPlan_Integration_Concrete_Test is CompensationModule_
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
-        // Create a mock compensation plan with 1 component
-        Types.Component memory initialComponent = createMockCompensationPlan(Types.ComponentType.Payroll);
+        // Create a mock compensation component with 1 component
+        Types.CompensationComponent memory initialComponent = createMockComponent(Types.ComponentType.Payroll);
 
-        // Create the calldata for the `createCompensationPlan` function call
+        // Create the calldata for the `createComponent` function call
         bytes memory data = abi.encodeWithSignature(
-            "createCompensationPlan(address,(uint8,address,uint128,uint256))", address(0), initialComponent
+            "createComponent(address,uint128,uint8,address)",
+            address(0),
+            initialComponent.ratePerSecond,
+            uint8(initialComponent.componentType),
+            address(initialComponent.asset)
         );
 
         // Expect the call to revert with the {InvalidZeroAddressRecipient} error
@@ -75,15 +85,19 @@ contract CreateCompensationPlan_Integration_Concrete_Test is CompensationModule_
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
-        // Create a mock compensation plan with 1 component
-        Types.Component memory initialComponent = createMockCompensationPlan(Types.ComponentType.Payroll);
+        // Create a mock compensation component with 1 component
+        Types.CompensationComponent memory initialComponent = createMockComponent(Types.ComponentType.Payroll);
 
         // Set the rate per second to zero
         initialComponent.ratePerSecond = UD21x18.wrap(0);
 
-        // Create the calldata for the `createCompensationPlan` function call
+        // Create the calldata for the `createComponent` function call
         bytes memory data = abi.encodeWithSignature(
-            "createCompensationPlan(address,(uint8,address,uint128,uint256))", users.bob, initialComponent
+            "createComponent(address,uint128,uint8,address)",
+            users.bob,
+            initialComponent.ratePerSecond,
+            uint8(initialComponent.componentType),
+            address(initialComponent.asset)
         );
 
         // Expect the call to revert with the {InvalidZeroRatePerSecond} error
@@ -93,7 +107,7 @@ contract CreateCompensationPlan_Integration_Concrete_Test is CompensationModule_
         space.execute({ module: address(compensationModule), value: 0, data: data });
     }
 
-    function test_CreateCompensationPlan()
+    function test_createComponent()
         external
         whenCallerContract
         whenCompliantSpace
@@ -103,33 +117,30 @@ contract CreateCompensationPlan_Integration_Concrete_Test is CompensationModule_
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
-        // Create a mock compensation plan with an initial Payroll component
-        Types.Component memory initialComponent = createMockCompensationPlan(Types.ComponentType.Payroll);
+        // Create a mock compensation component with an initial Payroll component
+        Types.CompensationComponent memory initialComponent = createMockComponent(Types.ComponentType.Payroll);
 
-        // Create the calldata for the `createCompensationPlan` function call
+        // Create the calldata for the `createComponent` function call
         bytes memory data = abi.encodeWithSignature(
-            "createCompensationPlan(address,(uint8,address,uint128,uint256))", users.bob, initialComponent
+            "createComponent(address,uint128,uint8,address)",
+            users.bob,
+            initialComponent.ratePerSecond,
+            uint8(initialComponent.componentType),
+            address(initialComponent.asset)
         );
 
-        // Expect the {CompensationPlanCreated} event to be emitted
+        // Expect the {ComponentCreated} event to be emitted
         vm.expectEmit(address(compensationModule));
-        emit ICompensationModule.CompensationPlanCreated({ compensationPlanId: 1, recipient: users.bob, streamId: 1 });
+        emit ICompensationModule.ComponentCreated({ componentId: 1, recipient: users.bob, streamId: 1 });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
-        // Assert the compensation plan was created
-        (address sender, address recipient, uint96 nextComponentId, Types.Component[] memory actualComponents) =
-            compensationModule.getCompensationPlan(1);
-        assertEq(sender, address(space));
-        assertEq(recipient, users.bob);
-        assertEq(nextComponentId, 1);
-
-        // Assert the initial component was created correctly
-        assertEq(actualComponents.length, 1);
-        assertEq(uint8(actualComponents[0].componentType), uint8(Types.ComponentType.Payroll));
-        assertEq(address(actualComponents[0].asset), address(usdt));
-        assertEq(actualComponents[0].ratePerSecond.unwrap(), Constants.RATE_PER_SECOND.unwrap());
-        assertEq(actualComponents[0].streamId, 1);
+        // Assert the compensation component was created
+        Types.CompensationComponent memory actualComponent = compensationModule.getComponent(1);
+        assertEq(uint8(actualComponent.componentType), uint8(Types.ComponentType.Payroll));
+        assertEq(address(actualComponent.asset), address(usdt));
+        assertEq(actualComponent.ratePerSecond.unwrap(), Constants.RATE_PER_SECOND.unwrap());
+        assertEq(actualComponent.streamId, 1);
     }
 }

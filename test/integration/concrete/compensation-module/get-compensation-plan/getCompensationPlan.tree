@@ -1,8 +1,0 @@
-getCompensationPlan.t.sol
-├── when the compensation plan IS null
-│   └── it should revert with the {CompensationPlanNull} error
-└── when the compensation plan IS NOT null
-    ├── it should return the sender
-    ├── it should return the recipient
-    ├── it should return the number of components
-    └── it should return the components array with all their fields

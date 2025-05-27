@@ -14,27 +14,27 @@ contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integra
         vm.startPrank({ msgSender: users.eve });
     }
 
-    function test_RevertWhen_CompensationComponentNull() public {
-        // Expect the call to revert with the {CompensationComponentNull} error
-        vm.expectRevert(Errors.CompensationComponentNull.selector);
+    function test_RevertWhen_ComponentNull() public {
+        // Expect the call to revert with the {ComponentNull} error
+        vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.refundComponent(1, 0);
+        compensationModule.refundComponent({ componentId: 1 });
     }
 
-    function test_RevertWhen_OnlyCompensationPlanSender() public whenComponentNotNull {
-        // Expect the call to revert with the {OnlyCompensationPlanSender} error
-        vm.expectRevert(Errors.OnlyCompensationPlanSender.selector);
+    function test_RevertWhen_OnlyComponentSender() public whenComponentNotNull {
+        // Expect the call to revert with the {OnlyComponentSender} error
+        vm.expectRevert(Errors.OnlyComponentSender.selector);
 
         // Run the test
-        compensationModule.refundComponent(1, 0);
+        compensationModule.refundComponent({ componentId: 1 });
     }
 
-    function test_RefundComponent() public whenComponentNotNull whenCallerCompensationPlanSender {
+    function test_RefundComponent() public whenComponentNotNull whenCallerComponentSender(users.eve) {
         // Cache the balance of the {Space} contract before the refund
         uint256 balanceOfSpaceBefore = usdt.balanceOf(address(space));
 
-        // Fund the compensation plan first
+        // Fund the compensation component first
 
         // Create the calldata for the ERC-20 `approve` call to approve the compensation module to spend the ERC-20 tokens
         bytes memory data = abi.encodeWithSignature("approve(address,uint256)", address(compensationModule), 100e6);
@@ -43,19 +43,19 @@ contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integra
         space.execute({ module: address(usdt), value: 0, data: data });
 
         // Create the calldata for the `depositToComponent` call
-        data = abi.encodeWithSignature("depositToComponent(uint256,uint96,uint128)", 1, 0, 100e6);
+        data = abi.encodeWithSignature("depositToComponent(uint256,uint128)", 1, 100e6);
 
-        // Fund the compensation plan
+        // Fund the compensation component
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
         // Refund the entire amount deposited before
 
         // Create the calldata for the `refundComponent` call
-        data = abi.encodeWithSelector(compensationModule.refundComponent.selector, 1, 0);
+        data = abi.encodeWithSelector(compensationModule.refundComponent.selector, 1);
 
-        // Expect the {CompensationComponentRefunded} event to be emitted
+        // Expect the {ComponentRefunded} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.CompensationComponentRefunded(1, 0);
+        emit ICompensationModule.ComponentRefunded({ componentId: 1 });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });

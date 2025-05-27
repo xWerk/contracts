@@ -62,7 +62,7 @@ deploy-payment-module:
 
 # Deploys the {CompensationModule} contract deterministically 
 deploy-compensation-module:
-					forge script script/DeployCompensationModule.s.sol:DeployCompensationModule 
+					forge script script/DeployCompensationModule.s.sol:DeployCompensationModule \
 					--rpc-url $(RPC_URL) --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 

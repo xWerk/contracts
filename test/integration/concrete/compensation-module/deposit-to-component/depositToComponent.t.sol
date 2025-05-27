@@ -18,12 +18,12 @@ contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Inte
         vm.startPrank({ msgSender: users.eve });
     }
 
-    function test_RevertWhen_CompensationComponentNull() public {
-        // Expect the call to revert with the {CompensationComponentNull} error
-        vm.expectRevert(Errors.CompensationComponentNull.selector);
+    function test_RevertWhen_ComponentNull() public {
+        // Expect the call to revert with the {ComponentNull} error
+        vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.depositToComponent(1, 0, DEPOSIT_AMOUNT);
+        compensationModule.depositToComponent({ componentId: 1, amount: DEPOSIT_AMOUNT });
     }
 
     function test_RevertWhen_InvalidZeroDepositAmount() public whenComponentNotNull {
@@ -31,7 +31,7 @@ contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Inte
         vm.expectRevert(Errors.InvalidZeroDepositAmount.selector);
 
         // Run the test
-        compensationModule.depositToComponent(1, 0, 0);
+        compensationModule.depositToComponent({ componentId: 1, amount: 0 });
     }
 
     function test_GivenNonZeroBrokerFee_DepositToComponent() public whenComponentNotNull {
@@ -55,19 +55,19 @@ contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Inte
         space.execute({ module: address(usdt), value: 0, data: data });
 
         // Create the calldata for the `depositToComponent` call
-        data = abi.encodeWithSelector(compensationModule.depositToComponent.selector, 1, 0, DEPOSIT_AMOUNT);
+        data = abi.encodeWithSelector(compensationModule.depositToComponent.selector, 1, DEPOSIT_AMOUNT);
 
-        // Expect the {CompensationComponentDeposited} event to be emitted
+        // Expect the {ComponentDeposited} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.CompensationComponentDeposited(1, 0, DEPOSIT_AMOUNT);
+        emit ICompensationModule.ComponentDeposited({ componentId: 1, amount: DEPOSIT_AMOUNT });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
-        // Retrieve the compensation plan
-        Types.Component memory component = compensationModule.getComponent(1, 0);
+        // Retrieve the compensation component
+        Types.CompensationComponent memory component = compensationModule.getComponent({ componentId: 1 });
 
-        // Retrieve the compensation plan component stream
+        // Retrieve the component stream
         Flow.Stream memory stream = compensationModule.getComponentStream(component.streamId);
 
         // Assert the actual and expected stream balance
@@ -82,19 +82,19 @@ contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Inte
         space.execute({ module: address(usdt), value: 0, data: data });
 
         // Create the calldata for the `depositToComponent` call
-        data = abi.encodeWithSelector(compensationModule.depositToComponent.selector, 1, 0, DEPOSIT_AMOUNT);
+        data = abi.encodeWithSelector(compensationModule.depositToComponent.selector, 1, DEPOSIT_AMOUNT);
 
-        // Expect the {CompensationComponentDeposited} event to be emitted
+        // Expect the {ComponentDeposited} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.CompensationComponentDeposited(1, 0, DEPOSIT_AMOUNT);
+        emit ICompensationModule.ComponentDeposited({ componentId: 1, amount: DEPOSIT_AMOUNT });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
-        // Retrieve the compensation plan
-        Types.Component memory component = compensationModule.getComponent(1, 0);
+        // Retrieve the compensation component
+        Types.CompensationComponent memory component = compensationModule.getComponent({ componentId: 1 });
 
-        // Retrieve the compensation plan component stream
+        // Retrieve the component stream
         Flow.Stream memory stream = compensationModule.getComponentStream(component.streamId);
 
         // Assert the actual and expected stream balance

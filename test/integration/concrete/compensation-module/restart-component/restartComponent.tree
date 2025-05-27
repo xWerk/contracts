@@ -1,12 +1,12 @@
 restartComponent.t.sol
 ├── when the compensation component IS null
-│   └── it should revert with the {CompensationComponentNull} error
+│   └── it should revert with the {ComponentNull} error
 └── when the compensation component IS NOT null
-    ├── when the caller IS NOT the compensation plan sender
-    │   └── it should revert with the {OnlyCompensationPlanSender} error
-    └── when the caller IS the compensation plan sender
+    ├── when the caller IS NOT the compensation component sender
+    │   └── it should revert with the {OnlyComponentSender} error
+    └── when the caller IS the compensation component sender
         ├── when the new rate per second IS zero
         │   └── it should revert with the {InvalidZeroRatePerSecond} error
         └── when the new rate per second IS NOT zero
             ├── it should restart the compensation component stream
-            └── it should emit a {CompensationComponentRestarted} event
+            └── it should emit a {ComponentRestarted} event
