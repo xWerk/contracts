@@ -40,7 +40,7 @@ interface IFlowStreamManager {
     /// @dev See the documentation in {ISablierFlow-statusOf}
     /// @param streamId The ID of the compensation component stream
     /// @return status The status of the compensation component stream
-    function statusOfComponentStream(uint256 streamId) external view returns (Flow.Status status);
+    function statusOf(uint256 streamId) external view returns (Flow.Status status);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS

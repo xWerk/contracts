@@ -26,11 +26,11 @@ library Errors {
     /// @notice Thrown when the recipients and components arrays have different lengths
     error InvalidRecipientsAndComponentsArraysLength();
 
-    /// @notice Thrown when the caller is not the compensation plan sender
-    error OnlyCompensationPlanSender();
+    /// @notice Thrown when the caller is not the compensation component sender
+    error OnlyComponentSender();
 
-    /// @notice Thrown when the caller is not the compensation plan recipient
-    error OnlyCompensationPlanRecipient();
+    /// @notice Thrown when the caller is not the compensation component recipient
+    error OnlyComponentRecipient();
 
     /// @notice Thrown when the compensation component rate per second is zero
     error InvalidZeroRatePerSecond();
@@ -44,11 +44,8 @@ library Errors {
     /// @notice Thrown when the deposit amount is zero
     error InvalidZeroDepositAmount();
 
-    /// @notice Thrown when the compensation plan does not exist
-    error CompensationPlanNull();
-
     /// @notice Thrown when the compensation component does not exist
-    error CompensationComponentNull();
+    error ComponentNull();
 
     /// @notice Thrown when the caller is not the initial stream sender
     error OnlyInitialStreamSender(address initialSender);

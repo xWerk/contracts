@@ -96,7 +96,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc IFlowStreamManager
-    function statusOfComponentStream(uint256 streamId) public view returns (Flow.Status status) {
+    function statusOf(uint256 streamId) public view returns (Flow.Status status) {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -135,14 +135,16 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
                         SABLIER FLOW-SPECIFIC INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Creates a new Sablier flow stream without upfront deposit for a compensation component
+    /// @dev Creates a new Sablier Flow stream without upfront deposit for a compensation component
     /// @dev See the documentation in {ISablierFlow-create}
     /// @param recipient The address of the recipient of the compensation component
-    /// @param component The component of the compensation plan to be streamed
+    /// @param ratePerSecond The rate per second of the compensation component
+    /// @param asset The address of the compensation asset
     /// @return streamId The ID of the newly created stream
-    function _createComponentStream(
+    function _createStream(
         address recipient,
-        Types.Component memory component
+        UD21x18 ratePerSecond,
+        IERC20 asset
     )
         internal
         returns (uint256 streamId)
@@ -154,8 +156,8 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         streamId = $.SABLIER_FLOW.create({
             sender: address(this), // The sender will be able to pause the stream or change rate per second
             recipient: recipient, // The recipient of the streamed tokens
-            ratePerSecond: component.ratePerSecond, // The rate per second of the stream
-            token: component.asset, // The streaming token
+            ratePerSecond: ratePerSecond, // The rate per second of the stream
+            token: asset, // The streaming token
             transferable: false // Whether the stream will be transferable or not
          });
 
@@ -163,10 +165,18 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         $.initialStreamSender[streamId] = msg.sender;
     }
 
-    function _createAndDepositComponentStream(
+    /// @dev Creates a new Sablier Flow stream with an upfront deposit for a compensation component
+    /// @dev See the documentation in {ISablierFlow-createAndDeposit}
+    /// @param recipient The address of the recipient of the compensation component
+    /// @param ratePerSecond The rate per second of the compensation component
+    /// @param asset The address of the compensation asset
+    /// @param amount The deposit amount, denoted in token's decimals
+    /// @return streamId The ID of the newly created stream
+    function _createAndDepositToStream(
         address recipient,
-        uint128 amount,
-        Types.Component memory component
+        UD21x18 ratePerSecond,
+        IERC20 asset,
+        uint128 amount
     )
         internal
         returns (uint256 streamId)
@@ -178,8 +188,8 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         streamId = $.SABLIER_FLOW.createAndDeposit({
             sender: address(this), // The sender will be able to pause the stream or change rate per second
             recipient: recipient, // The recipient of the streamed tokens
-            ratePerSecond: component.ratePerSecond, // The rate per second of the stream
-            token: component.asset, // The streaming token
+            ratePerSecond: ratePerSecond, // The rate per second of the stream
+            token: asset, // The streaming token
             transferable: false, // Whether the stream will be transferable or not
             amount: amount // The deposit amount, denoted in token's decimals
          });
@@ -189,7 +199,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @dev See the documentation in {ISablierFlow-adjustRatePerSecond}
-    function _adjustComponentStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) internal {
+    function _adjustStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) internal {
         FlowStreamManagerStorage storage $ = _onlyInitialStreamSender(streamId);
 
         // Adjust the rate per second of the stream
@@ -200,8 +210,8 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     ///
     /// Notes:
     /// - The `sender` is automatically set to the address of the {FlowStreamManager} contract and the access
-    /// control is handled by the private `_onlyInitialStreamSender` function.
-    function _depositToComponentStream(uint256 streamId, IERC20 asset, uint128 amount, address recipient) internal {
+    /// control is handled by the private `_onlyInitialStreamSender` function
+    function _depositToStream(uint256 streamId, IERC20 asset, uint128 amount, address recipient) internal {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -219,7 +229,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @dev See the documentation in {ISablierFlow-withdrawMax}
-    function _withdrawMaxFromComponentStream(uint256 streamId, address to) internal returns (uint128) {
+    function _withdrawMaxFromStream(uint256 streamId, address to) internal returns (uint128) {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -231,7 +241,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @dev See the documentation in {ISablierFlow-pause}
-    function _pauseComponentStream(uint256 streamId) internal {
+    function _pauseStream(uint256 streamId) internal {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -244,7 +254,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @dev See the documentation in {ISablierFlow-restart}
-    function _restartComponentStream(uint256 streamId, UD21x18 newRatePerSecond) internal {
+    function _restartStream(uint256 streamId, UD21x18 newRatePerSecond) internal {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -254,7 +264,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
     /// @dev Cancels a compensation component stream by forfeiting its uncovered debt (if any) and marking it as voided
     /// See the documentation in {ISablierFlow-void}
-    function _cancelComponentStream(uint256 streamId) internal {
+    function _cancelStream(uint256 streamId) internal {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -264,7 +274,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
     /// @dev Refunds the entire refundable amount of tokens from the compensation component stream to the sender's address
     /// See the documentation in {ISablierFlow-refundMax}
-    function _refundComponentStream(uint256 streamId) internal {
+    function _refundStream(uint256 streamId) internal {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
@@ -291,7 +301,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     /// - A private function is used instead of a modifier to avoid two redundant SLOAD operations,
     /// in a scenario where the storage layout is accessed in both the modifier and the function that
     /// uses the modifier. As a result, the overall gas cost is reduced because an SLOAD followed by a
-    /// JUMP is cheaper than performing two separate SLOADs.
+    /// JUMP is cheaper than performing two separate SLOADs
     function _onlyInitialStreamSender(uint256 streamId) private view returns (FlowStreamManagerStorage storage $) {
         // Retrieve the storage of the {FlowStreamManager} contract
         $ = _getFlowStreamManagerStorage();
