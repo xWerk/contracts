@@ -128,11 +128,8 @@ library Errors {
     /// @notice Thrown when the recipients and components arrays have different lengths
     error InvalidRecipientsAndComponentsArraysLength();
 
-    /// @notice Thrown when the compensation plan does not exist
-    error CompensationPlanNull();
-
     /// @notice Thrown when the compensation component does not exist
-    error CompensationComponentNull();
+    error ComponentNull();
 
     /*//////////////////////////////////////////////////////////////////////////
                                     STREAM-MANAGER

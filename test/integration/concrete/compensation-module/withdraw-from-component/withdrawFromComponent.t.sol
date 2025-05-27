@@ -14,27 +14,27 @@ contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_I
         vm.startPrank({ msgSender: users.eve });
     }
 
-    function test_RevertWhen_CompensationComponentNull() public {
-        // Expect the call to revert with the {CompensationComponentNull} error
-        vm.expectRevert(Errors.CompensationComponentNull.selector);
+    function test_RevertWhen_ComponentNull() public {
+        // Expect the call to revert with the {ComponentNull} error
+        vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.withdrawFromComponent(1, 0);
+        compensationModule.withdrawFromComponent({ componentId: 1 });
     }
 
-    function test_RevertWhen_CallerIsNotCompensationPlanRecipient() public whenComponentNotNull {
-        // Expect the call to revert with the {OnlyCompensationPlanRecipient} error
-        vm.expectRevert(Errors.OnlyCompensationPlanRecipient.selector);
+    function test_RevertWhen_CallerIsNotComponentRecipient() public whenComponentNotNull {
+        // Expect the call to revert with the {OnlyComponentRecipient} error
+        vm.expectRevert(Errors.OnlyComponentRecipient.selector);
 
-        // Run the test with Eve as the caller as she's not the compensation plan recipient (Bob is)
-        compensationModule.withdrawFromComponent(1, 0);
+        // Run the test with Eve as the caller as she's not the compensation component recipient (Bob is)
+        compensationModule.withdrawFromComponent({ componentId: 1 });
     }
 
     function test_WithdrawFromComponent()
         public
         whenComponentNotNull
         whenComponentPartiallyFunded
-        whenCallerCompensationPlanRecipient
+        whenCallerComponentRecipient(users.bob)
     {
         // Fast forward the time by 1 day to ensure the stream amount is fully streamed
         vm.warp(block.timestamp + 1 days);
@@ -42,12 +42,12 @@ contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_I
         // Cache the USDT balance of Bob before the withdrawal
         uint256 balanceOfBobBefore = usdt.balanceOf(users.bob);
 
-        // Expect the {CompensationComponentWithdrawn} event to be emitted
+        // Expect the {ComponentWithdrawn} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.CompensationComponentWithdrawn(1, 0, 10e6);
+        emit ICompensationModule.ComponentWithdrawn({ componentId: 1, amount: 10e6 });
 
         // Run the test
-        compensationModule.withdrawFromComponent(1, 0);
+        compensationModule.withdrawFromComponent({ componentId: 1 });
 
         // Cache the USDT balance of Bob after the withdrawal
         uint256 balanceOfBobAfter = usdt.balanceOf(users.bob);
@@ -57,7 +57,7 @@ contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_I
 
         // Assert the actual and expected status of the compensation component stream
         // The stream is now insolvent because the total debt exceeds the stream balance
-        uint8 actualStatusOfComponent = uint8(compensationModule.statusOfComponent(1, 0));
+        uint8 actualStatusOfComponent = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
         assertEq(actualStatusOfComponent, uint8(Flow.Status.STREAMING_INSOLVENT));
     }
 }

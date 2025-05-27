@@ -13,20 +13,20 @@ contract StatusOfComponent_Integration_Concrete_Test is CompensationModule_Integ
         vm.startPrank({ msgSender: users.eve });
     }
 
-    function test_RevertWhen_CompensationComponentNull() public {
-        // Expect the call to revert with the {CompensationComponentNull} error
-        vm.expectRevert(Errors.CompensationComponentNull.selector);
+    function test_RevertWhen_ComponentNull() public {
+        // Expect the call to revert with the {ComponentNull} error
+        vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.statusOfComponent(1, 1);
+        compensationModule.statusOfComponent({ componentId: 1 });
     }
 
     /// @dev Scenario for this test:
-    /// - Payer creates a compensation plan with one single component streaming USDT at a rate of `RATE_PER_SECOND` USDT/day
+    /// - Payer creates a compensation component with one single component streaming USDT at a rate of `RATE_PER_SECOND` USDT/day
     /// - Payer does not deposit any USDT to the compensation component stream at this point
     function test_GivenComponentCreatedAndNotFunded() public whenComponentNotNull {
-        // Retrieve the compensation plan
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent(1, 0));
+        // Retrieve the compensation component
+        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 
         // Assert the actual and expected status of the compensation component stream
         // Once a stream is created without an initial deposit, it's balance will be 0
@@ -35,23 +35,23 @@ contract StatusOfComponent_Integration_Concrete_Test is CompensationModule_Integ
     }
 
     /// @dev Scenario for this test:
-    /// - Payer creates a compensation plan with one single component streaming USDT at a rate of `RATE_PER_SECOND` USDT/day
+    /// - Payer creates a compensation component with one single component streaming USDT at a rate of `RATE_PER_SECOND` USDT/day
     /// - Payer deposits 10 USDT to the compensation component starting the stream
     /// - After ~3 hours, the stream will become insolvent because all its balance will be fully streamed
     function test_GivenComponentCreatedAndPartiallyFunded() public whenComponentNotNull whenComponentPartiallyFunded {
-        // Retrieve the compensation plan
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent(1, 0));
+        // Retrieve the compensation component
+        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 
         // Assert the actual and expected status of the compensation component stream
         assertEq(actualStatus, uint8(Flow.Status.STREAMING_INSOLVENT));
     }
 
     /// @dev Scenario for this test:
-    /// - Payer creates a compensation plan with one single component streaming USDT at a rate of `RATE_PER_SECOND` USDT/day
+    /// - Payer creates a compensation component with one single component streaming USDT at a rate of `RATE_PER_SECOND` USDT/day
     /// - Payer pauses the stream right after creation resulting in a paused stream with total debt not exceeding stream balance
     function test_GivenComponentNotFundedAndPaused() public whenComponentNotNull whenComponentPaused {
-        // Retrieve the compensation plan
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent(1, 0));
+        // Retrieve the compensation component
+        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 
         // Assert the actual and expected status of the compensation component stream
         assertEq(actualStatus, uint8(Flow.Status.PAUSED_SOLVENT));
@@ -65,19 +65,19 @@ contract StatusOfComponent_Integration_Concrete_Test is CompensationModule_Integ
         whenComponentPartiallyFunded
         whenComponentPaused
     {
-        // Retrieve the compensation plan
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent(1, 0));
+        // Retrieve the compensation component
+        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 
         // Assert the actual and expected status of the compensation component stream
         assertEq(actualStatus, uint8(Flow.Status.PAUSED_INSOLVENT));
     }
 
     /// @dev Scenario for this test:
-    /// - Payer creates a compensation plan with one single component streaming USDT at a rate of `RATE_PER_SECOND` USDT/day
+    /// - Payer creates a compensation component with one single component streaming USDT at a rate of `RATE_PER_SECOND` USDT/day
     /// - Payer cancels the stream resulting in a voided stream
     function test_GivenComponentCancelled() public whenComponentNotNull whenComponentCancelled {
-        // Retrieve the compensation plan
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent(1, 0));
+        // Retrieve the compensation component
+        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 
         // Assert the actual and expected status of the compensation component stream
         assertEq(actualStatus, uint8(Flow.Status.VOIDED));

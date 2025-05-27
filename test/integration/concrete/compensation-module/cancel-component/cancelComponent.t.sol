@@ -14,35 +14,35 @@ contract CancelComponent_Integration_Concrete_Test is CompensationModule_Integra
         vm.startPrank({ msgSender: users.eve });
     }
 
-    function test_RevertWhen_CompensationComponentNull() public {
-        // Expect the call to revert with the {CompensationComponentNull} error
-        vm.expectRevert(Errors.CompensationComponentNull.selector);
+    function test_RevertWhen_ComponentNull() public {
+        // Expect the call to revert with the {ComponentNull} error
+        vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.cancelComponent(1, 0);
+        compensationModule.cancelComponent({ componentId: 1 });
     }
 
-    function test_RevertWhen_OnlyCompensationPlanSender() public whenComponentNotNull {
-        // Expect the call to revert with the {OnlyCompensationPlanSender} error
-        vm.expectRevert(Errors.OnlyCompensationPlanSender.selector);
+    function test_RevertWhen_OnlyComponentSender() public whenComponentNotNull {
+        // Expect the call to revert with the {OnlyComponentSender} error
+        vm.expectRevert(Errors.OnlyComponentSender.selector);
 
         // Run the test
-        compensationModule.cancelComponent(1, 0);
+        compensationModule.cancelComponent({ componentId: 1 });
     }
 
-    function test_CancelComponent() public whenComponentNotNull whenCallerCompensationPlanSender {
+    function test_CancelComponent() public whenComponentNotNull whenCallerComponentSender(users.eve) {
         // Create the calldata for the `cancelComponent` call
-        bytes memory data = abi.encodeWithSelector(compensationModule.cancelComponent.selector, 1, 0);
+        bytes memory data = abi.encodeWithSelector(compensationModule.cancelComponent.selector, 1);
 
-        // Expect the {CompensationComponentCancelled} event to be emitted
+        // Expect the {ComponentCancelled} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.CompensationComponentCancelled(1, 0);
+        emit ICompensationModule.ComponentCancelled({ componentId: 1 });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
         // Retrieve the compensation component status
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent(1, 0));
+        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 
         // Assert the actual and expected status of the compensation component stream
         // The component stream status should be voided as the compensation component has been cancelled

@@ -14,39 +14,39 @@ contract PauseComponent_Integration_Concrete_Test is CompensationModule_Integrat
         vm.startPrank({ msgSender: users.eve });
     }
 
-    function test_RevertWhen_CompensationComponentNull() public {
-        // Expect the call to revert with the {CompensationComponentNull} error
-        vm.expectRevert(Errors.CompensationComponentNull.selector);
+    function test_RevertWhen_ComponentNull() public {
+        // Expect the call to revert with the {ComponentNull} error
+        vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.pauseComponent(1, 0);
+        compensationModule.pauseComponent({ componentId: 1 });
     }
 
-    function test_RevertWhen_OnlyCompensationPlanSender() public whenComponentNotNull {
-        // Expect the call to revert with the {OnlyCompensationPlanSender} error
-        vm.expectRevert(Errors.OnlyCompensationPlanSender.selector);
+    function test_RevertWhen_OnlyComponentSender() public whenComponentNotNull {
+        // Expect the call to revert with the {OnlyComponentSender} error
+        vm.expectRevert(Errors.OnlyComponentSender.selector);
 
         // Run the test
-        compensationModule.pauseComponent(1, 0);
+        compensationModule.pauseComponent({ componentId: 1 });
     }
 
     function test_GivenComponentNotFunded_PauseComponent()
         public
         whenComponentNotNull
-        whenCallerCompensationPlanSender
+        whenCallerComponentSender(users.eve)
     {
         // Create the calldata for the `pauseComponent` call
-        bytes memory data = abi.encodeWithSelector(compensationModule.pauseComponent.selector, 1, 0);
+        bytes memory data = abi.encodeWithSelector(compensationModule.pauseComponent.selector, 1);
 
-        // Expect the {CompensationComponentPaused} event to be emitted
+        // Expect the {ComponentPaused} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.CompensationComponentPaused(1, 0);
+        emit ICompensationModule.ComponentPaused({ componentId: 1 });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
-        // Retrieve the compensation plan
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent(1, 0));
+        // Retrieve the compensation component
+        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 
         // Assert the actual and expected status of the compensation component stream
         // The component stream status should be solvent as the total debt is not exceeding the stream balance
@@ -56,21 +56,21 @@ contract PauseComponent_Integration_Concrete_Test is CompensationModule_Integrat
     function test_GivenComponentPartiallyFunded_PauseComponent()
         public
         whenComponentNotNull
-        whenCallerCompensationPlanSender
+        whenCallerComponentSender(users.eve)
         whenComponentPartiallyFunded
     {
         // Create the calldata for the `pauseComponent` call
-        bytes memory data = abi.encodeWithSelector(compensationModule.pauseComponent.selector, 1, 0);
+        bytes memory data = abi.encodeWithSelector(compensationModule.pauseComponent.selector, 1);
 
-        // Expect the {CompensationComponentPaused} event to be emitted
+        // Expect the {ComponentPaused} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.CompensationComponentPaused(1, 0);
+        emit ICompensationModule.ComponentPaused({ componentId: 1 });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
         // Retrieve the compensation component status
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent(1, 0));
+        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 
         // Assert the actual and expected status of the compensation component stream
         // The component stream status should be insolvent as the total debt is exceeding the stream balance

@@ -19,7 +19,15 @@ contract CompensationModule_Integration_Test is Integration_Test {
         _;
     }
 
-    modifier whenCallerCompensationPlanSender() {
+    modifier whenCallerComponentSender(address user) {
+        vm.startPrank({ msgSender: user });
+
+        _;
+    }
+
+    modifier whenCallerComponentRecipient(address user) {
+        vm.startPrank({ msgSender: user });
+
         _;
     }
 
@@ -51,20 +59,20 @@ contract CompensationModule_Integration_Test is Integration_Test {
         _;
     }
 
-    modifier whenPlanNotNull() {
-        _;
-    }
-
     modifier whenComponentNotNull() {
-        // Create a mock compensation plan with 1 component
-        Types.Component memory expectedComponent = createMockCompensationPlan(Types.ComponentType.Payroll);
+        // Create a mock compensation component with 1 component
+        Types.CompensationComponent memory component = createMockComponent(Types.ComponentType.Payroll);
 
-        // Create the calldata for the `createCompensationPlan` function call with Bob as the recipient
+        // Create the calldata for the `createComponent` function call with Bob as the recipient
         bytes memory data = abi.encodeWithSignature(
-            "createCompensationPlan(address,(uint8,address,uint128,uint256))", users.bob, expectedComponent
+            "createComponent(address,uint128,uint8,address)",
+            users.bob,
+            component.ratePerSecond,
+            uint8(component.componentType),
+            address(component.asset)
         );
 
-        // Create the compensation plan
+        // Create the compensation component
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
         _;
@@ -78,9 +86,9 @@ contract CompensationModule_Integration_Test is Integration_Test {
         space.execute({ module: address(usdt), value: 0, data: data });
 
         // Create the calldata for the `depositToComponent` call
-        data = abi.encodeWithSignature("depositToComponent(uint256,uint96,uint128)", 1, 0, 10e6);
+        data = abi.encodeWithSignature("depositToComponent(uint256,uint128)", 1, 10e6);
 
-        // Fund the compensation plan with only 10 USDT which will be streamed in ~3 hours (at a rate of 86.4 USDT/day)
+        // Fund the compensation component with only 10 USDT which will be streamed in ~3 hours (at a rate of 86.4 USDT/day)
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
         // Fast forward the time by 3 hours
@@ -92,7 +100,7 @@ contract CompensationModule_Integration_Test is Integration_Test {
 
     modifier whenComponentPaused() {
         // Create the calldata for the `pauseComponent` call
-        bytes memory data = abi.encodeWithSignature("pauseComponent(uint256,uint96)", 1, 0);
+        bytes memory data = abi.encodeWithSignature("pauseComponent(uint256)", 1);
 
         // Pause the compensation component stream
         space.execute({ module: address(compensationModule), value: 0, data: data });
@@ -102,17 +110,10 @@ contract CompensationModule_Integration_Test is Integration_Test {
 
     modifier whenComponentCancelled() {
         // Create the calldata for the `cancelComponent` call
-        bytes memory data = abi.encodeWithSignature("cancelComponent(uint256,uint96)", 1, 0);
+        bytes memory data = abi.encodeWithSignature("cancelComponent(uint256)", 1);
 
         // Cancel the compensation component stream
         space.execute({ module: address(compensationModule), value: 0, data: data });
-
-        _;
-    }
-
-    modifier whenCallerCompensationPlanRecipient() {
-        // Make Bob the caller who is the compensation plan recipient
-        vm.startPrank({ msgSender: users.bob });
 
         _;
     }
@@ -121,13 +122,15 @@ contract CompensationModule_Integration_Test is Integration_Test {
                                    HELPERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Creates a mock compensation plan with one component with a pre-defined rate per second
-    function createMockCompensationPlan(Types.ComponentType componentType)
+    /// @dev Creates a mock compensation component
+    function createMockComponent(Types.ComponentType componentType)
         internal
         view
-        returns (Types.Component memory component)
+        returns (Types.CompensationComponent memory component)
     {
-        component = Types.Component({
+        component = Types.CompensationComponent({
+            sender: address(space),
+            recipient: users.bob,
             componentType: componentType,
             asset: IERC20(address(usdt)),
             ratePerSecond: Constants.RATE_PER_SECOND,

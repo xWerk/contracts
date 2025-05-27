@@ -16,25 +16,29 @@ contract RestartComponent_Integration_Concrete_Test is CompensationModule_Integr
         vm.startPrank({ msgSender: users.eve });
     }
 
-    function test_RevertWhen_CompensationComponentNull() public {
-        // Expect the call to revert with the {CompensationComponentNull} error
-        vm.expectRevert(Errors.CompensationComponentNull.selector);
+    function test_RevertWhen_ComponentNull() public {
+        // Expect the call to revert with the {ComponentNull} error
+        vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.restartComponent(1, 0, Constants.RATE_PER_SECOND);
+        compensationModule.restartComponent({ componentId: 1, newRatePerSecond: Constants.RATE_PER_SECOND });
     }
 
-    function test_RevertWhen_OnlyCompensationPlanSender() public whenComponentNotNull {
-        // Expect the call to revert with the {OnlyCompensationPlanSender} error
-        vm.expectRevert(Errors.OnlyCompensationPlanSender.selector);
+    function test_RevertWhen_OnlyComponentSender() public whenComponentNotNull {
+        // Expect the call to revert with the {OnlyComponentSender} error
+        vm.expectRevert(Errors.OnlyComponentSender.selector);
 
         // Run the test
-        compensationModule.restartComponent(1, 0, Constants.RATE_PER_SECOND);
+        compensationModule.restartComponent({ componentId: 1, newRatePerSecond: Constants.RATE_PER_SECOND });
     }
 
-    function test_RevertWhen_InvalidZeroRatePerSecond() public whenComponentNotNull whenCallerCompensationPlanSender {
+    function test_RevertWhen_InvalidZeroRatePerSecond()
+        public
+        whenComponentNotNull
+        whenCallerComponentSender(users.eve)
+    {
         // Create the calldata for the `restartComponent` call
-        bytes memory data = abi.encodeWithSelector(compensationModule.restartComponent.selector, 1, 0, UD21x18.wrap(0));
+        bytes memory data = abi.encodeWithSelector(compensationModule.restartComponent.selector, 1, UD21x18.wrap(0));
 
         // Expect the call to revert with the {InvalidZeroRatePerSecond} error
         vm.expectRevert(Errors.InvalidZeroRatePerSecond.selector);
@@ -43,27 +47,23 @@ contract RestartComponent_Integration_Concrete_Test is CompensationModule_Integr
         space.execute({ module: address(compensationModule), value: 0, data: data });
     }
 
-    function test_RestartComponent() public whenComponentNotNull whenCallerCompensationPlanSender {
+    function test_RestartComponent() public whenComponentNotNull whenCallerComponentSender(users.eve) {
         // Pause the component stream first
-        bytes memory data = abi.encodeWithSelector(compensationModule.pauseComponent.selector, 1, 0);
+        bytes memory data = abi.encodeWithSelector(compensationModule.pauseComponent.selector, 1);
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
         // Create the calldata for the `restartComponent` call
-        data = abi.encodeWithSelector(compensationModule.restartComponent.selector, 1, 0, Constants.RATE_PER_SECOND);
+        data = abi.encodeWithSelector(compensationModule.restartComponent.selector, 1, Constants.RATE_PER_SECOND);
 
-        // Expect the {CompensationComponentRestarted} event to be emitted
+        // Expect the {ComponentRestarted} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.CompensationComponentRestarted({
-            compensationPlanId: 1,
-            componentId: 0,
-            newRatePerSecond: Constants.RATE_PER_SECOND
-        });
+        emit ICompensationModule.ComponentRestarted({ componentId: 1, newRatePerSecond: Constants.RATE_PER_SECOND });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
-        // Retrieve the compensation plan
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent(1, 0));
+        // Retrieve the compensation component
+        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 
         // Assert the actual and expected status of the compensation component stream
         // The component stream status should be solvent as the total debt is not exceeding the stream balance

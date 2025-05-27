@@ -54,11 +54,12 @@ stream creation and management.
 
 ### Compensation Module
 
-In contrast to the PaymentModule, where an employee or contractor creates a payment request that must be approved and
+In contrast to the `PaymentModule`, where an employee or contractor creates a payment request that must be approved and
 paid by the employer, the `CompensationModule` introduces a new paradigm that allows employers (companies or business
 owners) to create and stream compensation plans directly to their employees.
 
-A compensation plan can be composed by multiple components such as a base salary, token ESOP or other bonuses.
+A compensation plan can be composed by multiple components such as a base salary, token ESOP or other bonuses. Each
+component has its own stream.
 
 The `CompensationModule` relies on the [Sablier Flow](https://docs.sablier.com/concepts/flow/overview) protocol for
 stream creation and management.

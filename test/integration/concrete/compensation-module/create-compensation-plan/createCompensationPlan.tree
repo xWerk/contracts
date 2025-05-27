@@ -1,4 +1,4 @@
-createCompensationPlan.t.sol
+createComponent.t.sol
 ├── when the caller IS NOT a contract
 │   └── it should revert with the {SpaceZeroCodeSize} error
 └── when the caller IS a contract
@@ -11,6 +11,6 @@ createCompensationPlan.t.sol
                 ├── when the initial component has a zero rate per second
                 │   └── it should revert with the {InvalidZeroRatePerSecond} error
                 └── when the initial component has a non-zero rate per second
-                    ├── it should create the compensation plan
-                    ├── it should create each component with their own stream
-                    └── it should emit the {CompensationPlanCreated} event
+                    ├── it should create the compensation component
+                    ├── it should create the compensation component stream
+                    └── it should emit the {ComponentCreated} event
