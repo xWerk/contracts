@@ -77,9 +77,15 @@ contract DeployDeterministicCore is BaseScript {
         modules.push(address(paymentModule));
         modules.push(address(compensationModule));
 
-        // Add the USDC and WETH deployments to the allowlist of the {ModuleKeeper}
+        // Add the USDC, WETH and Across {SpokePool} deployments to the allowlist of the {ModuleKeeper}
         modules.push(address(usdcMap[block.chainid]));
         modules.push(address(wethMap[block.chainid]));
+        modules.push(address(acrossSpokePoolMap[block.chainid]));
+
+        // Add the {WerkSubdomainRegistrar} deployment to the allowlist if deployed on Base or Base Sepolia
+        if (block.chainid == 8453 || block.chainid == 84_532) {
+            modules.push(address(ensSubdomainRegistrarMap[block.chainid]));
+        }
 
         moduleKeeper.addToAllowlist(modules);
     }

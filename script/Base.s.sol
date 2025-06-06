@@ -6,10 +6,10 @@ import { ud, UD60x18 } from "@prb/math/src/UD60x18.sol";
 
 contract BaseScript is Script {
     /// @dev The address of the default protocol owner
-    address internal constant DEFAULT_PROTOCOL_OWNER = 0x85E094B259718Be1AF0D8CbBD41dd7409c2200aa;
+    address internal constant DEFAULT_PROTOCOL_OWNER = 0xcaE83b7162d64022f7Da3D011fc96761cB14116a;
 
     /// @dev The address of the default broker account for {FlowStreamManager} and {LockupStreamManager} contracts
-    address internal constant DEFAULT_BROKER_ADMIN = 0x85E094B259718Be1AF0D8CbBD41dd7409c2200aa;
+    address internal constant DEFAULT_BROKER_ADMIN = 0xcaE83b7162d64022f7Da3D011fc96761cB14116a;
 
     /// @dev The default broker fee for {FlowStreamManager} and {LockupStreamManager} contracts
     UD60x18 internal DEFAULT_BROKER_FEE = ud(0);
@@ -29,6 +29,12 @@ contract BaseScript is Script {
     /// @dev WETH deployments mapped by the chain ID
     mapping(uint256 chainId => address WETH) internal wethMap;
 
+    /// @dev Across {SpokePool} deployments mapped by the chain ID
+    mapping(uint256 chainId => address acrossSpokePool) internal acrossSpokePoolMap;
+
+    /// @dev Werk ENS Subdomain Registrar deployments mapped by the chain ID
+    mapping(uint256 chainId => address registrar) internal ensSubdomainRegistrarMap;
+
     constructor() {
         // Populate the Sablier Lockup deployments map
         populateSablierLockupMap();
@@ -41,6 +47,14 @@ contract BaseScript is Script {
 
         // Populate the WETH deployments map
         populateWETHMap();
+
+        // Populate the Across {SpokePool} deployments map
+        populateAcrossMap();
+
+        // Populate the Werk ENS Subdomain Registrar deployments map
+        // Note: ENS subdomains are issued only on either Base or Base Sepolia
+        ensSubdomainRegistrarMap[8453] = 0x959f784aa89311930871545A662F430CCb6DD0Bb;
+        ensSubdomainRegistrarMap[84_532] = 0xfd35d5B15780CC6B8ccd8f1Cded4319aC5a63042;
     }
 
     modifier broadcast() {
@@ -90,8 +104,7 @@ contract BaseScript is Script {
     }
 
     /// @dev Populates the USDC deployments map
-    /// See https://developers.circle.com/stablecoins/usdc-on-test-networks
-    /// and https://developers.circle.com/stablecoins/usdc-on-main-networkss
+    /// See https://developers.circle.com/stablecoins/usdc-contract-addresses
     function populateUSDCMap() internal {
         // Mainnets
 
@@ -127,5 +140,25 @@ contract BaseScript is Script {
 
         // Base Sepolia deployment
         wethMap[84_532] = 0x4200000000000000000000000000000000000006;
+    }
+
+    /// @dev Populates the Across {SpokePool} deployments map
+    /// See https://docs.across.to/reference/contract-addresses
+    function populateAcrossMap() internal {
+        // Mainnets
+
+        // Ethereum Mainnet deployment
+        acrossSpokePoolMap[1] = 0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5;
+
+        // Base deployment
+        acrossSpokePoolMap[8453] = 0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64;
+
+        // Testnets
+
+        // Ethereum Sepolia deployment
+        acrossSpokePoolMap[11_155_111] = 0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662;
+
+        // Base Sepolia deployment
+        acrossSpokePoolMap[84_532] = 0x82B564983aE7274c86695917BBf8C99ECb6F0F8F;
     }
 }
