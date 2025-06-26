@@ -10,7 +10,7 @@ import { Options } from "@openzeppelin/foundry-upgrades/src/Options.sol";
 contract UpgradePaymentModule is BaseScript {
     function run(address paymentModule) public virtual broadcast {
         Options memory opts;
-        opts.referenceBuildInfoDir = "./old-out/build-info-v1/";
+        opts.referenceBuildInfoDir = "./out-optimized-old/build-info-v1/";
         opts.referenceContract = "build-info-v1:PaymentModule";
 
         Upgrades.upgradeProxy(paymentModule, "PaymentModule.sol", "", opts);
