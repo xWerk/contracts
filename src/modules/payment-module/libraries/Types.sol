@@ -8,11 +8,13 @@ library Types {
     /// @custom:value Weekly Multiple weekly payments that must be made either by transfer or a tranched stream
     /// @custom:value Monthly Multiple weekly payments that must be made either by transfer or tranched stream
     /// @custom:value Yearly Multiple weekly payments that must be made either by transfer or tranched stream
+    /// @custom:value Unlimited Unlimited number of payments that must be made only by transfer
     enum Recurrence {
         OneOff,
         Weekly,
         Monthly,
-        Yearly
+        Yearly,
+        Unlimited
     }
 
     /// @notice Enum representing the different payment methods

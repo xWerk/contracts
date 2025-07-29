@@ -153,28 +153,44 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             }
         }
 
+        // Checks: the payment method is transfer-based if the recurrence type is `Unlimited`
+        if (request.config.recurrence == Types.Recurrence.Unlimited) {
+            if (request.config.method != Types.Method.Transfer) {
+                revert Errors.OnlyTransferAllowedForUnlimitedRecurrence();
+            }
+        }
+
         // Validates the payment request interval (endTime - startTime) and returns the number of payments
-        // based on the payment method, interval and recurrence type
+        // based on the payment method, interval and recurrence type only if the recurrence is not `Unlimited`
         //
         // Notes:
+        // - For `Unlimited` recurrence, the number of payments is set to `type(uint40).max` to represent an infinite number of payments
         // - The number of payments is validated only for requests with payment method set on Tranched Stream or Recurring Transfer
         // - There should be only one payment when dealing with a one-off transfer-based request
         // - When dealing with a recurring transfer, the number of payments must be calculated based
         // on the payment interval (endTime - startTime) and recurrence type
-        uint40 numberOfPayments = 1;
-        if (request.config.method != Types.Method.LinearStream && request.config.recurrence != Types.Recurrence.OneOff)
-        {
-            numberOfPayments = _checkIntervalPayments({
-                recurrence: request.config.recurrence,
-                startTime: request.startTime,
-                endTime: request.endTime
-            });
-        }
+        uint40 numberOfPayments;
+        if (request.config.recurrence == Types.Recurrence.Unlimited) {
+            numberOfPayments = type(uint40).max;
+        } else {
+            numberOfPayments = 1;
 
-        // Set the number of payments back to one if dealing with a tranched-based request
-        // The `_checkIntervalPayment` method is still called for a tranched-based request just
-        // to validate the interval and ensure it can support multiple payments based on the chosen recurrence
-        if (request.config.method == Types.Method.TranchedStream) numberOfPayments = 1;
+            if (
+                request.config.method != Types.Method.LinearStream
+                    && request.config.recurrence != Types.Recurrence.OneOff
+            ) {
+                numberOfPayments = _checkIntervalPayments({
+                    recurrence: request.config.recurrence,
+                    startTime: request.startTime,
+                    endTime: request.endTime
+                });
+            }
+
+            // Set the number of payments back to one if dealing with a tranched-based request
+            // The `_checkIntervalPayment` method is still called for a tranched-based request just
+            // to validate the interval and ensure it can support multiple payments based on the chosen recurrence
+            if (request.config.method == Types.Method.TranchedStream) numberOfPayments = 1;
+        }
 
         // Checks: the asset is different than the native token if dealing with either a linear or tranched stream-based payment
         if (request.config.method != Types.Method.Transfer) {
@@ -233,6 +249,11 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // Checks: the payment request is not null
         if (request.recipient == address(0)) {
             revert Errors.NullRequest();
+        }
+
+        // Checks: the request has not expired if the recurrence type is `Unlimited`
+        if (request.config.recurrence == Types.Recurrence.Unlimited && block.timestamp > request.endTime) {
+            revert Errors.RequestExpired();
         }
 
         // Retrieve the request status
@@ -444,6 +465,11 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
+
+        // Check if the payment request has an `Unlimited` recurrence type and return the `Ongoing` status
+        if (request.config.recurrence == Types.Recurrence.Unlimited) {
+            return Types.Status.Ongoing;
+        }
 
         // Check if the payment request is in the `Pending` state first
         if (!request.wasAccepted && !request.wasCanceled) {
