@@ -8,6 +8,12 @@ payRequest.t.sol
         ├── when the payment request IS canceled
         │   └── it should revert with the {RequestCanceled} error
         └── when the payment request IS NOT canceled
+            ├── given the recurrence is Unlimited
+            │   ├── when the payment request has expired
+            │   │   └── it should revert with the {RequestExpired} error
+            │   └── when the payment request has not expired
+            │       ├── it should transfer the payment amount to the payment request recipient
+            │       └── it should emit an {RequestPaid} event
             ├── given the payment method is transfer
             │   ├── given the payment amount is in native token (ETH)
             │   │   ├── when the payment amount is less than the payment request value
