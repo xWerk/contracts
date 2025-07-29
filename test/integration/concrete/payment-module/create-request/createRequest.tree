@@ -17,6 +17,12 @@ createRequest.t.sol
                     ├── given the payment method is a regular transfer
                     │   ├── it should create the payment request
                     │   └── it should emit an {RequestCreated} event
+                    ├── given the recurrence is Unlimited
+                    │   ├── when the payment method is not transfer
+                    │   │   └── it should revert with the {OnlyTransferAllowedForUnlimitedRecurrence} error
+                    │   └── when the payment method is transfer
+                    │       ├── it should create the payment request
+                    │       └── it should emit an {RequestCreated} event
                     ├── given the payment method is a recurring transfer
                     │   ├── when the payment interval is too short for the selected recurrence
                     │   │   └── it should revert with the {PaymentIntervalTooShortForSelectedRecurrence} error

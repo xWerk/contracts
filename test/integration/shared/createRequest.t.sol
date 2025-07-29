@@ -45,7 +45,12 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
         paymentRequests[5] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
-        _nextRequestId = 6;
+        // Create a mock payment request with an unlimited USDT transfer
+        paymentRequest = createPaymentWithUnlimitedTransfers({ asset: address(usdt), recipient: address(space) });
+        paymentRequests[6] = paymentRequest;
+        executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
+
+        _nextRequestId = 7;
     }
 
     modifier whenCallerContract() {
@@ -84,6 +89,10 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
         _;
     }
 
+    modifier givenPaymentMethodUnlimitedTransfers() {
+        _;
+    }
+
     modifier givenPaymentMethodRecurringTransfer() {
         _;
     }
@@ -94,6 +103,27 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
 
     modifier givenPaymentMethodLinearStream() {
         _;
+    }
+
+    function createPaymentWithUnlimitedTransfers(
+        address asset,
+        address recipient
+    )
+        internal
+        view
+        returns (Types.PaymentRequest memory paymentRequest)
+    {
+        paymentRequest =
+            _createBasePaymentRequest(recipient, uint40(block.timestamp), uint40(block.timestamp) + 999 weeks);
+
+        paymentRequest.config = Types.Config({
+            method: Types.Method.Transfer,
+            recurrence: Types.Recurrence.Unlimited,
+            paymentsLeft: 0,
+            asset: asset,
+            amount: 100e6,
+            streamId: 0
+        });
     }
 
     /// @dev Creates a payment request with a one-off transfer payment
