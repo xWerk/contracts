@@ -58,7 +58,7 @@ library Errors {
     error NullRequest();
 
     /// @notice Thrown when the payment request has an unlimited recurrence type but the payment method is not transfer-based
-    error OnlyTransferAllowedForUnlimitedRecurrence();
+    error OnlyTransferAllowedForCustomRecurrence();
 
     /// @notice Thrown when the payment request has an unlimited recurrence type and the current block timestamp is greater than the payment request end time
     error RequestExpired();
