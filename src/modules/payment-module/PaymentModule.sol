@@ -214,6 +214,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             endTime: request.endTime,
             recipient: request.recipient,
             config: Types.Config({
+                canExpire: request.config.canExpire,
                 recurrence: request.config.recurrence,
                 method: request.config.method,
                 paymentsLeft: numberOfPayments,
@@ -252,13 +253,13 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             revert Errors.NullRequest();
         }
 
-        // Checks: the request has not expired if the recurrence type is `Custom`
-        if (request.config.recurrence == Types.Recurrence.Custom && block.timestamp > request.endTime) {
-            revert Errors.RequestExpired();
-        }
-
         // Retrieve the request status
         Types.Status requestStatus = _statusOf(requestId);
+
+        // Checks: the payment request is not expired
+        if (requestStatus == Types.Status.Expired) {
+            revert Errors.RequestExpired();
+        }
 
         // Checks: the payment request is not already paid or canceled
         // Note: for stream-based requests the `status` changes to `Paid` only after the funds are fully streamed
@@ -467,13 +468,11 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
 
-        // Check if the payment request has an `Custom` recurrence type and return the `Ongoing` status
-        if (request.config.recurrence == Types.Recurrence.Custom) {
-            return Types.Status.Ongoing;
-        }
-
-        // Check if the payment request is in the `Pending` state first
+        // Check if the payment request has expired (if it's expirable) or is pending
         if (!request.wasAccepted && !request.wasCanceled) {
+            if (request.config.canExpire && uint40(block.timestamp) > request.endTime) {
+                return Types.Status.Expired;
+            }
             return Types.Status.Pending;
         }
 

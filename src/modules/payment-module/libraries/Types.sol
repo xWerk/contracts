@@ -28,6 +28,7 @@ library Types {
     }
 
     /// @notice Struct encapsulating the different values describing a payment config
+    /// @param canExpire Whether the payment request can expire
     /// @param method The payment method
     /// @param recurrence The payment recurrence
     /// @param paymentsLeft The number of payments required to fully settle the payment request (only for transfer or tranched stream based payment requests)
@@ -36,6 +37,7 @@ library Types {
     /// @param streamId The ID of the linear or tranched stream if payment method is either `LinearStream` or `TranchedStream`, otherwise 0
     struct Config {
         // slot 0
+        bool canExpire;
         Method method;
         Recurrence recurrence;
         uint40 paymentsLeft;
@@ -56,7 +58,8 @@ library Types {
         Pending,
         Ongoing,
         Paid,
-        Canceled
+        Canceled,
+        Expired
     }
 
     /// @notice Struct encapsulating the different values describing a payment request
