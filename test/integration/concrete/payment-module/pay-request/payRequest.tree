@@ -2,39 +2,48 @@ payRequest.t.sol
 ├── when the payment request IS null 
 │   └── it should revert with the {NullRequest} error
 └── when the payment request IS NOT null
-    ├── when the payment request IS already paid
-    │   └── it should revert with the {RequestPaid} error
-    └── when the payment request IS NOT already paid
-        ├── when the payment request IS canceled
-        │   └── it should revert with the {RequestCanceled} error
-        └── when the payment request IS NOT canceled
-            ├── given the payment method is transfer
-            │   ├── given the payment amount is in native token (ETH)
-            │   │   ├── when the payment amount is less than the payment request value
-            │   │   │   └── it should revert with the {PaymentAmountLessThanRequestedAmount} error
-            │   │   └── when the payment amount IS equal to the payment request value
-            │   │       ├── when the native token transfer fails
-            │   │       │   └── it should revert with the {NativeTokenPaymentFailed} error
-            │   │       └── when the native token transfer succeeds
-            │   │           ├── given the payment method is a one-off transfer
-            │   │           │   ├── it should update the payment request status to Paid
-            │   │           │   └── it should decrease the number of payments to zero
-            │   │           ├── given the payment method is a recurring transfer
-            │   │           │    ├── it should update the payment request status to Ongoing
-            │   │           │    └── it should decrease the number of payments
-            │   │           ├── it should transfer the payment amount to the payment request recipient
-            │   │           └── it should emit an {RequestPaid} event
-            │   └── given the payment amount is in an ERC-20 token
-            │       ├── it should transfer the payment amount to the payment request recipient
-            │       └── it should emit an {RequestPaid} event
-            ├── given the payment method is linear stream
-            │   ├── it should create a Sablier Lockup linear stream
-            │   ├── it should update the payment request status to Ongoing
-            │   ├── it should update the payment request stream ID
-            │   └── it should emit an {RequestPaid} event
-            └── given the payment method is tranched stream
-                ├── it should create a Sablier Lockup tranched stream
-                ├── it should update the payment request status to Ongoing
-                ├── it should update the payment request stream ID
-                └── it should emit an {RequestPaid} event
+    ├── when the payment request HAS expired
+    │   └── it should revert with the {RequestExpired} error
+    └── when the payment request HAS NOT expired
+        ├── when the payment request IS already paid
+        │   └── it should revert with the {RequestPaid} error
+        └── when the payment request IS NOT already paid
+            ├── when the payment request IS canceled
+            │   └── it should revert with the {RequestCanceled} error
+            └── when the payment request IS NOT canceled
+                ├── given the recurrence is Custom
+                │   ├── when the payment request has expired
+                │   │   └── it should revert with the {RequestExpired} error
+                │   └── when the payment request has not expired
+                │       ├── it should transfer the payment amount to the payment request recipient
+                │       └── it should emit an {RequestPaid} event
+                ├── given the payment method is transfer
+                │   ├── given the payment amount is in native token (ETH)
+                │   │   ├── when the payment amount is less than the payment request value
+                │   │   │   └── it should revert with the {PaymentAmountLessThanRequestedAmount} error
+                │   │   └── when the payment amount IS equal to the payment request value
+                │   │       ├── when the native token transfer fails
+                │   │       │   └── it should revert with the {NativeTokenPaymentFailed} error
+                │   │       └── when the native token transfer succeeds
+                │   │           ├── given the payment method is a one-off transfer
+                │   │           │   ├── it should update the payment request status to Paid
+                │   │           │   └── it should decrease the number of payments to zero
+                │   │           ├── given the payment method is a recurring transfer
+                │   │           │    ├── it should update the payment request status to Ongoing
+                │   │           │    └── it should decrease the number of payments
+                │   │           ├── it should transfer the payment amount to the payment request recipient
+                │   │           └── it should emit an {RequestPaid} event
+                │   └── given the payment amount is in an ERC-20 token
+                │       ├── it should transfer the payment amount to the payment request recipient
+                │       └── it should emit an {RequestPaid} event
+                ├── given the payment method is linear stream
+                │   ├── it should create a Sablier Lockup linear stream
+                │   ├── it should update the payment request status to Ongoing
+                │   ├── it should update the payment request stream ID
+                │   └── it should emit an {RequestPaid} event
+                └── given the payment method is tranched stream
+                    ├── it should create a Sablier Lockup tranched stream
+                    ├── it should update the payment request status to Ongoing
+                    ├── it should update the payment request stream ID
+                    └── it should emit an {RequestPaid} event
                             

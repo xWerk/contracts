@@ -2,7 +2,6 @@
 pragma solidity ^0.8.26;
 
 import { WithdrawLinearStream_Integration_Shared_Test } from "../../../shared/withdrawLinearStream.t.sol";
-import { Types } from "./../../../../../src/modules/payment-module/libraries/Types.sol";
 
 contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_Integration_Shared_Test {
     function setUp() public virtual override {

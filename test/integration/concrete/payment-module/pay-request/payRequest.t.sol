@@ -10,7 +10,6 @@ import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.so
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Broker, Lockup, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
 import { Helpers } from "test/utils/Helpers.sol";
-import { ud } from "@prb/math/src/UD60x18.sol";
 
 contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Test {
     function setUp() public virtual override {
@@ -25,7 +24,24 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         paymentModule.payRequest({ requestId: 99 });
     }
 
-    function test_RevertWhen_RequestAlreadyPaid() external whenRequestNotNull {
+    function test_RevertWhen_RequestExpired() external whenRequestNotNull {
+        // Set the unlimited USDT transfers payment request as current one
+        uint256 paymentRequestId = 6;
+
+        // Set the block.timestamp to be greater than the payment request end time
+        vm.warp(paymentRequests[paymentRequestId].endTime + 1);
+
+        // Make Bob the payer of this paymentRequest
+        vm.startPrank({ msgSender: users.bob });
+
+        // Expect the call to be reverted with the {RequestExpired} error
+        vm.expectRevert(Errors.RequestExpired.selector);
+
+        // Run the test
+        paymentModule.payRequest({ requestId: paymentRequestId });
+    }
+
+    function test_RevertWhen_RequestAlreadyPaid() external whenRequestNotNull whenRequestNotExpired {
         // Set the one-off USDT transfer payment request as current one
         uint256 paymentRequestId = 1;
 
@@ -45,7 +61,12 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
         paymentModule.payRequest({ requestId: paymentRequestId });
     }
 
-    function test_RevertWhen_RequestCanceled() external whenRequestNotNull whenRequestNotAlreadyPaid {
+    function test_RevertWhen_RequestCanceled()
+        external
+        whenRequestNotNull
+        whenRequestNotExpired
+        whenRequestNotAlreadyPaid
+    {
         // Set the one-off USDT transfer payment request as current one
         uint256 paymentRequestId = 1;
 
@@ -68,6 +89,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
     function test_RevertWhen_PaymentMethodTransfer_PaymentAmountLessThanRequestedAmount()
         external
         whenRequestNotNull
+        whenRequestNotExpired
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodTransfer
@@ -95,6 +117,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
     function test_RevertWhen_PaymentMethodTransfer_NativeTokenTransferFails()
         external
         whenRequestNotNull
+        whenRequestNotExpired
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodTransfer
@@ -124,6 +147,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
     function test_PayRequest_PaymentMethodTransfer_NativeToken_OneOff()
         external
         whenRequestNotNull
+        whenRequestNotExpired
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodTransfer
@@ -147,6 +171,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
+                canExpire: paymentRequests[paymentRequestId].config.canExpire,
                 method: paymentRequests[paymentRequestId].config.method,
                 recurrence: paymentRequests[paymentRequestId].config.recurrence,
                 paymentsLeft: 0,
@@ -176,6 +201,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
     function test_PayRequest_PaymentMethodTransfer_ERC20Token_Recurring()
         external
         whenRequestNotNull
+        whenRequestNotExpired
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodTransfer
@@ -201,6 +227,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
+                canExpire: paymentRequests[paymentRequestId].config.canExpire,
                 method: paymentRequests[paymentRequestId].config.method,
                 recurrence: paymentRequests[paymentRequestId].config.recurrence,
                 paymentsLeft: 3,
@@ -232,6 +259,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
     function test_PayRequest_PaymentMethodLinearStream()
         external
         whenRequestNotNull
+        whenRequestNotExpired
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodLinearStream
@@ -253,6 +281,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
+                canExpire: paymentRequests[paymentRequestId].config.canExpire,
                 method: paymentRequests[paymentRequestId].config.method,
                 recurrence: paymentRequests[paymentRequestId].config.recurrence,
                 paymentsLeft: 0,
@@ -286,6 +315,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
     function test_PayRequest_PaymentMethodTranchedStream()
         external
         whenRequestNotNull
+        whenRequestNotExpired
         whenRequestNotAlreadyPaid
         whenRequestNotCanceled
         givenPaymentMethodTranchedStream
@@ -351,6 +381,7 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
+                canExpire: paymentRequests[paymentRequestId].config.canExpire,
                 method: paymentRequests[paymentRequestId].config.method,
                 recurrence: paymentRequests[paymentRequestId].config.recurrence,
                 paymentsLeft: 0,

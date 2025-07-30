@@ -50,6 +50,7 @@ contract PayRequest_Integration_Fuzz_Test is PayRequest_Integration_Shared_Test 
             endTime: endTime,
             recipient: address(space),
             config: Types.Config({
+                canExpire: false,
                 recurrence: Types.Recurrence(recurrence),
                 method: Types.Method(paymentMethod),
                 paymentsLeft: expectedNumberOfPayments,
@@ -61,7 +62,7 @@ contract PayRequest_Integration_Fuzz_Test is PayRequest_Integration_Shared_Test 
 
         // Create the calldata for the {PaymentModule} execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -98,6 +99,7 @@ contract PayRequest_Integration_Fuzz_Test is PayRequest_Integration_Shared_Test 
             requestId: paymentRequestId,
             payer: users.bob,
             config: Types.Config({
+                canExpire: paymentRequest.config.canExpire,
                 method: paymentRequest.config.method,
                 recurrence: paymentRequest.config.recurrence,
                 paymentsLeft: expectedNumberOfPaymentsLeft,

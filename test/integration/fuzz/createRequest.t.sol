@@ -18,6 +18,7 @@ contract CreateRequest_Integration_Fuzz_Test is CreateRequest_Integration_Shared
     }
 
     function testFuzz_CreateRequest(
+        bool canExpire,
         uint8 recurrence,
         uint8 paymentMethod,
         address recipient,
@@ -55,6 +56,7 @@ contract CreateRequest_Integration_Fuzz_Test is CreateRequest_Integration_Shared
             endTime: endTime,
             recipient: recipient,
             config: Types.Config({
+                canExpire: canExpire,
                 recurrence: Types.Recurrence(recurrence),
                 method: Types.Method(paymentMethod),
                 paymentsLeft: numberOfPayments,
@@ -66,7 +68,7 @@ contract CreateRequest_Integration_Fuzz_Test is CreateRequest_Integration_Shared
 
         // Create the calldata for the {PaymentModule} execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -101,5 +103,6 @@ contract CreateRequest_Integration_Fuzz_Test is CreateRequest_Integration_Shared
         assertEq(actualRequest.config.amount, paymentRequest.config.amount);
         assertEq(actualRequest.config.streamId, 0);
         assertEq(actualRequest.config.paymentsLeft, paymentRequest.config.paymentsLeft);
+        assertEq(actualRequest.config.canExpire, canExpire);
     }
 }
