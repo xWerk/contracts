@@ -89,7 +89,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
         _;
     }
 
-    modifier givenPaymentMethodUnlimitedTransfers() {
+    modifier givenCustomPaymentRecurrence() {
         _;
     }
 
@@ -117,6 +117,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
             _createBasePaymentRequest(recipient, uint40(block.timestamp), uint40(block.timestamp) + 999 weeks);
 
         paymentRequest.config = Types.Config({
+            canExpire: true, // make the payment request expirable
             method: Types.Method.Transfer,
             recurrence: Types.Recurrence.Custom,
             paymentsLeft: 150, // set a custom number of payments
@@ -139,6 +140,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
             _createBasePaymentRequest(recipient, uint40(block.timestamp), uint40(block.timestamp) + 4 weeks);
 
         paymentRequest.config = Types.Config({
+            canExpire: false,
             method: Types.Method.Transfer,
             recurrence: Types.Recurrence.OneOff,
             paymentsLeft: 1,
@@ -161,6 +163,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
             _createBasePaymentRequest(recipient, uint40(block.timestamp), uint40(block.timestamp) + 4 weeks);
 
         paymentRequest.config = Types.Config({
+            canExpire: false,
             method: Types.Method.Transfer,
             recurrence: recurrence,
             paymentsLeft: 0,
@@ -180,6 +183,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
             _createBasePaymentRequest(recipient, uint40(block.timestamp), uint40(block.timestamp) + 4 weeks);
 
         paymentRequest.config = Types.Config({
+            canExpire: false,
             method: Types.Method.LinearStream,
             recurrence: Types.Recurrence.Weekly, // doesn't matter
             paymentsLeft: 0,
@@ -202,6 +206,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
             _createBasePaymentRequest(recipient, uint40(block.timestamp), uint40(block.timestamp) + 4 weeks);
 
         paymentRequest.config = Types.Config({
+            canExpire: false,
             method: Types.Method.TranchedStream,
             recurrence: recurrence,
             paymentsLeft: 0,
@@ -217,7 +222,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
 
         // Create the payment request
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
