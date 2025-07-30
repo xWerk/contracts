@@ -8,7 +8,7 @@ payRequest.t.sol
         ├── when the payment request IS canceled
         │   └── it should revert with the {RequestCanceled} error
         └── when the payment request IS NOT canceled
-            ├── given the recurrence is Unlimited
+            ├── given the recurrence is Custom
             │   ├── when the payment request has expired
             │   │   └── it should revert with the {RequestExpired} error
             │   └── when the payment request has not expired

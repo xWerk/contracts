@@ -46,7 +46,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
         // Create a mock payment request with an unlimited USDT transfer
-        paymentRequest = createPaymentWithUnlimitedTransfers({ asset: address(usdt), recipient: address(space) });
+        paymentRequest = createPaymentWithCustomNoOfTransfers({ asset: address(usdt), recipient: address(space) });
         paymentRequests[6] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
@@ -105,7 +105,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
         _;
     }
 
-    function createPaymentWithUnlimitedTransfers(
+    function createPaymentWithCustomNoOfTransfers(
         address asset,
         address recipient
     )
@@ -118,8 +118,8 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
 
         paymentRequest.config = Types.Config({
             method: Types.Method.Transfer,
-            recurrence: Types.Recurrence.Unlimited,
-            paymentsLeft: 0,
+            recurrence: Types.Recurrence.Custom,
+            paymentsLeft: 150, // set a custom number of payments
             asset: asset,
             amount: 100e6,
             streamId: 0

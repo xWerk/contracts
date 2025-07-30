@@ -190,7 +190,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         assertEq(actualRequest.config.streamId, 0);
     }
 
-    function test_RevertWhen_OnlyTransferAllowedForUnlimitedRecurrence()
+    function test_RevertWhen_OnlyTransferAllowedForCustomRecurrence()
         external
         whenCallerContract
         whenCompliantSpace
@@ -203,7 +203,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         vm.startPrank({ msgSender: users.eve });
 
         // Create a one-off transfer payment request
-        paymentRequest = createPaymentWithUnlimitedTransfers({ asset: address(usdt), recipient: address(space) });
+        paymentRequest = createPaymentWithCustomNoOfTransfers({ asset: address(usdt), recipient: address(space) });
 
         // Alter the payment method to be a linear stream
         paymentRequest.config.method = Types.Method.LinearStream;
@@ -214,8 +214,8 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
             paymentRequest
         );
 
-        // Expect the call to revert with the {OnlyTransferAllowedForUnlimitedRecurrence} error
-        vm.expectRevert(Errors.OnlyTransferAllowedForUnlimitedRecurrence.selector);
+        // Expect the call to revert with the {OnlyTransferAllowedForCustomRecurrence} error
+        vm.expectRevert(Errors.OnlyTransferAllowedForCustomRecurrence.selector);
 
         // Run the test
         space.execute({ module: address(paymentModule), value: 0, data: data });
@@ -234,7 +234,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         vm.startPrank({ msgSender: users.eve });
 
         // Create a new payment request with an unlimited number of USDT payments
-        paymentRequest = createPaymentWithUnlimitedTransfers({ asset: address(usdt), recipient: address(space) });
+        paymentRequest = createPaymentWithCustomNoOfTransfers({ asset: address(usdt), recipient: address(space) });
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
@@ -268,10 +268,10 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         assertEq(actualRequest.startTime, paymentRequest.startTime);
         assertEq(actualRequest.endTime, paymentRequest.endTime);
         assertEq(uint8(actualRequest.config.method), uint8(Types.Method.Transfer));
-        assertEq(uint8(actualRequest.config.recurrence), uint8(Types.Recurrence.Unlimited));
+        assertEq(uint8(actualRequest.config.recurrence), uint8(Types.Recurrence.Custom));
         assertEq(actualRequest.config.asset, paymentRequest.config.asset);
         assertEq(actualRequest.config.amount, paymentRequest.config.amount);
-        assertEq(actualRequest.config.paymentsLeft, type(uint40).max);
+        assertEq(actualRequest.config.paymentsLeft, paymentRequest.config.paymentsLeft);
         assertEq(actualRequest.config.streamId, 0);
     }
 
