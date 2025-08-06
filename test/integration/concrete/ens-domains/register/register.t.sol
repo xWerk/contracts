@@ -18,7 +18,7 @@ contract Register_Integration_Concret_Test is Integration_Test {
         vm.expectRevert(Errors.SpaceZeroCodeSize.selector);
 
         // Run the test
-        werkSubdomainRegistrar.reserve({ label: "name" });
+        werkSubdomainRegistrar.register({ label: "name" });
     }
 
     modifier whenCallerContract() {
@@ -29,8 +29,8 @@ contract Register_Integration_Concret_Test is Integration_Test {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
-        // Create the calldata for the reserve method execution
-        bytes memory data = abi.encodeWithSignature("reserve(string)", "test");
+        // Create the calldata for the register method execution
+        bytes memory data = abi.encodeWithSignature("register(string)", "test");
 
         // Expect the call to revert with the {SpaceUnsupportedInterface} error
         vm.expectRevert(Errors.SpaceUnsupportedInterface.selector);
@@ -47,7 +47,7 @@ contract Register_Integration_Concret_Test is Integration_Test {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
-        // Create the calldata for the reserve method execution
+        // Create the calldata for the register method execution
         bytes memory data = abi.encodeWithSignature("register(string)", "test");
 
         // Expect the call to revert with the {ReservationNotFound} error
@@ -77,7 +77,7 @@ contract Register_Integration_Concret_Test is Integration_Test {
         // Warp the time forward by 31 minutes so the reservation expires
         vm.warp(block.timestamp + 31 minutes);
 
-        // Create the calldata for the reserve method execution
+        // Create the calldata for the register method execution
         data = abi.encodeWithSignature("register(string)", "test");
 
         // Expect the call to revert with the {ReservationExpired} error
