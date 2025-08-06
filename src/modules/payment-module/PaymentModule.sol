@@ -8,12 +8,11 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { Lockup } from "@sablier/lockup/src/types/DataTypes.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { UD60x18 } from "@prb/math/src/ud60x18/ValueType.sol";
-import { StreamManager } from "./sablier-lockup/StreamManager.sol";
 
+import { StreamManager } from "./sablier-lockup/StreamManager.sol";
 import { Types } from "./libraries/Types.sol";
 import { Errors } from "./libraries/Errors.sol";
 import { IPaymentModule } from "./interfaces/IPaymentModule.sol";
-import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Helpers } from "./libraries/Helpers.sol";
 
 /// @title PaymentModule
@@ -85,23 +84,6 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 
     /*//////////////////////////////////////////////////////////////////////////
-                                      MODIFIERS
-    //////////////////////////////////////////////////////////////////////////*/
-
-    /// @dev Allow only calls from contracts implementing the {ISpace} interface
-    modifier onlySpace() {
-        // Checks: the sender is a valid non-zero code size contract
-        if (msg.sender.code.length == 0) {
-            revert Errors.SpaceZeroCodeSize();
-        }
-
-        // Checks: the sender implements the ERC-165 interface required by {ISpace}
-        bytes4 interfaceId = type(ISpace).interfaceId;
-        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert Errors.SpaceUnsupportedInterface();
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
@@ -123,7 +105,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IPaymentModule
-    function createRequest(Types.PaymentRequest calldata request) public onlySpace returns (uint256 requestId) {
+    function createRequest(Types.PaymentRequest calldata request) public returns (uint256 requestId) {
         // Checks: the recipient address is not the zero address
         if (request.recipient == address(0)) {
             revert Errors.InvalidZeroAddressRecipient();

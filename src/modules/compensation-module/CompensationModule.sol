@@ -11,7 +11,6 @@ import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { FlowStreamManager } from "./sablier-flow/FlowStreamManager.sol";
 import { ICompensationModule } from "./interfaces/ICompensationModule.sol";
 import { Types } from "./libraries/Types.sol";
-import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Errors } from "./libraries/Errors.sol";
 
 /// @title CompensationModule
@@ -79,19 +78,6 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
                                 MODIFIERS & CHECKS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Allow only calls from contracts implementing the {ISpace} interface
-    modifier onlySpace() {
-        // Checks: the sender is a valid non-zero code size contract
-        if (msg.sender.code.length == 0) {
-            revert Errors.SpaceZeroCodeSize();
-        }
-
-        // Checks: the sender implements the ERC-165 interface required by {ISpace}
-        bytes4 interfaceId = type(ISpace).interfaceId;
-        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert Errors.SpaceUnsupportedInterface();
-        _;
-    }
-
     /// @dev Checks that `componentId` does not reference a null compensation component
     ///
     /// Notes:
@@ -154,7 +140,6 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         IERC20 asset
     )
         external
-        onlySpace
         returns (uint256 componentId, uint256 streamId)
     {
         // Checks: the recipient is not the zero address

@@ -113,7 +113,7 @@ contract WerkSubdomainRegistrar is Ownable {
 
     /// @notice Reserves a name for 30 minutes for a given address
     /// @param label The label to reserve (e.g. "name" for "name.werk.eth")
-    function reserve(string memory label) external onlySpace {
+    function reserve(string memory label) external {
         // Hash the label to get the labelhash
         bytes32 labelhash = keccak256(bytes(label));
 
