@@ -153,34 +153,51 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             }
         }
 
-        // Validates the payment request interval (endTime - startTime) and returns the number of payments
-        // based on the payment method, interval and recurrence type
-        //
-        // Notes:
-        // - The number of payments is validated only for requests with payment method set on Tranched Stream or Recurring Transfer
-        // - There should be only one payment when dealing with a one-off transfer-based request
-        // - When dealing with a recurring transfer, the number of payments must be calculated based
-        // on the payment interval (endTime - startTime) and recurrence type
-        uint40 numberOfPayments = 1;
-        if (request.config.method != Types.Method.LinearStream && request.config.recurrence != Types.Recurrence.OneOff)
-        {
-            numberOfPayments = _checkIntervalPayments({
-                recurrence: request.config.recurrence,
-                startTime: request.startTime,
-                endTime: request.endTime
-            });
+        // Checks: the payment method is transfer-based if the recurrence type is `Custom`
+        if (request.config.recurrence == Types.Recurrence.Custom) {
+            if (request.config.method != Types.Method.Transfer) {
+                revert Errors.OnlyTransferAllowedForCustomRecurrence();
+            }
         }
 
-        // Set the number of payments back to one if dealing with a tranched-based request
-        // The `_checkIntervalPayment` method is still called for a tranched-based request just
-        // to validate the interval and ensure it can support multiple payments based on the chosen recurrence
-        if (request.config.method == Types.Method.TranchedStream) numberOfPayments = 1;
-
-        // Checks: the asset is different than the native token if dealing with either a linear or tranched stream-based payment
+        // Checks: the asset is not the native token if dealing with either a linear or tranched stream-based payment
         if (request.config.method != Types.Method.Transfer) {
             if (request.config.asset == NATIVE_TOKEN) {
                 revert Errors.OnlyERC20StreamsAllowed();
             }
+        }
+
+        // Effects: set the number of payments based on the recurrence type
+        //
+        // Notes:
+        // - For `Custom` recurrence, the number of payments is set to the one provided in the request config `paymentsLeft` input
+        // - The number of payments is validated only for requests with a payment method set to Tranched Stream or recurring Transfer
+        // - There should be only one payment when dealing with a one-off transfer-based request
+        // - When dealing with a recurring transfer, the number of payments must be calculated based
+        // on the payment interval (endTime - startTime) and recurrence type
+        uint40 numberOfPayments;
+        if (request.config.recurrence == Types.Recurrence.Custom) {
+            numberOfPayments = request.config.paymentsLeft;
+        } else {
+            numberOfPayments = 1;
+
+            // Validates the payment request interval (endTime - startTime) and returns the number of payments
+            // based on the payment method, interval and recurrence type only if the recurrence is not `Custom`
+            if (
+                request.config.method != Types.Method.LinearStream
+                    && request.config.recurrence != Types.Recurrence.OneOff
+            ) {
+                numberOfPayments = _checkIntervalPayments({
+                    recurrence: request.config.recurrence,
+                    startTime: request.startTime,
+                    endTime: request.endTime
+                });
+            }
+
+            // Set the number of payments back to one if dealing with a tranched-based request
+            // The `_checkIntervalPayment` method is still called for a tranched-based request just
+            // to validate the interval and ensure it can support multiple payments based on the chosen recurrence
+            if (request.config.method == Types.Method.TranchedStream) numberOfPayments = 1;
         }
 
         // Retrieve the contract storage
@@ -197,6 +214,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             endTime: request.endTime,
             recipient: request.recipient,
             config: Types.Config({
+                canExpire: request.config.canExpire,
                 recurrence: request.config.recurrence,
                 method: request.config.method,
                 paymentsLeft: numberOfPayments,
@@ -237,6 +255,11 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         // Retrieve the request status
         Types.Status requestStatus = _statusOf(requestId);
+
+        // Checks: the payment request is not expired
+        if (requestStatus == Types.Status.Expired) {
+            revert Errors.RequestExpired();
+        }
 
         // Checks: the payment request is not already paid or canceled
         // Note: for stream-based requests the `status` changes to `Paid` only after the funds are fully streamed
@@ -445,8 +468,11 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
 
-        // Check if the payment request is in the `Pending` state first
+        // Check if the payment request has expired (if it's expirable) or is pending
         if (!request.wasAccepted && !request.wasCanceled) {
+            if (request.config.canExpire && uint40(block.timestamp) > request.endTime) {
+                return Types.Status.Expired;
+            }
             return Types.Status.Pending;
         }
 

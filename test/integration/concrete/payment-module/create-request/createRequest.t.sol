@@ -38,7 +38,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -61,7 +61,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -90,7 +90,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -124,7 +124,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -153,7 +153,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -190,6 +190,91 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         assertEq(actualRequest.config.streamId, 0);
     }
 
+    function test_RevertWhen_OnlyTransferAllowedForCustomRecurrence()
+        external
+        whenCallerContract
+        whenCompliantSpace
+        whenNonZeroPaymentAmount
+        whenStartTimeLowerThanEndTime
+        whenEndTimeInTheFuture
+        givenCustomPaymentRecurrence
+    {
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
+        vm.startPrank({ msgSender: users.eve });
+
+        // Create a one-off transfer payment request
+        paymentRequest = createPaymentWithCustomNoOfTransfers({ asset: address(usdt), recipient: address(space) });
+
+        // Alter the payment method to be a linear stream
+        paymentRequest.config.method = Types.Method.LinearStream;
+
+        // Create the calldata for the {PaymentModule} execution
+        bytes memory data = abi.encodeWithSignature(
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
+            paymentRequest
+        );
+
+        // Expect the call to revert with the {OnlyTransferAllowedForCustomRecurrence} error
+        vm.expectRevert(Errors.OnlyTransferAllowedForCustomRecurrence.selector);
+
+        // Run the test
+        space.execute({ module: address(paymentModule), value: 0, data: data });
+    }
+
+    function test_CreateRequest_CustomRecurrence()
+        external
+        whenCallerContract
+        whenCompliantSpace
+        whenNonZeroPaymentAmount
+        whenStartTimeLowerThanEndTime
+        whenEndTimeInTheFuture
+        givenCustomPaymentRecurrence
+    {
+        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
+        vm.startPrank({ msgSender: users.eve });
+
+        // Create a new payment request with an unlimited number of USDT payments
+        paymentRequest = createPaymentWithCustomNoOfTransfers({ asset: address(usdt), recipient: address(space) });
+
+        // Create the calldata for the Payment Module execution
+        bytes memory data = abi.encodeWithSignature(
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
+            paymentRequest
+        );
+
+        // Expect the module call to emit an {RequestCreated} event
+        vm.expectEmit();
+        emit IPaymentModule.RequestCreated({
+            requestId: 1,
+            recipient: address(space),
+            startTime: paymentRequest.startTime,
+            endTime: paymentRequest.endTime,
+            config: paymentRequest.config
+        });
+
+        // Expect the {Space} contract to emit a {ModuleExecutionSucceded} event
+        vm.expectEmit();
+        emit ISpace.ModuleExecutionSucceded({ module: address(paymentModule), value: 0, data: data });
+
+        // Run the test
+        space.execute({ module: address(paymentModule), value: 0, data: data });
+
+        // Assert the actual and expected paymentRequest state
+        Types.PaymentRequest memory actualRequest = paymentModule.getRequest({ requestId: 1 });
+        Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: 1 });
+
+        assertEq(actualRequest.recipient, address(space));
+        assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Pending));
+        assertEq(actualRequest.startTime, paymentRequest.startTime);
+        assertEq(actualRequest.endTime, paymentRequest.endTime);
+        assertEq(uint8(actualRequest.config.method), uint8(Types.Method.Transfer));
+        assertEq(uint8(actualRequest.config.recurrence), uint8(Types.Recurrence.Custom));
+        assertEq(actualRequest.config.asset, paymentRequest.config.asset);
+        assertEq(actualRequest.config.amount, paymentRequest.config.amount);
+        assertEq(actualRequest.config.paymentsLeft, paymentRequest.config.paymentsLeft);
+        assertEq(actualRequest.config.streamId, 0);
+    }
+
     function test_RevertWhen_PaymentMethodRecurringTransfer_PaymentIntervalTooShortForSelectedRecurrence()
         external
         whenCallerContract
@@ -212,7 +297,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -242,7 +327,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -303,7 +388,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -336,7 +421,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -370,7 +455,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -397,7 +482,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -457,7 +542,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 
@@ -483,7 +568,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
         // Create the calldata for the Payment Module execution
         bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(uint8,uint8,uint40,address,uint128,uint256)))",
+            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
             paymentRequest
         );
 

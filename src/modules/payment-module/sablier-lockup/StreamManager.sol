@@ -159,6 +159,18 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         $.broker.fee = newBrokerFee;
     }
 
+    /// @inheritdoc IStreamManager
+    function updateSablierLockup(ISablierLockup newSablierLockup) public onlyOwner {
+        // Retrieve the storage of the {StreamManager} contract
+        StreamManagerStorage storage $ = _getStreamManagerStorage();
+
+        // Log the {SablierLockup} contract address update
+        emit SablierLockupAddressUpdated({ oldAddress: $.SABLIER_LOCKUP, newAddress: newSablierLockup });
+
+        // Update the address of the {SablierLockup} contract
+        $.SABLIER_LOCKUP = newSablierLockup;
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                         SABLIER LOCKUP INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/

@@ -20,6 +20,11 @@ interface IStreamManager {
     /// @param newFee The new broker fee
     event BrokerFeeUpdated(UD60x18 oldFee, UD60x18 newFee);
 
+    /// @notice Emitted when the address of the {SablierLockup} contract is updated
+    /// @param oldAddress The old address of the {SablierLockup} contract
+    /// @param newAddress The new address of the {SablierLockup} contract
+    event SablierLockupAddressUpdated(ISablierLockup oldAddress, ISablierLockup newAddress);
+
     /*//////////////////////////////////////////////////////////////////////////
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -74,4 +79,12 @@ interface IStreamManager {
     ///
     /// @param newBrokerFee The new broker fee
     function updateStreamBrokerFee(UD60x18 newBrokerFee) external;
+
+    /// @notice Updates the address of the {SablierLockup} contract used to create linear and tranched streams
+    ///
+    /// Notes:
+    /// - `msg.sender` must be the owner
+    ///
+    /// @param newSablierLockup The new address of the {SablierLockup} contract
+    function updateSablierLockup(ISablierLockup newSablierLockup) external;
 }

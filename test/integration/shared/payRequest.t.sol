@@ -14,6 +14,10 @@ abstract contract PayRequest_Integration_Shared_Test is Integration_Test, Create
         _;
     }
 
+    modifier whenRequestNotExpired() {
+        _;
+    }
+
     modifier whenRequestNotAlreadyPaid() {
         _;
     }
