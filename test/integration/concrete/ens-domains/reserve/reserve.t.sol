@@ -3,47 +3,13 @@ pragma solidity ^0.8.26;
 
 import { WerkSubdomainRegistrar } from "src/peripherals/ens-domains/WerkSubdomainRegistrar.sol";
 import { Integration_Test } from "test/integration/Integration.t.sol";
-import { Errors } from "src/modules/payment-module/libraries/Errors.sol";
 
 contract Reserve_Integration_Concret_Test is Integration_Test {
     function setUp() public virtual override {
         Integration_Test.setUp();
     }
 
-    function test_RevertWhen_CallerNotContract() external {
-        // Make Bob the caller in this test suite which is an EOA
-        vm.startPrank({ msgSender: users.bob });
-
-        // Expect the call to revert with the {SpaceZeroCodeSize} error
-        vm.expectRevert(Errors.SpaceZeroCodeSize.selector);
-
-        // Run the test
-        werkSubdomainRegistrar.reserve({ label: "name" });
-    }
-
-    modifier whenCallerContract() {
-        _;
-    }
-
-    function test_RevertWhen_NonCompliantSpace() external whenCallerContract {
-        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
-        vm.startPrank({ msgSender: users.eve });
-
-        // Create the calldata for the reserve method execution
-        bytes memory data = abi.encodeWithSignature("reserve(string)", "test");
-
-        // Expect the call to revert with the {SpaceUnsupportedInterface} error
-        vm.expectRevert(Errors.SpaceUnsupportedInterface.selector);
-
-        // Run the test
-        mockNonCompliantSpace.execute({ module: address(werkSubdomainRegistrar), value: 0, data: data });
-    }
-
-    modifier whenCompliantSpace() {
-        _;
-    }
-
-    function test_RevertWhen_SubdomainAlreadyReserved() external whenCallerContract whenCompliantSpace {
+    function test_RevertWhen_SubdomainAlreadyReserved() external {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
@@ -67,7 +33,7 @@ contract Reserve_Integration_Concret_Test is Integration_Test {
         _;
     }
 
-    function test_Reserve() external whenCallerContract whenCompliantSpace whenSubdomainNotReserved {
+    function test_Reserve() external whenSubdomainNotReserved {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 

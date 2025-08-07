@@ -1,49 +1,43 @@
 createRequest.t.sol
-├── when the caller IS NOT a contract
-│   └── it should revert with the {SpaceZeroCodeSize} error
-└── when the caller IS a contract
-    ├── when the caller contract DOES NOT implement the ERC-165 {ISpace} interface
-    │   └── it should revert with the {SpaceUnsupportedInterface} error
-    └── when the caller contract DOES implement the ERC-165 {ISpace} interface
-        ├── when the payment amount IS zero
-        │    └── it should revert with the {ZeroPaymentAmount} error
-        └── when the payment amount IS greater than zero
-            ├── when the start time IS greater than the end time
-            │   └──  it should revert with the {StartTimeGreaterThanEndTime} error
-            └── when the start time IS NOT greater than the end time
-                ├── when the end time IS in the past
-                │   └── it should revert with the {EndTimeInThePast} error
-                └── when the end time IS NOT in the past
-                    ├── given the payment method is a regular transfer
-                    │   ├── it should create the payment request
-                    │   └── it should emit an {RequestCreated} event
-                    ├── given the recurrence is Custom
-                    │   ├── when the payment method is not transfer
-                    │   │   └── it should revert with the {OnlyTransferAllowedForCustomRecurrence} error
-                    │   └── when the payment method is transfer
-                    │       ├── it should create the payment request
-                    │       └── it should emit an {RequestCreated} event
-                    ├── given the payment method is a recurring transfer
-                    │   ├── when the payment interval is too short for the selected recurrence
-                    │   │   └── it should revert with the {PaymentIntervalTooShortForSelectedRecurrence} error
-                    │   └── when the payment interval is long enough for the selected recurrence
-                    │       ├── it should create the payment request
-                    │       └── it should emit an {RequestCreated} event
-                    ├── given the payment method is a tranched stream
-                    │   ├── when the recurrence IS set to one-off
-                    │   │   └── it should revert with the {TranchedStreamInvalidOneOffRecurence} error
-                    │   └── when the recurrence IS NOT set to one-off
-                    │       ├── when the payment interval is too short for the selected recurrence
-                    │       │   └── it should revert with the {PaymentIntervalTooShortForSelectedRecurrence} error
-                    │       └── when the payment interval is long enough for the selected recurrence
-                    │           ├── when the payment asset IS the native token
-                    │           │   └── it should revert with the {OnlyERC20StreamsAllowed} error
-                    │           └── when the payment asset IS NOT the native token
-                    │               ├── it should create the payment request
-                    │               └── it should emit an {RequestCreated} event
-                    └── given the payment method is a linear stream
-                        ├── when the payment asset IS the native token
-                        │   └── it should revert with the {OnlyERC20StreamsAllowed} error
-                        └── when the payment asset IS NOT the native token
-                            ├── it should create the payment request
-                            └── it should emit an {RequestCreated} event                                
+├── when the payment amount IS zero
+│   └── it should revert with the {ZeroPaymentAmount} error
+└── when the payment amount IS greater than zero
+    ├── when the start time IS greater than the end time
+    │   └── it should revert with the {StartTimeGreaterThanEndTime} error
+    └── when the start time IS NOT greater than the end time
+        ├── when the end time IS in the past
+        │   └── it should revert with the {EndTimeInThePast} error
+        └── when the end time IS NOT in the past
+            ├── given the payment method is a regular transfer
+            │   ├── it should create the payment request
+            │   └── it should emit an {RequestCreated} event
+            ├── given the recurrence is Custom
+            │   ├── when the payment method is not transfer
+            │   │   └── it should revert with the {OnlyTransferAllowedForCustomRecurrence} error
+            │   └── when the payment method is transfer
+            │       ├── it should create the payment request
+            │       └── it should emit an {RequestCreated} event
+            ├── given the payment method is a recurring transfer
+            │   ├── when the payment interval is too short for the selected recurrence
+            │   │   └── it should revert with the {PaymentIntervalTooShortForSelectedRecurrence} error
+            │   └── when the payment interval is long enough for the selected recurrence
+            │       ├── it should create the payment request
+            │       └── it should emit an {RequestCreated} event
+            ├── given the payment method is a tranched stream
+            │   ├── when the recurrence IS set to one-off
+            │   │   └── it should revert with the {TranchedStreamInvalidOneOffRecurence} error
+            │   └── when the recurrence IS NOT set to one-off
+            │       ├── when the payment interval is too short for the selected recurrence
+            │       │   └── it should revert with the {PaymentIntervalTooShortForSelectedRecurrence} error
+            │       └── when the payment interval is long enough for the selected recurrence
+            │           ├── when the payment asset IS the native token
+            │           │   └── it should revert with the {OnlyERC20StreamsAllowed} error
+            │           └── when the payment asset IS NOT the native token
+            │               ├── it should create the payment request
+            │               └── it should emit an {RequestCreated} event
+            └── given the payment method is a linear stream
+                ├── when the payment asset IS the native token
+                │   └── it should revert with the {OnlyERC20StreamsAllowed} error
+                └── when the payment asset IS NOT the native token
+                    ├── it should create the payment request
+                    └── it should emit an {RequestCreated} event
