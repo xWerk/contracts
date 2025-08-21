@@ -240,7 +240,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         // Calculate the broker fee amount
         uint128 brokerFeeAmount = ud(totalAmount).mul($.broker.fee).intoUint128();
 
-        // Calculate the remaining amount to be streamed after substracting the broker fee
+        // Calculate the remaining amount to be streamed after subtracting the broker fee
         uint128 deposit = totalAmount - brokerFeeAmount;
 
         // Declare the params struct
@@ -280,7 +280,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         returns (LockupTranched.Tranche[] memory)
     {
         // Calculate the duration of each tranche based on the payment recurrence
-        uint40 durationPerTranche = _getDurationPerTrache(recurrence);
+        uint40 durationPerTranche = _getDurationPerTranche(recurrence);
 
         // Calculate the amount that must be unlocked with each tranche
         uint128 amountPerTranche = deposit / numberOfTranches;
@@ -336,7 +336,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
                             OTHER INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Transfers the `amount` of `asset` tokens to this address (or the contract inherting from)
+    /// @dev Transfers the `amount` of `asset` tokens to this address (or the contract inheriting from)
     /// and approves either the `SablierV2LockupLinear` or `SablierV2LockupTranched` to spend the amount
     function _transferFromAndApprove(IERC20 asset, uint128 amount, address spender) internal {
         // Transfer the provided amount of ERC-20 tokens to this contract
@@ -347,7 +347,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     }
 
     /// @dev Retrieves the duration of each tranche from a tranched stream based on a recurrence
-    function _getDurationPerTrache(Types.Recurrence recurrence) internal pure returns (uint40 duration) {
+    function _getDurationPerTranche(Types.Recurrence recurrence) internal pure returns (uint40 duration) {
         if (recurrence == Types.Recurrence.Weekly) duration = 1 weeks;
         else if (recurrence == Types.Recurrence.Monthly) duration = 4 weeks;
         else if (recurrence == Types.Recurrence.Yearly) duration = 48 weeks;
