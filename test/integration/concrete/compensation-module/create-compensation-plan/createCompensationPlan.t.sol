@@ -7,50 +7,10 @@ import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
 import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract createComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
         CompensationModule_Integration_Test.setUp();
-    }
-
-    function test_RevertWhen_CallerNotSpace() external {
-        // Make Bob the caller in this test suite which is an EOA
-        vm.startPrank({ msgSender: users.bob });
-
-        // Expect the call to revert with the {SpaceZeroCodeSize} error
-        vm.expectRevert(Errors.SpaceZeroCodeSize.selector);
-
-        // Run the test
-        compensationModule.createComponent({
-            recipient: users.bob,
-            ratePerSecond: Constants.RATE_PER_SECOND,
-            componentType: Types.ComponentType.Payroll,
-            asset: IERC20(address(usdt))
-        });
-    }
-
-    function test_RevertWhen_NonCompliantSpace() external whenCallerContract {
-        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
-        vm.startPrank({ msgSender: users.eve });
-
-        // Create a mock compensation component with 1 component
-        Types.CompensationComponent memory initialComponent = createMockComponent(Types.ComponentType.Payroll);
-
-        // Create the calldata for the `createComponent` function call
-        bytes memory data = abi.encodeWithSignature(
-            "createComponent(address,uint128,uint8,address)",
-            users.bob,
-            initialComponent.ratePerSecond,
-            uint8(initialComponent.componentType),
-            address(initialComponent.asset)
-        );
-
-        // Expect the call to revert with the {SpaceUnsupportedInterface} error
-        vm.expectRevert(Errors.SpaceUnsupportedInterface.selector);
-
-        // Run the test
-        mockNonCompliantSpace.execute({ module: address(compensationModule), value: 0, data: data });
     }
 
     function test_RevertWhen_RecipientZeroAddress() external whenCallerContract whenCompliantSpace {
@@ -76,12 +36,7 @@ contract createComponent_Integration_Concrete_Test is CompensationModule_Integra
         space.execute({ module: address(compensationModule), value: 0, data: data });
     }
 
-    function test_RevertWhen_ZeroRatePerSecond()
-        external
-        whenCallerContract
-        whenCompliantSpace
-        whenNonZeroAddressRecipient
-    {
+    function test_RevertWhen_ZeroRatePerSecond() external whenNonZeroAddressRecipient {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
@@ -107,13 +62,7 @@ contract createComponent_Integration_Concrete_Test is CompensationModule_Integra
         space.execute({ module: address(compensationModule), value: 0, data: data });
     }
 
-    function test_createComponent()
-        external
-        whenCallerContract
-        whenCompliantSpace
-        whenNonZeroAddressRecipient
-        whenNonZeroRatePerSecond
-    {
+    function test_createComponent() external whenNonZeroAddressRecipient whenNonZeroRatePerSecond {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 

@@ -15,41 +15,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         CreateRequest_Integration_Shared_Test.setUp();
     }
 
-    function test_RevertWhen_CallerNotContract() external {
-        // Make Bob the caller in this test suite which is an EOA
-        vm.startPrank({ msgSender: users.bob });
-
-        // Expect the call to revert with the {SpaceZeroCodeSize} error
-        vm.expectRevert(Errors.SpaceZeroCodeSize.selector);
-
-        // Create a one-off transfer payment request
-        paymentRequest = createPaymentRequestWithOneOffTransfer({ asset: address(usdt), recipient: users.bob });
-
-        // Run the test
-        paymentModule.createRequest(paymentRequest);
-    }
-
-    function test_RevertWhen_NonCompliantSpace() external whenCallerContract {
-        // Make Eve the caller in this test suite as she's the owner of the {Space} contract
-        vm.startPrank({ msgSender: users.eve });
-
-        // Create a one-off transfer payment request
-        paymentRequest = createPaymentRequestWithOneOffTransfer({ asset: address(usdt), recipient: address(space) });
-
-        // Create the calldata for the Payment Module execution
-        bytes memory data = abi.encodeWithSignature(
-            "createRequest((bool,bool,uint40,uint40,address,(bool,uint8,uint8,uint40,address,uint128,uint256)))",
-            paymentRequest
-        );
-
-        // Expect the call to revert with the {SpaceUnsupportedInterface} error
-        vm.expectRevert(Errors.SpaceUnsupportedInterface.selector);
-
-        // Run the test
-        mockNonCompliantSpace.execute({ module: address(paymentModule), value: 0, data: data });
-    }
-
-    function test_RevertWhen_ZeroAddressRecipient() external whenCallerContract whenCompliantSpace {
+    function test_RevertWhen_ZeroAddressRecipient() external whenCompliantSpace {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
@@ -69,7 +35,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         space.execute({ module: address(paymentModule), value: 0, data: data });
     }
 
-    function test_RevertWhen_ZeroPaymentAmount() external whenCallerContract whenCompliantSpace whenNotZeroAddress {
+    function test_RevertWhen_ZeroPaymentAmount() external whenNotZeroAddress {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
@@ -94,7 +60,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_RevertWhen_StartTimeGreaterThanEndTime()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -124,7 +89,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_RevertWhen_EndTimeInThePast()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -159,7 +123,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_CreateRequest_PaymentMethodOneOffTransfer()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -215,7 +178,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_RevertWhen_OnlyTransferAllowedForCustomRecurrence()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -247,7 +209,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_CreateRequest_CustomRecurrence()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -302,7 +263,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_RevertWhen_PaymentMethodRecurringTransfer_PaymentIntervalTooShortForSelectedRecurrence()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -336,7 +296,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_CreateRequest_RecurringTransfer()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -393,7 +352,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_RevertWhen_PaymentMethodTranchedStream_RecurrenceSetToOneOff()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -426,7 +384,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_RevertWhen_PaymentMethodTranchedStream_PaymentIntervalTooShortForSelectedRecurrence()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -460,7 +417,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_RevertWhen_PaymentMethodTranchedStream_PaymentAssetNativeToken()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -495,7 +451,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_CreateRequest_Tranched()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -552,7 +507,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_RevertWhen_PaymentMethodLinearStream_PaymentAssetNativeToken()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
@@ -584,7 +538,6 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
 
     function test_CreateRequest_LinearStream()
         external
-        whenCallerContract
         whenCompliantSpace
         whenNotZeroAddress
         whenNonZeroPaymentAmount
