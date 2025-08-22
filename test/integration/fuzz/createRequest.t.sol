@@ -27,8 +27,6 @@ contract CreateRequest_Integration_Fuzz_Test is CreateRequest_Integration_Shared
         uint128 amount
     )
         external
-        whenCallerContract
-        whenCompliantSpace
         whenNonZeroPaymentAmount
         whenStartTimeLowerThanEndTime
         whenEndTimeInTheFuture
