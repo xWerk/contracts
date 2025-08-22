@@ -61,6 +61,10 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
         _;
     }
 
+    modifier whenNotZeroAddress() {
+        _;
+    }
+
     modifier whenNonZeroPaymentAmount() {
         _;
     }
