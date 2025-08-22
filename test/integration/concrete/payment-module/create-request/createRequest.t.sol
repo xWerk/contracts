@@ -53,7 +53,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
-        // Create a one-off transfer payment request
+        // Create a one-off transfer payment request with zero address recipient to simulate error
         paymentRequest = createPaymentRequestWithOneOffTransfer({ asset: address(usdt), recipient: address(0) });
 
         // Create the calldata for the Payment Module execution
@@ -62,7 +62,7 @@ contract CreateRequest_Integration_Concret_Test is CreateRequest_Integration_Sha
             paymentRequest
         );
 
-        // Expect the call to revert with the {ZeroPaymentAmount} error
+        // Expect the call to revert with the {InvalidZeroAddressRecipient} error
         vm.expectRevert(Errors.InvalidZeroAddressRecipient.selector);
 
         // Run the test
