@@ -13,7 +13,7 @@ contract createComponent_Integration_Concrete_Test is CompensationModule_Integra
         CompensationModule_Integration_Test.setUp();
     }
 
-    function test_RevertWhen_RecipientZeroAddress() external whenCallerContract whenCompliantSpace {
+    function test_RevertWhen_RecipientZeroAddress() external whenCallerContract {
         // Make Eve the caller in this test suite as she's the owner of the {Space} contract
         vm.startPrank({ msgSender: users.eve });
 
