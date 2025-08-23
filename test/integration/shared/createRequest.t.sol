@@ -53,7 +53,7 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
         _nextRequestId = 7;
     }
 
-    modifier whenCompliantSpace() {
+    modifier whenNotZeroAddress() {
         _;
     }
 

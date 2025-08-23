@@ -11,8 +11,4 @@ abstract contract CreateInvoice_Integration_Shared_Test is Integration_Test {
     modifier whenCallerContract() {
         _;
     }
-
-    modifier whenCompliantSpace() {
-        _;
-    }
 }

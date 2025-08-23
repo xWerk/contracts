@@ -31,10 +31,6 @@ contract CompensationModule_Integration_Test is Integration_Test {
         _;
     }
 
-    modifier whenCompliantSpace() {
-        _;
-    }
-
     modifier whenNonZeroAddressRecipient() {
         _;
     }
