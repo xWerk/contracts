@@ -3,25 +3,33 @@ pragma solidity ^0.8.26;
 
 import { BaseScript } from "./Base.s.sol";
 import { PaymentModule } from "src/modules/payment-module/PaymentModule.sol";
+import { CREATE3 } from "solady/src/utils/CREATE3.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
-import { Upgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-/// @notice Deploys an instance of {PaymentModule}
+/// @notice Deterministically deploys an instance of {PaymentModule}
 contract DeployPaymentModule is BaseScript {
-    function run() public virtual broadcast returns (PaymentModule paymentModule) {
-        paymentModule = PaymentModule(
-            Upgrades.deployUUPSProxy(
-                "PaymentModule.sol",
-                abi.encodeCall(
-                    PaymentModule.initialize,
-                    (
-                        ISablierLockup(sablierLockupMap[block.chainid]),
-                        DEFAULT_PROTOCOL_OWNER,
-                        DEFAULT_BROKER_ADMIN,
-                        DEFAULT_BROKER_FEE
-                    )
-                )
-            )
+    function run(string memory create3Salt) public virtual broadcast returns (PaymentModule paymentModule) {
+        // Derive deterministic salt
+        bytes32 salt = keccak256(bytes(create3Salt));
+
+        // Deploy the {PaymentModule} implementation (non-deterministic)
+        address paymentModuleImplementation = address(new PaymentModule());
+
+        // Encode initialization data for the proxy constructor
+        bytes memory initData = abi.encodeWithSelector(
+            PaymentModule.initialize.selector,
+            ISablierLockup(sablierLockupMap[block.chainid]),
+            DEFAULT_PROTOCOL_OWNER,
+            DEFAULT_BROKER_ADMIN,
+            DEFAULT_BROKER_FEE
         );
+
+        // Construct the ERC1967Proxy bytecode with implementation and initData
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(paymentModuleImplementation, initData));
+
+        // Deploy the proxy deterministically using CREATE3 and cast to {SwappingContract} interface
+        paymentModule = PaymentModule(CREATE3.deployDeterministic(proxyBytecode, salt));
     }
 }

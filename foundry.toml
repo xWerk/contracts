@@ -7,6 +7,7 @@ gas_reports = ["ModuleKeeper", "DockRegistry", "Container"]
 ast = true
 build_info = true
 extra_output = ["storageLayout"]
+libs = ["node_modules", "lib"]
 
 [profile.default.fuzz]
 max_test_rejects = 500_000
