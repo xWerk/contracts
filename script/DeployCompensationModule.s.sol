@@ -3,26 +3,33 @@ pragma solidity ^0.8.26;
 
 import { BaseScript } from "./Base.s.sol";
 import { CompensationModule } from "src/modules/compensation-module/CompensationModule.sol";
-
-import { Upgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
+import { CREATE3 } from "solady/src/utils/CREATE3.sol";
 
-/// @notice Deploys an instance of {CompensationModule}
+/// @notice Deterministically deploys an instance of {CompensationModule}
 contract DeployCompensationModule is BaseScript {
-    function run() public virtual broadcast returns (CompensationModule compensationModule) {
-        compensationModule = CompensationModule(
-            Upgrades.deployUUPSProxy(
-                "CompensationModule.sol",
-                abi.encodeCall(
-                    CompensationModule.initialize,
-                    (
-                        ISablierFlow(sablierFlowMap[block.chainid]),
-                        DEFAULT_PROTOCOL_OWNER,
-                        DEFAULT_BROKER_ADMIN,
-                        DEFAULT_BROKER_FEE
-                    )
-                )
-            )
+    function run(string memory create3Salt) public virtual broadcast returns (CompensationModule compensationModule) {
+        // Derive deterministic salt
+        bytes32 salt = keccak256(bytes(create3Salt));
+
+        // Deploy the {CompensationModule} implementation (non-deterministic)
+        address compensationModuleImplementation = address(new CompensationModule());
+
+        // Encode initialization data for the proxy constructor
+        bytes memory initData = abi.encodeWithSelector(
+            CompensationModule.initialize.selector,
+            ISablierFlow(sablierFlowMap[block.chainid]),
+            DEFAULT_PROTOCOL_OWNER,
+            DEFAULT_BROKER_ADMIN,
+            DEFAULT_BROKER_FEE
         );
+
+        // Construct the ERC1967Proxy bytecode with implementation and initData
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(compensationModuleImplementation, initData));
+
+        // Deploy the proxy deterministically using CREATE3 and cast to {CompensationModule} interface
+        compensationModule = CompensationModule(CREATE3.deployDeterministic(proxyBytecode, salt));
     }
 }
