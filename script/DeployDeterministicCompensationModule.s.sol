@@ -8,10 +8,11 @@ import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { CREATE3 } from "solady/src/utils/CREATE3.sol";
 
 /// @notice Deterministically deploys an instance of {CompensationModule}
+/// @dev Uses `CREATE3` for deterministic proxy deployment across all EVM chains
 contract DeployCompensationModule is BaseScript {
-    function run(string memory create3Salt) public virtual broadcast returns (CompensationModule compensationModule) {
-        // Derive deterministic salt
-        bytes32 salt = keccak256(bytes(create3Salt));
+    function run() public virtual broadcast returns (CompensationModule compensationModule) {
+        // Create deterministic salt
+        bytes32 salt = createSalt("CompensationModule");
 
         // Deploy the {CompensationModule} implementation (non-deterministic)
         address compensationModuleImplementation = address(new CompensationModule());
@@ -29,7 +30,7 @@ contract DeployCompensationModule is BaseScript {
         bytes memory proxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(compensationModuleImplementation, initData));
 
-        // Deploy the proxy deterministically using CREATE3 and cast to {CompensationModule} interface
+        // Deploy the proxy deterministically using CREATE3
         compensationModule = CompensationModule(CREATE3.deployDeterministic(proxyBytecode, salt));
     }
 }

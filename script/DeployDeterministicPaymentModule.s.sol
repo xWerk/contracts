@@ -8,10 +8,11 @@ import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.so
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /// @notice Deterministically deploys an instance of {PaymentModule}
+/// @dev Uses `CREATE3` for deterministic proxy deployment across all EVM chains
 contract DeployPaymentModule is BaseScript {
-    function run(string memory create3Salt) public virtual broadcast returns (PaymentModule paymentModule) {
-        // Derive deterministic salt
-        bytes32 salt = keccak256(bytes(create3Salt));
+    function run() public virtual broadcast returns (PaymentModule paymentModule) {
+        // Create deterministic salt
+        bytes32 salt = createSalt("PaymentModule");
 
         // Deploy the {PaymentModule} implementation (non-deterministic)
         address paymentModuleImplementation = address(new PaymentModule());
@@ -29,7 +30,7 @@ contract DeployPaymentModule is BaseScript {
         bytes memory proxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(paymentModuleImplementation, initData));
 
-        // Deploy the proxy deterministically using CREATE3 and cast to {SwappingContract} interface
+        // Deploy the proxy deterministically using CREATE3
         paymentModule = PaymentModule(CREATE3.deployDeterministic(proxyBytecode, salt));
     }
 }
