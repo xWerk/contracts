@@ -161,4 +161,12 @@ contract BaseScript is Script {
         // Base Sepolia deployment
         acrossSpokePoolMap[84_532] = 0x82B564983aE7274c86695917BBf8C99ECb6F0F8F;
     }
+
+    /// @notice Generates a deterministic deployment salt from a string input
+    /// @dev Converts the given `salt` string into a `bytes32` value using `keccak256`
+    /// Notes:
+    /// - Can be used for deterministic deployments with both CREATE2 and CREATE3
+    function createSalt(string memory salt) internal pure returns (bytes32) {
+        return bytes32(keccak256(bytes(salt)));
+    }
 }
