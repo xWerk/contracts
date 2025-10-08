@@ -34,7 +34,7 @@ deploy-invoice-collection:
 deploy-deterministic-module-keeper:
 					forge script script/DeployDeterministicModuleKeeper.s.sol:DeployDeterministicModuleKeeper \
 					$(CREATE2SALT) \
-					--sig "run(string)" --rpc-url $(RPC_URL) \
+				    --rpc-url $(RPC_URL) \
 					--account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify
 
@@ -46,7 +46,7 @@ deploy-deterministic-module-keeper:
 deploy-deterministic-station-registry:
 					forge script script/DeployDeterministicStationRegistry.s.sol:DeployDeterministicStationRegistry \
 					$(CREATE2SALT) $(MODULE_KEEPER) \
-					--sig "run(string,address)" --rpc-url $(RPC_URL) \
+					--sig "run(address)" --rpc-url $(RPC_URL) \
 					--account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 
@@ -74,7 +74,7 @@ deploy-compensation-module:
 deploy-core: 
 					forge script script/DeployDeterministicCore.s.sol:DeployDeterministicCore \
 					$(CREATE2SALT) \
-					--sig "run(string)" --rpc-url $(RPC_URL) --account dev \
+					--rpc-url $(RPC_URL) --account dev \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
 
 # Deploys the {WerkSubdomainCore} contract deterministically 

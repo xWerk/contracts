@@ -15,7 +15,7 @@ contract DeployDeterministicStationRegistry is BaseScript {
         // Create deterministic salt
         bytes32 salt = createSalt("StationRegistry");
 
-        // Deterministically deploy the {StationRegistry} smart account factory
+        // Deploy the {StationRegistry} factory deterministically using CREATE2
         stationRegistry =
             new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_OWNER, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
     }
