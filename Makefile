@@ -24,7 +24,7 @@ tests-coverage :; ./script/coverage.sh
 deploy-invoice-collection: 
 					forge script script/DeployInvoiceCollection.s.sol:DeployInvoiceCollection \
 					$(RELAYER) $(NAME) $(SYMBOL) \
-					--sig "run(address,string,string)" --rpc-url $(RPC_URL) --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) 
+					--sig "run(address,string,string)" --rpc-url $(RPC_URL) --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify
 
 # Deploys the {ModuleKeeper} contract deterministically 
@@ -33,8 +33,7 @@ deploy-invoice-collection:
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-deterministic-module-keeper:
 					forge script script/DeployDeterministicModuleKeeper.s.sol:DeployDeterministicModuleKeeper \
-					$(CREATE2SALT) \
-					--sig "run(string)" --rpc-url $(RPC_URL) \
+					--rpc-url $(RPC_URL) \
 					--account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify
 
@@ -45,8 +44,8 @@ deploy-deterministic-module-keeper:
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-deterministic-station-registry:
 					forge script script/DeployDeterministicStationRegistry.s.sol:DeployDeterministicStationRegistry \
-					$(CREATE2SALT) $(MODULE_KEEPER) \
-					--sig "run(string,address)" --rpc-url $(RPC_URL) \
+					$(MODULE_KEEPER) \
+					--sig "run(address)" --rpc-url $(RPC_URL) \
 					--account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 
@@ -73,8 +72,7 @@ deploy-compensation-module:
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-core: 
 					forge script script/DeployDeterministicCore.s.sol:DeployDeterministicCore \
-					$(CREATE2SALT) \
-					--sig "run(string)" --rpc-url $(RPC_URL) --account dev \
+					--rpc-url $(RPC_URL) --account dev \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
 
 # Deploys the {WerkSubdomainCore} contract deterministically 
@@ -89,7 +87,7 @@ deploy-ens-subdomain-core:
 					$(CREATE2SALT) "werk.eth" $(WERK_SUBDOMAIN_BASE_URI) \
 					--sig "run(string,string,string)" --rpc-url $(RPC_URL) --account dev \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
-					
+
 # Deploys the {L2SubdomainRegistrar} contract deterministically 
 #
 # Update the following configs before running the script:
@@ -98,13 +96,13 @@ deploy-ens-subdomain-core:
 #   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-ens-subdomain-registrar:
 					forge script script/ens-domains/DeployDeterministicWerkSubdomainRegistrar.s.sol:DeployDeterministicWerkSubdomainRegistrar \
-                    $(CREATE2SALT) $(WERK_SUBDOMAIN_REGISTRY) \
-                    --sig "run(string,address)" --rpc-url $(RPC_URL) --account dev \
-                    --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
+					$(CREATE2SALT) $(WERK_SUBDOMAIN_REGISTRY) \
+					--sig "run(string,address)" --rpc-url $(RPC_URL) --account dev \
+					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
 
 # Configure the {WerkSubdomainRegistry} to allow the {WerkSubdomainRegistrar} to register subdomains
 configure-ens-subdomain-registry:
-                    cast send $(WERK_SUBDOMAIN_REGISTRY) "addRegistrar(address)" $(WERK_SUBDOMAIN_REGISTRAR) --rpc-url $(RPC_URL) --acount dev 
+					cast send $(WERK_SUBDOMAIN_REGISTRY) "addRegistrar(address)" $(WERK_SUBDOMAIN_REGISTRAR) --rpc-url $(RPC_URL) --account dev 
 
 # Upgrades the {PaymentModule} contract
 #

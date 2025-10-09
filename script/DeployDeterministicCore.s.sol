@@ -11,15 +11,18 @@ import { Core } from "@openzeppelin/foundry-upgrades/src/internal/Core.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
+import { CREATE3 } from "solady/src/utils/CREATE3.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-/// @notice Deploys at deterministic addresses across chains the core contracts of the Werk Protocol
+/// @notice Deploys the Werk Protocol core contracts deterministically across all supported EVM chains
 /// @dev Reverts if any contract has already been deployed
 contract DeployDeterministicCore is BaseScript {
     address[] modules;
 
-    /// @dev By using a salt, Forge will deploy the contract via a deterministic CREATE2 factory
-    /// https://book.getfoundry.sh/tutorials/create2-tutorial?highlight=deter#deterministic-deployment-using-create2
-    function run(string memory create2Salt)
+    /// @dev Uses `CREATE2` and `CREATE3` to ensure the same deployment addresses across chains
+    /// Notes:
+    /// - Each deployment uses a unique salt derived from its contract name via `createSalt`
+    function run()
         public
         virtual
         broadcast
@@ -30,48 +33,44 @@ contract DeployDeterministicCore is BaseScript {
             CompensationModule compensationModule
         )
     {
-        bytes32 salt = bytes32(abi.encodePacked(create2Salt));
-
-        // Deterministically deploy the {ModuleKeeper} contract
+        // Deploy {ModuleKeeper} at a deterministic address across chains
+        bytes32 salt = createSalt("ModuleKeeper");
         moduleKeeper = new ModuleKeeper{ salt: salt }(DEFAULT_PROTOCOL_OWNER);
 
-        // Deterministically deploy the {StationRegistry} contract
+        // Deploy {StationRegistry} at a deterministic address across chains
+        salt = createSalt("StationRegistry");
         stationRegistry =
             new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_OWNER, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
 
-        // Deploy the {PaymentModule} module
-        // The proxy cannot be deterministically deployed because the `initializerData` which is passed in the constructor, differ between chains
-        paymentModule = PaymentModule(
-            Upgrades.deployUUPSProxy(
-                "PaymentModule.sol",
-                abi.encodeCall(
-                    PaymentModule.initialize,
-                    (
-                        ISablierLockup(sablierLockupMap[block.chainid]),
-                        DEFAULT_PROTOCOL_OWNER,
-                        DEFAULT_BROKER_ADMIN,
-                        DEFAULT_BROKER_FEE
-                    )
-                )
-            )
+        // Deploy {PaymentModule} at a deterministic address across chains
+        salt = createSalt("PaymentModule");
+        address paymentModuleImplementation = address(new PaymentModule());
+        bytes memory paymentModuleInitData = abi.encodeWithSelector(
+            PaymentModule.initialize.selector,
+            ISablierLockup(sablierLockupMap[block.chainid]),
+            DEFAULT_PROTOCOL_OWNER,
+            DEFAULT_BROKER_ADMIN,
+            DEFAULT_BROKER_FEE
         );
+        bytes memory paymentModuleProxyBytecode = abi.encodePacked(
+            type(ERC1967Proxy).creationCode, abi.encode(paymentModuleImplementation, paymentModuleInitData)
+        );
+        paymentModule = PaymentModule(CREATE3.deployDeterministic(paymentModuleProxyBytecode, salt));
 
-        // Deploy the {CompensationModule} module
-        // The proxy cannot be deterministically deployed because the `initializerData` which is passed in the constructor, differ between chains
-        compensationModule = CompensationModule(
-            Upgrades.deployUUPSProxy(
-                "CompensationModule.sol",
-                abi.encodeCall(
-                    CompensationModule.initialize,
-                    (
-                        ISablierFlow(sablierFlowMap[block.chainid]),
-                        DEFAULT_PROTOCOL_OWNER,
-                        DEFAULT_BROKER_ADMIN,
-                        DEFAULT_BROKER_FEE
-                    )
-                )
-            )
+        // Deploy {CompensationModule} at a deterministic address across chains
+        salt = createSalt("CompensationModule");
+        address compensationModuleImplementation = address(new CompensationModule());
+        bytes memory compensationModuleInitData = abi.encodeWithSelector(
+            CompensationModule.initialize.selector,
+            ISablierFlow(sablierFlowMap[block.chainid]),
+            DEFAULT_PROTOCOL_OWNER,
+            DEFAULT_BROKER_ADMIN,
+            DEFAULT_BROKER_FEE
         );
+        bytes memory compensationModuleProxyBytecode = abi.encodePacked(
+            type(ERC1967Proxy).creationCode, abi.encode(compensationModuleImplementation, compensationModuleInitData)
+        );
+        compensationModule = CompensationModule(CREATE3.deployDeterministic(compensationModuleProxyBytecode, salt));
 
         // Add the {PaymentModule} and {CompensationModule} modules to the allowlist of the {ModuleKeeper}
         modules.push(address(paymentModule));
