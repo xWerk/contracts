@@ -7,7 +7,6 @@ import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
-
 import { FlowStreamManager } from "./sablier-flow/FlowStreamManager.sol";
 import { ICompensationModule } from "./interfaces/ICompensationModule.sol";
 import { Types } from "./libraries/Types.sol";

@@ -9,7 +9,6 @@ import { Broker, Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { IFlowStreamManager } from "./interfaces/IFlowStreamManager.sol";
-import { Types } from "../libraries/Types.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 

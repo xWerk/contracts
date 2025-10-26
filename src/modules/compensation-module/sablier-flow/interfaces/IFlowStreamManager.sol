@@ -4,7 +4,6 @@ pragma solidity ^0.8.26;
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { Broker, Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
-import { Types } from "../../libraries/Types.sol";
 
 /// @title IFlowStreamManager
 /// @notice Contract used to create and manage Sablier Flow compatible streams through a set of internal functions

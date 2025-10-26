@@ -5,7 +5,7 @@ import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.so
 import { Broker, Lockup, LockupLinear, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ud60x18, UD60x18, ud, intoUint128 } from "@prb/math/src/UD60x18.sol";
+import { UD60x18, ud } from "@prb/math/src/UD60x18.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { IStreamManager } from "./interfaces/IStreamManager.sol";
