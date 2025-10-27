@@ -28,7 +28,7 @@ contract UpdateSablierFlow_Integration_Concret_Test is Integration_Test {
 
     modifier whenCallerOwner() {
         // Make Admin the caller in this test suite
-        vm.startPrank({ msgSender: users.admin });
+        vm.startPrank({ msgSender: address(mockAdmin) });
 
         _;
     }

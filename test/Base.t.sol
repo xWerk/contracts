@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
+import "forge-std/console.sol";
 import { Users } from "./utils/Types.sol";
 import { Test } from "forge-std/Test.sol";
 import { MockERC20NoReturn } from "./mocks/MockERC20NoReturn.sol";
 import { MockNonCompliantSpace } from "./mocks/MockNonCompliantSpace.sol";
 import { MockModule } from "./mocks/MockModule.sol";
 import { MockBadReceiver } from "./mocks/MockBadReceiver.sol";
+import { MockAdmin } from "./mocks/MockAdmin.sol";
 import { Space } from "./../src/Space.sol";
 import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
 import { StationRegistry } from "./../src/StationRegistry.sol";
@@ -37,6 +39,7 @@ abstract contract Base_Test is Test {
     MockBadReceiver internal mockBadReceiver;
     MockERC721Collection internal mockERC721;
     MockERC1155Collection internal mockERC1155;
+    MockAdmin mockAdmin;
 
     /*//////////////////////////////////////////////////////////////////////////
                                    TEST STORAGE
@@ -53,6 +56,9 @@ abstract contract Base_Test is Test {
         // Deploy the mock USDT contract to deal it to the users
         usdt = new MockERC20NoReturn("Tether USD", "USDT", 6);
 
+        // Deploy {MockAdmin}
+        mockAdmin = new MockAdmin();
+
         // Create test users
         users = Users({
             admin: createUser("admin"),
@@ -63,7 +69,6 @@ abstract contract Base_Test is Test {
 
         // Deploy test contracts
         moduleKeeper = new ModuleKeeper({ _initialOwner: users.admin });
-
         stationRegistry = new StationRegistry(users.admin, IEntryPoint(entrypoint), moduleKeeper);
         containerImplementation = address(new Space(IEntryPoint(entrypoint), address(stationRegistry)));
 

@@ -15,7 +15,6 @@ import { LockupNFTDescriptor } from "@sablier/lockup/src/LockupNFTDescriptor.sol
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockBadSpace } from "../mocks/MockBadSpace.sol";
 import { ud } from "@prb/math/src/UD60x18.sol";
-import { Space } from "src/Space.sol";
 
 abstract contract Integration_Test is Base_Test {
     /*//////////////////////////////////////////////////////////////////////////
@@ -27,7 +26,7 @@ abstract contract Integration_Test is Base_Test {
     CompensationModule internal compensationModule;
     InvoiceCollection internal invoiceCollection;
     // Sablier Lockup & Flow related test contracts
-    LockupNFTDescriptor internal loclupNFTDescriptor;
+    LockupNFTDescriptor internal lockupNFTDescriptor;
     FlowNFTDescriptor internal flowNFTDescriptor;
     SablierLockup internal sablierLockup;
     SablierFlow internal sablierFlow;
@@ -99,7 +98,7 @@ abstract contract Integration_Test is Base_Test {
     function deployCompensationModule() internal {
         address implementation = address(new CompensationModule());
         bytes memory data =
-            abi.encodeWithSelector(CompensationModule.initialize.selector, sablierFlow, users.admin, users.admin, ud(0));
+            abi.encodeWithSelector(CompensationModule.initialize.selector, sablierFlow, address(mockAdmin));
         compensationModule = CompensationModule(address(new ERC1967Proxy(implementation, data)));
     }
 
@@ -112,16 +111,19 @@ abstract contract Integration_Test is Base_Test {
     /// @dev Deploys the Sablier Lockup-required contracts
     function deploySablierContracts() internal {
         // Deploy the Sablier Lockup contracts
-        loclupNFTDescriptor = new LockupNFTDescriptor();
+        lockupNFTDescriptor = new LockupNFTDescriptor();
         sablierLockup = new SablierLockup({
             initialAdmin: users.admin,
-            initialNFTDescriptor: loclupNFTDescriptor,
+            initialNFTDescriptor: lockupNFTDescriptor,
             maxCount: 10_000
         });
 
         // Deploy the Sablier Flow contracts
         flowNFTDescriptor = new FlowNFTDescriptor();
-        sablierFlow = new SablierFlow({ initialAdmin: users.admin, initialNFTDescriptor: flowNFTDescriptor });
+        sablierFlow = new SablierFlow({
+            initialComptroller: address(mockAdmin),
+            initialNFTDescriptor: address(flowNFTDescriptor)
+        });
     }
 
     /// @dev Deploys the {WerkSubdomainRegistrar} L2 ENS registrar

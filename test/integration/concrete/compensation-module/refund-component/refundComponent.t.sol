@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import { CompensationModule_Integration_Test } from "test/integration/CompensationModule.t.sol";
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
-import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
 
 contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
@@ -31,9 +30,6 @@ contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integra
     }
 
     function test_RefundComponent() public whenComponentNotNull whenCallerComponentSender(users.eve) {
-        // Cache the balance of the {Space} contract before the refund
-        uint256 balanceOfSpaceBefore = usdt.balanceOf(address(space));
-
         // Fund the compensation component first
 
         // Create the calldata for the ERC-20 `approve` call to approve the compensation module to spend the ERC-20 tokens
@@ -47,6 +43,9 @@ contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integra
 
         // Fund the compensation component
         space.execute({ module: address(compensationModule), value: 0, data: data });
+
+        // Cache the balance of the {Space} contract before the refund
+        uint256 balanceOfSpaceBefore = usdt.balanceOf(address(space));
 
         // Refund the entire amount deposited before
 
@@ -64,7 +63,6 @@ contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integra
         uint256 balanceOfSpaceAfter = usdt.balanceOf(address(space));
 
         // Assert the balance of the {Space} contract has increased by the amount of the refund
-        // @todo: fix this test once the Sablier Flow PR is merged
-        /* assertEq(balanceOfSpaceAfter - balanceOfSpaceBefore, 100e6); */
+        assertEq(balanceOfSpaceAfter - balanceOfSpaceBefore, 100e6);
     }
 }

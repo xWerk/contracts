@@ -6,7 +6,6 @@ import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
-import { ud, UD60x18 } from "@prb/math/src/UD60x18.sol";
 
 contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     uint128 constant DEPOSIT_AMOUNT = 10e6;
@@ -35,16 +34,6 @@ contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Inte
     }
 
     function test_GivenNonZeroBrokerFee_DepositToComponent() public whenComponentNotNull {
-        // Change the prank to the admin to update the broker fee
-        vm.startPrank({ msgSender: users.admin });
-
-        // Update the broker fee
-        UD60x18 BROKER_FEE = ud(0.005e18);
-        compensationModule.updateStreamBrokerFee(BROKER_FEE);
-
-        // Calculate the fee amount based on the fee percentage.
-        uint128 feeAmount = ud(DEPOSIT_AMOUNT).mul(BROKER_FEE).intoUint128();
-
         // Switch the prank back to Eve
         vm.startPrank({ msgSender: users.eve });
 
@@ -71,7 +60,7 @@ contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Inte
         Flow.Stream memory stream = compensationModule.getComponentStream(component.streamId);
 
         // Assert the actual and expected stream balance
-        assertEq(stream.balance, DEPOSIT_AMOUNT - feeAmount);
+        assertEq(stream.balance, DEPOSIT_AMOUNT);
     }
 
     function test_DepositToComponent() public whenComponentNotNull {
