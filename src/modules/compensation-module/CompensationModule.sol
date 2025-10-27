@@ -279,7 +279,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         _onlyComponentSender(component.sender);
 
         // Checks, Effects, Interactions: refund the compensation component stream
-        _refundStream(component.streamId);
+        _refundStream(component.streamId, component.asset, component.sender);
 
         // Log the compensation component stream refund
         emit ComponentRefunded(componentId);

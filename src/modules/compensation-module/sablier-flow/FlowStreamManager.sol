@@ -234,12 +234,22 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
     /// @dev Refunds the entire refundable amount of tokens from the compensation component stream to the sender's address
     /// See the documentation in {ISablierFlow-refundMax}
-    function _refundStream(uint256 streamId) internal {
+    function _refundStream(
+        uint256 streamId,
+        IERC20 asset,
+        address initialStreamSender
+    )
+        internal
+        returns (uint128 refundedAmount)
+    {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Refund the stream
-        $.SABLIER_FLOW.refundMax(streamId);
+        refundedAmount = $.SABLIER_FLOW.refundMax(streamId);
+
+        // Transfer assets to {initialStreamSender}
+        asset.safeTransfer({ to: initialStreamSender, value: refundedAmount });
     }
 
     /// @dev See the documentation in {ISablierFlow-getStream}
