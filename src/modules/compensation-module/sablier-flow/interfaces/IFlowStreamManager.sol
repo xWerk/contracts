@@ -2,8 +2,7 @@
 pragma solidity ^0.8.26;
 
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
-import { Broker, Flow } from "@sablier/flow/src/types/DataTypes.sol";
-import { UD60x18 } from "@prb/math/src/UD60x18.sol";
+import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 
 /// @title IFlowStreamManager
 /// @notice Contract used to create and manage Sablier Flow compatible streams through a set of internal functions
@@ -13,11 +12,6 @@ interface IFlowStreamManager {
                                        EVENTS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when the broker fee is updated
-    /// @param oldFee The old broker fee
-    /// @param newFee The new broker fee
-    event BrokerFeeUpdated(UD60x18 oldFee, UD60x18 newFee);
-
     /// @notice Emitted when the address of the {SablierFlow} contract is updated
     /// @param oldAddress The old address of the {SablierFlow} contract
     /// @param newAddress The new address of the {SablierFlow} contract
@@ -26,9 +20,6 @@ interface IFlowStreamManager {
     /*//////////////////////////////////////////////////////////////////////////
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
-
-    /// @notice The broker account and fee charged to deposit on Sablier Flow streams
-    function broker() external view returns (Broker memory brokerConfig);
 
     /// @notice The address of the {SablierFlow} contract used to create compensation streams
     /// @dev This is initialized at construction time and it might be different depending on the deployment chain
@@ -44,15 +35,6 @@ interface IFlowStreamManager {
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
-
-    /// @notice Updates the fee charged by the broker
-    ///
-    /// Notes:
-    /// - `msg.sender` must be the owner
-    /// - The new fee will be applied only to the new streams hence it can't be retrospectively updated
-    ///
-    /// @param newBrokerFee The new broker fee
-    function updateStreamBrokerFee(UD60x18 newBrokerFee) external;
 
     /// @notice Updates the address of the {SablierFlow} contract used to create and manage compensation streams
     ///

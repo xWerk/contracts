@@ -4,7 +4,6 @@ pragma solidity ^0.8.26;
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
-import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { FlowStreamManager } from "./sablier-flow/FlowStreamManager.sol";
@@ -51,16 +50,8 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @dev Initializes the proxy and the {Ownable} contract
-    function initialize(
-        ISablierFlow _sablierFlow,
-        address _initialOwner,
-        address _brokerAccount,
-        UD60x18 _brokerFee
-    )
-        public
-        initializer
-    {
-        __FlowStreamManager_init(_sablierFlow, _initialOwner, _brokerAccount, _brokerFee);
+    function initialize(ISablierFlow _sablierFlow, address _initialOwner) public initializer {
+        __FlowStreamManager_init(_sablierFlow, _initialOwner);
         __UUPSUpgradeable_init();
 
         // Retrieve the contract storage
