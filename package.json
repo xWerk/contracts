@@ -19,7 +19,7 @@
     "@openzeppelin/foundry-upgrades": "^0.3.7",
     "@prb/math": "^4.1.0",
     "@sablier/flow": "^2.0.1",
-    "@sablier/lockup": "^2.0.1",
+    "@sablier/lockup": "^3.0.1",
     "@thirdweb-dev/contracts": "^3.15.0",
     "solady": "vectorized/solady"
   }
