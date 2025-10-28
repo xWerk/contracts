@@ -113,16 +113,13 @@ abstract contract Integration_Test is Base_Test {
         // Deploy the Sablier Lockup contracts
         lockupNFTDescriptor = new LockupNFTDescriptor();
         sablierLockup = new SablierLockup({
-            initialAdmin: users.admin,
-            initialNFTDescriptor: lockupNFTDescriptor,
-            maxCount: 10_000
+            initialAdmin: users.admin, initialNFTDescriptor: lockupNFTDescriptor, maxCount: 10_000
         });
 
         // Deploy the Sablier Flow contracts
         flowNFTDescriptor = new FlowNFTDescriptor();
         sablierFlow = new SablierFlow({
-            initialComptroller: address(mockAdmin),
-            initialNFTDescriptor: address(flowNFTDescriptor)
+            initialComptroller: address(mockAdmin), initialNFTDescriptor: address(flowNFTDescriptor)
         });
     }
 
@@ -136,8 +133,7 @@ abstract contract Integration_Test is Base_Test {
 
         // Deploy the {WerkSubdomainRegistrar} registrar
         werkSubdomainRegistrar = new WerkSubdomainRegistrar({
-            _registry: IWerkSubdomainRegistry(address(werkSubdomainRegistry)),
-            _owner: users.admin
+            _registry: IWerkSubdomainRegistry(address(werkSubdomainRegistry)), _owner: users.admin
         });
 
         // Add the {WerkSubdomainRegistrar} as a registrar to the {WerkSubdomainRegistry}

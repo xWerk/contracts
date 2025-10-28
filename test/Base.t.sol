@@ -61,10 +61,7 @@ abstract contract Base_Test is Test {
 
         // Create test users
         users = Users({
-            admin: createUser("admin"),
-            eve: createUser("eve"),
-            bob: createUser("bob"),
-            alice: createUser("alice")
+            admin: createUser("admin"), eve: createUser("eve"), bob: createUser("bob"), alice: createUser("alice")
         });
 
         // Deploy test contracts

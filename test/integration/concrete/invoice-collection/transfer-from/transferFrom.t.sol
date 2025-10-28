@@ -10,9 +10,7 @@ contract TransferFrom_Integration_Concret_Test is Integration_Test {
         // Mint an invoice NFT to Bob
         vm.startPrank({ msgSender: users.admin });
         invoiceCollection.mintInvoice({
-            invoiceURI: "ipfs://QmSomeHash",
-            paymentRecipient: users.bob,
-            paymentRequestId: "1"
+            invoiceURI: "ipfs://QmSomeHash", paymentRecipient: users.bob, paymentRequestId: "1"
         });
         vm.stopPrank();
     }

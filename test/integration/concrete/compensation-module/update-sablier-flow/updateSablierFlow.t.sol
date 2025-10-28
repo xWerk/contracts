@@ -39,8 +39,7 @@ contract UpdateSablierFlow_Integration_Concret_Test is Integration_Test {
         // Expect the {SablierFlowAddressUpdated} to be emitted
         vm.expectEmit();
         emit IFlowStreamManager.SablierFlowAddressUpdated({
-            oldAddress: ISablierFlow(address(sablierFlow)),
-            newAddress: ISablierFlow(address(0x123))
+            oldAddress: ISablierFlow(address(sablierFlow)), newAddress: ISablierFlow(address(0x123))
         });
 
         // Run the test

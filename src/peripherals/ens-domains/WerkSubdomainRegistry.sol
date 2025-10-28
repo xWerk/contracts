@@ -275,7 +275,13 @@ contract WerkSubdomainRegistry is ERC721, AccessControl {
     /// @notice Public function to set content hash with access control
     /// @param labelhash The name's hash
     /// @param value The content hash value
-    function setContenthash(bytes32 labelhash, bytes memory value) public onlyTokenOperatorOrRegistrar(labelhash) {
+    function setContenthash(
+        bytes32 labelhash,
+        bytes memory value
+    )
+        public
+        onlyTokenOperatorOrRegistrar(labelhash)
+    {
         _setContenthash(labelhash, value);
     }
 

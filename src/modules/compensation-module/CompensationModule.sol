@@ -16,6 +16,7 @@ import { Errors } from "./libraries/Errors.sol";
 contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgradeable {
     /// @dev Version identifier for the current implementation of the contract
     string public constant VERSION = "1.0.0";
+
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
@@ -182,10 +183,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
         // Checks, Effects, Interactions: deposit the amount to the compensation component stream
         _depositToStream({
-            streamId: component.streamId,
-            asset: component.asset,
-            amount: amount,
-            recipient: component.recipient
+            streamId: component.streamId, asset: component.asset, amount: amount, recipient: component.recipient
         });
 
         // Log the compensation component deposit

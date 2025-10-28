@@ -170,9 +170,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
                     && request.config.recurrence != Types.Recurrence.OneOff
             ) {
                 numberOfPayments = _checkIntervalPayments({
-                    recurrence: request.config.recurrence,
-                    startTime: request.startTime,
-                    endTime: request.endTime
+                    recurrence: request.config.recurrence, startTime: request.startTime, endTime: request.endTime
                 });
             }
 
@@ -380,11 +378,8 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             if (!success) revert Errors.NativeTokenPaymentFailed();
         } else {
             // Interactions: pay the recipient with the ERC-20 token
-            IERC20(request.config.asset).safeTransferFrom({
-                from: msg.sender,
-                to: request.recipient,
-                value: request.config.amount
-            });
+            IERC20(request.config.asset)
+                .safeTransferFrom({ from: msg.sender, to: request.recipient, value: request.config.amount });
         }
     }
 
