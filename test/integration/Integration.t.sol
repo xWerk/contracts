@@ -113,7 +113,7 @@ abstract contract Integration_Test is Base_Test {
         // Deploy the Sablier Lockup contracts
         lockupNFTDescriptor = new LockupNFTDescriptor();
         sablierLockup = new SablierLockup({
-            initialAdmin: users.admin, initialNFTDescriptor: lockupNFTDescriptor, maxCount: 10_000
+            initialComptroller: address(mockAdmin), initialNFTDescriptor: address(lockupNFTDescriptor)
         });
 
         // Deploy the Sablier Flow contracts

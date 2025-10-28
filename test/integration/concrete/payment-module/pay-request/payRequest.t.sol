@@ -6,9 +6,9 @@ import { IPaymentModule } from "src/modules/payment-module/interfaces/IPaymentMo
 import { Errors } from "src/modules/payment-module/libraries/Errors.sol";
 import { Constants } from "test/utils/Constants.sol";
 import { PayRequest_Integration_Shared_Test } from "test/integration/shared/payRequest.t.sol";
-import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
+import { ISablierLockupTranched } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Broker, Lockup, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
 import { Helpers } from "test/utils/Helpers.sol";
 
 contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Test {
@@ -416,20 +416,21 @@ contract PayPayment_Integration_Concret_Test is PayRequest_Integration_Shared_Te
             funder: address(paymentModule),
             sender: address(paymentModule),
             recipient: address(space),
-            amounts: Lockup.CreateAmounts({ deposit: paymentRequest.config.amount, brokerFee: 0 }),
+            depositAmount: estimatedDepositAmount,
             token: IERC20(address(usdt)),
             cancelable: true,
             transferable: false,
             timestamps: Lockup.Timestamps({ start: paymentRequest.startTime, end: paymentRequest.endTime }),
-            shape: "",
-            broker: address(users.admin)
+            shape: ""
         });
 
         // Expect the {CreateLockupTranchedStream} and {RequestPaid} events to be emitted
         vm.expectEmit();
 
         // Emit the {CreateLockupTranchedStream} event
-        emit ISablierLockup.CreateLockupTranchedStream({ streamId: 1, commonParams: commonParams, tranches: tranches });
+        emit ISablierLockupTranched.CreateLockupTranchedStream({
+            streamId: 1, commonParams: commonParams, tranches: tranches
+        });
 
         // Emit the {RequestPaid} event
         emit IPaymentModule.RequestPaid({
