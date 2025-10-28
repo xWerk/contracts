@@ -44,11 +44,7 @@ contract DeployDeterministicCore is BaseScript {
         salt = createSalt("PaymentModule");
         address paymentModuleImplementation = address(new PaymentModule());
         bytes memory paymentModuleInitData = abi.encodeWithSelector(
-            PaymentModule.initialize.selector,
-            ISablierLockup(sablierLockupMap[block.chainid]),
-            DEFAULT_PROTOCOL_OWNER,
-            DEFAULT_BROKER_ADMIN,
-            DEFAULT_BROKER_FEE
+            PaymentModule.initialize.selector, ISablierLockup(sablierLockupMap[block.chainid]), DEFAULT_PROTOCOL_OWNER
         );
         bytes memory paymentModuleProxyBytecode = abi.encodePacked(
             type(ERC1967Proxy).creationCode, abi.encode(paymentModuleImplementation, paymentModuleInitData)
@@ -59,11 +55,7 @@ contract DeployDeterministicCore is BaseScript {
         salt = createSalt("CompensationModule");
         address compensationModuleImplementation = address(new CompensationModule());
         bytes memory compensationModuleInitData = abi.encodeWithSelector(
-            CompensationModule.initialize.selector,
-            ISablierFlow(sablierFlowMap[block.chainid]),
-            DEFAULT_PROTOCOL_OWNER,
-            DEFAULT_BROKER_ADMIN,
-            DEFAULT_BROKER_FEE
+            CompensationModule.initialize.selector, ISablierFlow(sablierFlowMap[block.chainid]), DEFAULT_PROTOCOL_OWNER
         );
         bytes memory compensationModuleProxyBytecode = abi.encodePacked(
             type(ERC1967Proxy).creationCode, abi.encode(compensationModuleImplementation, compensationModuleInitData)
