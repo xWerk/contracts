@@ -97,8 +97,7 @@ abstract contract Integration_Test is Base_Test {
     /// @dev Deploys the {CompensationModule} module
     function deployCompensationModule() internal {
         address implementation = address(new CompensationModule());
-        bytes memory data =
-            abi.encodeWithSelector(CompensationModule.initialize.selector, sablierFlow, address(mockAdmin));
+        bytes memory data = abi.encodeWithSelector(CompensationModule.initialize.selector, sablierFlow, users.admin);
         compensationModule = CompensationModule(address(new ERC1967Proxy(implementation, data)));
     }
 

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-import "forge-std/console.sol";
 import { Users } from "./utils/Types.sol";
 import { Test } from "forge-std/Test.sol";
 import { MockERC20NoReturn } from "./mocks/MockERC20NoReturn.sol";
