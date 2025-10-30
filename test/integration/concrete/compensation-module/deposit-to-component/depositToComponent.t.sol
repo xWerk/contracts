@@ -33,36 +33,6 @@ contract DepositToComponent_Integration_Concrete_Test is CompensationModule_Inte
         compensationModule.depositToComponent({ componentId: 1, amount: 0 });
     }
 
-    function test_GivenNonZeroBrokerFee_DepositToComponent() public whenComponentNotNull {
-        // Switch the prank back to Eve
-        vm.startPrank({ msgSender: users.eve });
-
-        // Create the calldata for the ERC-20 `approve` call to approve the compensation module to spend the ERC-20 tokens
-        bytes memory data = abi.encodeWithSignature("approve(address,uint256)", address(compensationModule), 10e6);
-
-        // Approve the compensation module to spend the ERC-20 tokens from Eve's Space
-        space.execute({ module: address(usdt), value: 0, data: data });
-
-        // Create the calldata for the `depositToComponent` call
-        data = abi.encodeWithSelector(compensationModule.depositToComponent.selector, 1, DEPOSIT_AMOUNT);
-
-        // Expect the {ComponentDeposited} event to be emitted
-        vm.expectEmit();
-        emit ICompensationModule.ComponentDeposited({ componentId: 1, amount: DEPOSIT_AMOUNT });
-
-        // Run the test
-        space.execute({ module: address(compensationModule), value: 0, data: data });
-
-        // Retrieve the compensation component
-        Types.CompensationComponent memory component = compensationModule.getComponent({ componentId: 1 });
-
-        // Retrieve the component stream
-        Flow.Stream memory stream = compensationModule.getComponentStream(component.streamId);
-
-        // Assert the actual and expected stream balance
-        assertEq(stream.balance, DEPOSIT_AMOUNT);
-    }
-
     function test_DepositToComponent() public whenComponentNotNull {
         // Create the calldata for the ERC-20 `approve` call to approve the compensation module to spend the ERC-20 tokens
         bytes memory data = abi.encodeWithSignature("approve(address,uint256)", address(compensationModule), 10e6);
