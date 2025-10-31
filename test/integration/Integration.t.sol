@@ -89,8 +89,7 @@ abstract contract Integration_Test is Base_Test {
     /// @dev Deploys the {PaymentModule} module
     function deployPaymentModule() internal {
         address implementation = address(new PaymentModule());
-        bytes memory data =
-            abi.encodeWithSelector(PaymentModule.initialize.selector, sablierLockup, users.admin, users.admin, ud(0));
+        bytes memory data = abi.encodeWithSelector(PaymentModule.initialize.selector, sablierLockup, users.admin);
         paymentModule = PaymentModule(address(new ERC1967Proxy(implementation, data)));
     }
 
