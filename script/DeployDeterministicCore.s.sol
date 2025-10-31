@@ -6,8 +6,6 @@ import { PaymentModule } from "src/modules/payment-module/PaymentModule.sol";
 import { CompensationModule } from "src/modules/compensation-module/CompensationModule.sol";
 import { StationRegistry } from "src/StationRegistry.sol";
 import { ModuleKeeper } from "src/ModuleKeeper.sol";
-import { Upgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
-import { Core } from "@openzeppelin/foundry-upgrades/src/internal/Core.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";

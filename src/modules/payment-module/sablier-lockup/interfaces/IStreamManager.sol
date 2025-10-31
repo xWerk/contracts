@@ -5,7 +5,6 @@ import { Broker, Lockup } from "@sablier/lockup/src/types/DataTypes.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Types } from "src/modules/payment-module/libraries/Types.sol";
 
 /// @title IStreamManager
 /// @notice Contract used to create and manage Sablier Lockup compatible streams

@@ -14,9 +14,7 @@ contract Constructor_StationRegistry_Test is Base_Test {
     function test_Constructor() external {
         // Run the test
         new StationRegistry({
-            _initialAdmin: users.admin,
-            _entrypoint: IEntryPoint(entrypoint),
-            _moduleKeeper: moduleKeeper
+            _initialAdmin: users.admin, _entrypoint: IEntryPoint(entrypoint), _moduleKeeper: moduleKeeper
         });
 
         // Assert the actual and expected {ModuleKeeper} address

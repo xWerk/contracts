@@ -46,9 +46,7 @@ contract Reserve_Integration_Concret_Test is Integration_Test {
         // Expect the reservation call to emit a {SubdomainReserved} event
         vm.expectEmit();
         emit WerkSubdomainRegistrar.SubdomainReserved({
-            label: "test",
-            owner: address(space),
-            expiresAt: expectedExpiresAt
+            label: "test", owner: address(space), expiresAt: expectedExpiresAt
         });
 
         // Run the test

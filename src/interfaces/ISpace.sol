@@ -88,7 +88,12 @@ interface ISpace is IERC165, IERC721Receiver, IERC1155Receiver {
     /// @param modules The addesses of the modules to call
     /// @param values THe amout of wei to provide to each call
     /// @param data The ABI-encoded definition of the method and inputs
-    function executeBatch(address[] calldata modules, uint256[] calldata values, bytes[] calldata data) external;
+    function executeBatch(
+        address[] calldata modules,
+        uint256[] calldata values,
+        bytes[] calldata data
+    )
+        external;
 
     /// @notice Withdraws an `amount` amount of `asset` ERC-20 token
     ///

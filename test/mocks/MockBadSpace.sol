@@ -153,9 +153,13 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
         // therefore the `onERC1155Received` hook must be implemented
         // - depending on the length of the `ids` array, we're using `safeBatchTransferFrom` or `safeTransferFrom`
         if (ids.length > 1) {
-            collection.safeBatchTransferFrom({ from: address(this), to: msg.sender, ids: ids, values: amounts, data: "" });
+            collection.safeBatchTransferFrom({
+                from: address(this), to: msg.sender, ids: ids, values: amounts, data: ""
+            });
         } else {
-            collection.safeTransferFrom({ from: address(this), to: msg.sender, id: ids[0], value: amounts[0], data: "" });
+            collection.safeTransferFrom({
+                from: address(this), to: msg.sender, id: ids[0], value: amounts[0], data: ""
+            });
         }
 
         // Log the successful ERC-1155 token withdrawal

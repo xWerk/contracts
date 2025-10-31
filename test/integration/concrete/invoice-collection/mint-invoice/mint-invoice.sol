@@ -19,9 +19,7 @@ contract MintInvoice_Integration_Concret_Test is Integration_Test {
 
         // Run the test
         invoiceCollection.mintInvoice({
-            invoiceURI: "ipfs://QmSomeHash",
-            paymentRecipient: users.bob,
-            paymentRequestId: "1"
+            invoiceURI: "ipfs://QmSomeHash", paymentRecipient: users.bob, paymentRequestId: "1"
         });
     }
 
@@ -39,9 +37,7 @@ contract MintInvoice_Integration_Concret_Test is Integration_Test {
 
         // Run the test
         invoiceCollection.mintInvoice({
-            invoiceURI: "ipfs://QmSomeHash",
-            paymentRecipient: users.bob,
-            paymentRequestId: "1"
+            invoiceURI: "ipfs://QmSomeHash", paymentRecipient: users.bob, paymentRequestId: "1"
         });
 
         // Assert the actual and expected payment request ID associated with the invoice NFT

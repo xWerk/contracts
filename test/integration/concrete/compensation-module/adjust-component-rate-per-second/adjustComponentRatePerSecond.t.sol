@@ -60,8 +60,7 @@ contract AdjustComponentRatePerSecond_Integration_Concrete_Test is CompensationM
         // Expect the {ComponentRatePerSecondAdjusted} event to be emitted
         vm.expectEmit();
         emit ICompensationModule.ComponentRatePerSecondAdjusted({
-            componentId: 1,
-            newRatePerSecond: UD21x18.wrap(0.002e18)
+            componentId: 1, newRatePerSecond: UD21x18.wrap(0.002e18)
         });
 
         // Run the test by executing the `adjustComponentRatePerSecond` method from Eve's Space which is the compensation component sender

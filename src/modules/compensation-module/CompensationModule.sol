@@ -4,10 +4,8 @@ pragma solidity ^0.8.26;
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
-import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
-
 import { FlowStreamManager } from "./sablier-flow/FlowStreamManager.sol";
 import { ICompensationModule } from "./interfaces/ICompensationModule.sol";
 import { Types } from "./libraries/Types.sol";
@@ -18,6 +16,7 @@ import { Errors } from "./libraries/Errors.sol";
 contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgradeable {
     /// @dev Version identifier for the current implementation of the contract
     string public constant VERSION = "1.0.0";
+
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
@@ -52,16 +51,8 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @dev Initializes the proxy and the {Ownable} contract
-    function initialize(
-        ISablierFlow _sablierFlow,
-        address _initialOwner,
-        address _brokerAccount,
-        UD60x18 _brokerFee
-    )
-        public
-        initializer
-    {
-        __FlowStreamManager_init(_sablierFlow, _initialOwner, _brokerAccount, _brokerFee);
+    function initialize(ISablierFlow _sablierFlow, address _initialOwner) public initializer {
+        __FlowStreamManager_init(_sablierFlow, _initialOwner);
         __UUPSUpgradeable_init();
 
         // Retrieve the contract storage
@@ -192,10 +183,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
         // Checks, Effects, Interactions: deposit the amount to the compensation component stream
         _depositToStream({
-            streamId: component.streamId,
-            asset: component.asset,
-            amount: amount,
-            recipient: component.recipient
+            streamId: component.streamId, asset: component.asset, amount: amount, recipient: component.recipient
         });
 
         // Log the compensation component deposit
@@ -289,7 +277,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         _onlyComponentSender(component.sender);
 
         // Checks, Effects, Interactions: refund the compensation component stream
-        _refundStream(component.streamId);
+        _refundStream(component.streamId, component.asset, component.sender);
 
         // Log the compensation component stream refund
         emit ComponentRefunded(componentId);

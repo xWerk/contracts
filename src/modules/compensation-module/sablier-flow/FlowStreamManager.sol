@@ -5,11 +5,9 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
-import { Broker, Flow } from "@sablier/flow/src/types/DataTypes.sol";
-import { UD60x18 } from "@prb/math/src/UD60x18.sol";
+import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { IFlowStreamManager } from "./interfaces/IFlowStreamManager.sol";
-import { Types } from "../libraries/Types.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -30,8 +28,6 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         /// By default, each stream will be created by this contract (the sender address of each stream will be address(this))
         /// therefore this mapping is used to allow only authorized senders to execute management-related actions i.e. cancellations
         mapping(uint256 streamId => address initialSender) initialStreamSender;
-        /// @notice The broker parameters charged to create Sablier Flow streams
-        Broker broker;
     }
 
     // keccak256(abi.encode(uint256(keccak256("werk.storage.FlowStreamManager")) - 1)) & ~bytes32(uint256(0xff))
@@ -58,9 +54,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     /// @dev Initializes the {FlowStreamManager} contract
     function __FlowStreamManager_init(
         ISablierFlow _sablierFlow,
-        address _initialAdmin,
-        address _brokerAccount,
-        UD60x18 _brokerFee
+        address _initialAdmin
     )
         internal
         onlyInitializing
@@ -72,23 +66,11 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
         // Set the Sablier Flow contract address
         $.SABLIER_FLOW = _sablierFlow;
-
-        // Set the broker account and fee
-        $.broker = Broker({ account: _brokerAccount, fee: _brokerFee });
     }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IFlowStreamManager
-    function broker() public view override returns (Broker memory brokerConfig) {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
-        // Return the broker fee
-        brokerConfig = $.broker;
-    }
 
     /// @inheritdoc IFlowStreamManager
     function SABLIER_FLOW() public view override returns (ISablierFlow) {
@@ -107,18 +89,6 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IFlowStreamManager
-    function updateStreamBrokerFee(UD60x18 newBrokerFee) public onlyOwner {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
-        // Log the broker fee update
-        emit BrokerFeeUpdated({ oldFee: $.broker.fee, newFee: newBrokerFee });
-
-        // Update the fee charged by the broker
-        $.broker.fee = newBrokerFee;
-    }
 
     /// @inheritdoc IFlowStreamManager
     function updateSablierFlow(ISablierFlow newSablierFlow) public onlyOwner {
@@ -153,13 +123,15 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Create the flow stream using the `create` function
-        streamId = $.SABLIER_FLOW.create({
-            sender: address(this), // The sender will be able to pause the stream or change rate per second
-            recipient: recipient, // The recipient of the streamed tokens
-            ratePerSecond: ratePerSecond, // The rate per second of the stream
-            token: asset, // The streaming token
-            transferable: false // Whether the stream will be transferable or not
-         });
+        streamId = $.SABLIER_FLOW
+            .create({
+                sender: address(this), // The sender will be able to pause the stream or change rate per second
+                recipient: recipient, // The recipient of the streamed tokens
+                ratePerSecond: ratePerSecond, // The rate per second of the stream
+                startTime: 0, // The starting time of the stream. Zero means startTime is block.timestamp
+                token: asset, // The streaming token
+                transferable: false // Whether the stream will be transferable or not
+            });
 
         // Set `msg.sender` as the initial stream sender to allow authenticated stream management
         $.initialStreamSender[streamId] = msg.sender;
@@ -185,14 +157,16 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Create the flow stream using the `create` function
-        streamId = $.SABLIER_FLOW.createAndDeposit({
-            sender: address(this), // The sender will be able to pause the stream or change rate per second
-            recipient: recipient, // The recipient of the streamed tokens
-            ratePerSecond: ratePerSecond, // The rate per second of the stream
-            token: asset, // The streaming token
-            transferable: false, // Whether the stream will be transferable or not
-            amount: amount // The deposit amount, denoted in token's decimals
-         });
+        streamId = $.SABLIER_FLOW
+            .createAndDeposit({
+                sender: address(this), // The sender will be able to pause the stream or change rate per second
+                recipient: recipient, // The recipient of the streamed tokens
+                startTime: 0, // The starting time of the stream. Zero means startTime is block.timestamp
+                ratePerSecond: ratePerSecond, // The rate per second of the stream
+                token: asset, // The streaming token
+                transferable: false, // Whether the stream will be transferable or not
+                amount: amount // The deposit amount, denoted in token's decimals
+            });
 
         // Set `msg.sender` as the initial stream sender to allow authenticated stream management
         $.initialStreamSender[streamId] = msg.sender;
@@ -219,13 +193,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         _transferFromAndApprove({ asset: asset, amount: amount, spender: address($.SABLIER_FLOW) });
 
         // Deposit the amount to the stream
-        $.SABLIER_FLOW.depositViaBroker({
-            streamId: streamId,
-            totalAmount: amount,
-            sender: address(this),
-            recipient: recipient,
-            broker: $.broker
-        });
+        $.SABLIER_FLOW.deposit({ streamId: streamId, amount: amount, sender: address(this), recipient: recipient });
     }
 
     /// @dev See the documentation in {ISablierFlow-withdrawMax}
@@ -234,7 +202,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Withdraw the maximum amount from the stream
-        (uint128 withdrawnAmount,) = $.SABLIER_FLOW.withdrawMax(streamId, to);
+        uint128 withdrawnAmount = $.SABLIER_FLOW.withdrawMax(streamId, to);
 
         // Return the withdrawn amount
         return withdrawnAmount;
@@ -274,12 +242,22 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
     /// @dev Refunds the entire refundable amount of tokens from the compensation component stream to the sender's address
     /// See the documentation in {ISablierFlow-refundMax}
-    function _refundStream(uint256 streamId) internal {
+    function _refundStream(
+        uint256 streamId,
+        IERC20 asset,
+        address initialStreamSender
+    )
+        internal
+        returns (uint128 refundedAmount)
+    {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Refund the stream
-        $.SABLIER_FLOW.refundMax(streamId);
+        refundedAmount = $.SABLIER_FLOW.refundMax(streamId);
+
+        // Transfer assets to {initialStreamSender}
+        asset.safeTransfer({ to: initialStreamSender, value: refundedAmount });
     }
 
     /// @dev See the documentation in {ISablierFlow-getStream}
