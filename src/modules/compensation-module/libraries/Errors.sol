@@ -52,4 +52,7 @@ library Errors {
 
     /// @notice Thrown when the foo value is invalid
     error InvalidFooValue();
+
+    /// @notice Thrown when the amount to withdraw is bigger than the withdrawable amount
+    error Overdraw();
 }
