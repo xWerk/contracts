@@ -86,6 +86,14 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         return $.SABLIER_FLOW.statusOf(streamId);
     }
 
+    function withdrawableAmountOf(uint256 streamId) public view returns (uint128 withdrawableAmount) {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Return the withdrawable amount from the stream
+        return $.SABLIER_FLOW.withdrawableAmountOf(streamId);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -194,6 +202,15 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
         // Deposit the amount to the stream
         $.SABLIER_FLOW.deposit({ streamId: streamId, amount: amount, sender: address(this), recipient: recipient });
+    }
+
+    /// @dev See the documentation in {ISablierFlow-withdraw}
+    function _withdrawFromStream(uint256 streamId, address to, uint128 amount) internal {
+        // Retrieve the storage of the {FlowStreamManager} contract
+        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
+
+        // Withdraw {amount} from the stream
+        $.SABLIER_FLOW.withdraw(streamId, to, amount);
     }
 
     /// @dev See the documentation in {ISablierFlow-withdrawMax}

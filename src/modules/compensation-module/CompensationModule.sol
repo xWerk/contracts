@@ -119,6 +119,13 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         return statusOf($.components[componentId].streamId);
     }
 
+    function withdrawableAmountOfComponent(uint256 componentId) external view returns (uint128 withdrawableAmount) {
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(componentId);
+
+        return withdrawableAmountOf($.components[componentId].streamId);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -191,7 +198,28 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @inheritdoc ICompensationModule
-    function withdrawFromComponent(uint256 componentId) external returns (uint128 withdrawnAmount) {
+    function withdrawComponent(uint256 componentId, uint128 amount) external {
+        // Checks: if the compensation component is not null, cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(componentId);
+
+        // Load the component in memory
+        Types.CompensationComponent memory component = $.components[componentId];
+
+        // Checks: `msg.sender` is the compensation recipient
+        if (component.recipient != msg.sender) revert Errors.OnlyComponentRecipient();
+
+        // Checks: `amount` does not exceed the withdrawable amount
+        if (amount > withdrawableAmountOf(component.streamId)) revert Errors.Overdraw();
+
+        // Checks, Effects, Interactions: withdraw the amount from the compensation component stream
+        _withdrawFromStream({ streamId: component.streamId, to: msg.sender, amount: amount });
+
+        // Log the compensation component stream withdrawal
+        emit ComponentWithdrawn(componentId, amount);
+    }
+
+    /// @inheritdoc ICompensationModule
+    function withdrawMaxComponent(uint256 componentId) external returns (uint128 withdrawnAmount) {
         // Checks: if the compensation component is not null, cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(componentId);
 
