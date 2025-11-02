@@ -67,6 +67,10 @@ interface ICompensationModule {
     /// @param componentId The ID of the compensation component
     function statusOfComponent(uint256 componentId) external view returns (Flow.Status status);
 
+    /// @notice Returns the withdrawable amount of a component stream
+    /// @param componentId The ID of the compensation component
+    function withdrawableAmountOfComponent(uint256 componentId) external view returns (uint128 withdrawableAmount);
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -119,9 +123,22 @@ interface ICompensationModule {
     /// Notes:
     /// - `msg.sender` must be a valid Space account and the component recipient
     /// - `componentId` must not reference a null component
+    /// - `amount` must not exceed the withdrawable amount
     ///
     /// @param componentId The ID of the compensation component
-    function withdrawFromComponent(uint256 componentId) external returns (uint128 withdrawnAmount);
+    /// @param amount The amount to withdraw
+    function withdrawComponent(uint256 componentId, uint128 amount) external;
+
+    /// @notice Withdraws the maximum amount from a compensation component
+    ///
+    /// Notes:
+    /// - `msg.sender` must be a valid Space account and the component recipient
+    /// - `componentId` must not reference a null component
+    ///
+    /// @param componentId The ID of the compensation component
+    ///
+    /// @return withdrawnAmount The amount withdrawn to the recipient
+    function withdrawMaxComponent(uint256 componentId) external returns (uint128 withdrawnAmount);
 
     /// @notice Pauses a compensation component by setting its rate per second to zero
     ///
