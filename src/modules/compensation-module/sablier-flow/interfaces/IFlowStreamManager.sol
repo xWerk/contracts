@@ -32,6 +32,12 @@ interface IFlowStreamManager {
     /// @return status The status of the compensation component stream
     function statusOf(uint256 streamId) external view returns (Flow.Status status);
 
+    /// @notice Returns the withdrawable amount of a stream
+    /// @dev See the documentation in {ISablierFlow-withdrawableAmountOf}
+    /// @param streamId The ID of the compensation component stream
+    /// @return withdrawableAmount The amount withdrawable by the recipient
+    function withdrawableAmountOf(uint256 streamId) external view returns (uint128 withdrawableAmount);
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
