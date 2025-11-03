@@ -281,12 +281,15 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     }
 
     /// @dev See the documentation in {ISablierV2Lockup-withdrawMax}
-    ///
-    /// Notes:
-    /// - `streamType` parameter has been added to withdraw from the according {ISablierV2Lockup} contract
-    function _withdrawStream(uint256 streamId, address to) internal returns (uint128 withdrawnAmount) {
+    function _withdrawMaxStream(uint256 streamId, address to) internal returns (uint128 withdrawnAmount) {
         // Withdraw the maximum withdrawable amount
         return SABLIER_LOCKUP().withdrawMax(streamId, to);
+    }
+
+    /// @dev See the documentation in {ISablierV2Lockup-withdraw}
+    function _withdrawStream(uint256 streamId, address to, uint128 amount) internal {
+        // Withdraw `amount` from the stream
+        SABLIER_LOCKUP().withdraw(streamId, to, amount);
     }
 
     /// @dev See the documentation in {ISablierV2Lockup-cancel}

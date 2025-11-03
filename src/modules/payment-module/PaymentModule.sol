@@ -336,15 +336,42 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     }
 
     /// @inheritdoc IPaymentModule
-    function withdrawRequestStream(uint256 requestId) public returns (uint128 withdrawnAmount) {
+    function withdrawRequestStream(uint256 requestId, uint128 amount) public {
         // Retrieve the contract storage
         PaymentModuleStorage storage $ = _getPaymentModuleStorage();
 
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
 
+        // Checks
+        _checkIfValidWithdraw(request);
+
+        // Checks: `amount` is not zero
+        if (amount == 0) revert Errors.ZeroWithdrawAmount();
+
+        // Checks: `amount` does not exceed the withdrawable amount
+        if (amount > withdrawableAmountOf(request.config.streamId)) revert Errors.Overdraw();
+
         // Check, Effects, Interactions: withdraw from the stream
-        withdrawnAmount = _withdrawStream({ streamId: request.config.streamId, to: request.recipient });
+        _withdrawStream({ streamId: request.config.streamId, to: request.recipient, amount: amount });
+
+        // Log the stream withdrawal
+        emit RequestStreamWithdrawn(requestId, amount);
+    }
+
+    /// @inheritdoc IPaymentModule
+    function withdrawMaxRequestStream(uint256 requestId) public returns (uint128 withdrawnAmount) {
+        // Retrieve the contract storage
+        PaymentModuleStorage storage $ = _getPaymentModuleStorage();
+
+        // Load the payment request state from storage
+        Types.PaymentRequest memory request = $.requests[requestId];
+
+        // Checks
+        _checkIfValidWithdraw(request);
+
+        // Withdraw the maximum amount from the stream
+        withdrawnAmount = _withdrawMaxStream({ streamId: request.config.streamId, to: request.recipient });
 
         // Log the stream withdrawal
         emit RequestStreamWithdrawn(requestId, withdrawnAmount);
@@ -473,5 +500,17 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         }
 
         return Types.Status.Ongoing;
+    }
+
+    /// @notice Preliminary checks used for withdraw methods
+    function _checkIfValidWithdraw(Types.PaymentRequest memory request) internal view {
+        // Checks: the payment request exists
+        if (request.recipient == address(0)) revert Errors.NullRequest();
+
+        // Checks: the payment method is not transfer
+        if (request.config.method == Types.Method.Transfer) revert Errors.OnlyForStreamPaymentMethods();
+
+        // Checks: `msg.sender` is the stream recipient
+        if (msg.sender != request.recipient) revert Errors.OnlyStreamRecipient();
     }
 }
