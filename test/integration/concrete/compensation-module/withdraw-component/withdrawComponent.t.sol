@@ -5,8 +5,9 @@ import { CompensationModule_Integration_Test } from "test/integration/Compensati
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
+import "forge-std/console.sol";
 
-contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
+contract WithdrawComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
         CompensationModule_Integration_Test.setUp();
 
@@ -19,7 +20,7 @@ contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_I
         vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.withdrawFromComponent({ componentId: 1 });
+        compensationModule.withdrawComponent({ componentId: 1, amount: 4e6 });
     }
 
     function test_RevertWhen_CallerIsNotComponentRecipient() public whenComponentNotNull {
@@ -27,37 +28,56 @@ contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_I
         vm.expectRevert(Errors.OnlyComponentRecipient.selector);
 
         // Run the test with Eve as the caller as she's not the compensation component recipient (Bob is)
-        compensationModule.withdrawFromComponent({ componentId: 1 });
+        compensationModule.withdrawComponent({ componentId: 1, amount: 4e6 });
     }
 
-    function test_WithdrawFromComponent()
+    function test_RevertWhen_AmountIsZero() public whenComponentNotNull whenCallerComponentRecipient(users.bob) {
+        // Expect the call to revert with the {InvalidZeroWithdrawAmount} error
+        vm.expectRevert(Errors.InvalidZeroWithdrawAmount.selector);
+
+        // Run the test with Eve as the caller as she's not the compensation component recipient (Bob is)
+        compensationModule.withdrawComponent({ componentId: 1, amount: 0 });
+    }
+
+    function test_RevertWhen_AmountExceedsWithdrawableAmount()
         public
         whenComponentNotNull
         whenComponentPartiallyFunded
         whenCallerComponentRecipient(users.bob)
+        whenAmountNotZero
     {
-        // Fast forward the time by 1 day to ensure the stream amount is fully streamed
-        vm.warp(block.timestamp + 1 days);
+        // Retrieve the withdrawable amount
+        uint128 withdrawableAmount = compensationModule.withdrawableAmountOfComponent({ componentId: 1 });
 
+        // Expect the call to revert with the {Overdraw} error
+        vm.expectRevert(Errors.Overdraw.selector);
+
+        // Run the test with amount slightly greater than the withdrawable amount
+        compensationModule.withdrawComponent({ componentId: 1, amount: withdrawableAmount + 1 });
+    }
+
+    function test_WithdrawComponent()
+        public
+        whenComponentNotNull
+        whenComponentPartiallyFunded
+        whenCallerComponentRecipient(users.bob)
+        whenAmountNotZero
+        whenAmountDoesNotExceedWithdrawableAmount
+    {
         // Cache the USDT balance of Bob before the withdrawal
         uint256 balanceOfBobBefore = usdt.balanceOf(users.bob);
 
         // Expect the {ComponentWithdrawn} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.ComponentWithdrawn({ componentId: 1, amount: 10e6 });
+        emit ICompensationModule.ComponentWithdrawn({ componentId: 1, amount: 4e6 });
 
         // Run the test
-        compensationModule.withdrawFromComponent({ componentId: 1 });
+        compensationModule.withdrawComponent({ componentId: 1, amount: 4e6 });
 
         // Cache the USDT balance of Bob after the withdrawal
         uint256 balanceOfBobAfter = usdt.balanceOf(users.bob);
 
         // Assert the USDT balance of Bob increased by the amount withdrawn
-        assertEq(balanceOfBobAfter - balanceOfBobBefore, 10e6);
-
-        // Assert the actual and expected status of the compensation component stream
-        // The stream is now insolvent because the total debt exceeds the stream balance
-        uint8 actualStatusOfComponent = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
-        assertEq(actualStatusOfComponent, uint8(Flow.Status.STREAMING_INSOLVENT));
+        assertEq(balanceOfBobAfter - balanceOfBobBefore, 4e6);
     }
 }

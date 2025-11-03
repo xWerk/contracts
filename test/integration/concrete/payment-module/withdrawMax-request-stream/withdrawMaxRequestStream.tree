@@ -1,0 +1,16 @@
+withdraMaxRequestStream.t.sol
+├── when the request IS null
+│   └── it should revert with the {NullRequest} error
+└── when the request IS NOT null 
+    ├── when the payment method IS transfer
+    │   └── it should revert with the {OnlyForStreamPaymentMethods} error
+    └── when the caller IS NOT transfer
+        ├── when caller IS NOT the request recipient
+        │   └── it should revert with the {OnlyStreamRecipient} error
+        └── when caller IS request recipient
+            ├── given the payment method is linear stream
+            │   └── given the payment request status is Ongoing
+            │       └── it should allow the payment request recipient to withdraw maximum amount from the stream
+            └── given the payment method is tranched stream
+                └── given the payment request status is Ongoing
+                    └── it should allow the payment request recipient to withdraw maximum amount from the stream

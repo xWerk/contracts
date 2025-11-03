@@ -70,6 +70,10 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
         _;
     }
 
+    modifier whenNotZeroAmount() {
+        _;
+    }
+
     modifier whenCallerContract() {
         _;
     }
@@ -119,6 +123,10 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
     }
 
     modifier givenPaymentMethodLinearStream() {
+        _;
+    }
+
+    modifier givenValidAmount() {
         _;
     }
 
