@@ -208,6 +208,9 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: `msg.sender` is the compensation recipient
         if (component.recipient != msg.sender) revert Errors.OnlyComponentRecipient();
 
+        // Checks: `amount` is not zero
+        if (amount == 0) revert Errors.InvalidZeroWithdrawAmount();
+
         // Checks: `amount` does not exceed the withdrawable amount
         if (amount > withdrawableAmountOf(component.streamId)) revert Errors.Overdraw();
 
