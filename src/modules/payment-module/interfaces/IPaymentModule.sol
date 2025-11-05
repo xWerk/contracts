@@ -91,7 +91,8 @@ interface IPaymentModule {
     /// been streamed is NOT automatically transferred
     ///
     /// @param requestId The ID of the payment request
-    function cancelRequest(uint256 requestId) external;
+    /// @return refundedAmount The remaining funds that will be refunded to the stream payer
+    function cancelRequest(uint256 requestId) external returns (uint128 refundedAmount);
 
     /// @notice Withdraws the maximum withdrawable amount from the stream associated with the `id` payment request
     ///
@@ -100,5 +101,6 @@ interface IPaymentModule {
     /// - reverts if the payment method of the `id` payment request is not linear or tranched stream
     ///
     /// @param requestId The ID of the payment request
+    /// @return withdrawnAmount The amount withdrawn
     function withdrawRequestStream(uint256 requestId) external returns (uint128 withdrawnAmount);
 }
