@@ -91,7 +91,8 @@ interface IPaymentModule {
     /// been streamed is NOT automatically transferred
     ///
     /// @param requestId The ID of the payment request
-    function cancelRequest(uint256 requestId) external;
+    /// @return refundedAmount The remaining funds that will be refunded to the stream payer
+    function cancelRequest(uint256 requestId) external returns (uint128 refundedAmount);
 
     /// @notice Withdraws from the stream associated with the `id` payment request
     ///

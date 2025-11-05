@@ -17,6 +17,6 @@ contract DeployDeterministicStationRegistry is BaseScript {
 
         // Deploy the {StationRegistry} factory deterministically using CREATE2
         stationRegistry =
-            new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_OWNER, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
+            new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_ADMIN, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
     }
 }

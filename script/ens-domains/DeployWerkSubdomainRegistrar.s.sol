@@ -14,6 +14,6 @@ contract DeployWerkSubdomainRegistrar is BaseScript {
         returns (WerkSubdomainRegistrar subdomainRegistrar)
     {
         // Deploy the {WerkSubdomainRegistrar} contract
-        subdomainRegistrar = new WerkSubdomainRegistrar(registry, DEFAULT_PROTOCOL_OWNER);
+        subdomainRegistrar = new WerkSubdomainRegistrar(registry, DEFAULT_PROTOCOL_ADMIN);
     }
 }
