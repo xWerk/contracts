@@ -59,8 +59,8 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     }
 
     /// @dev Initializes the proxy and the {Ownable} contract
-    function initialize(ISablierLockup _sablierLinear, address _initialOwner) public initializer {
-        __StreamManager_init(_sablierLinear, _initialOwner);
+    function initialize(ISablierLockup _sablierLinear, address _initializeAdmin) public initializer {
+        __StreamManager_init(_sablierLinear, _initializeAdmin);
         __UUPSUpgradeable_init();
 
         // Retrieve the contract storage
