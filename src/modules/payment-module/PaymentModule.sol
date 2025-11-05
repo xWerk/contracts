@@ -286,7 +286,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     }
 
     /// @inheritdoc IPaymentModule
-    function cancelRequest(uint256 requestId) external {
+    function cancelRequest(uint256 requestId) external returns (uint128 refundedAmount) {
         // Retrieve the contract storage
         PaymentModuleStorage storage $ = _getPaymentModuleStorage();
 
@@ -325,7 +325,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // - A linear or tranched stream MUST be canceled by calling the `cancel` method on the according
         // {ISablierV2Lockup} contract
         else {
-            _cancelStream({ streamId: request.config.streamId });
+            refundedAmount = _cancelStream({ streamId: request.config.streamId });
         }
 
         // Effects: mark the payment request as canceled
