@@ -33,18 +33,18 @@ contract DeployDeterministicCore is BaseScript {
     {
         // Deploy {ModuleKeeper} at a deterministic address across chains
         bytes32 salt = createSalt("ModuleKeeper");
-        moduleKeeper = new ModuleKeeper{ salt: salt }(DEFAULT_PROTOCOL_OWNER);
+        moduleKeeper = new ModuleKeeper{ salt: salt }(DEFAULT_PROTOCOL_ADMIN);
 
         // Deploy {StationRegistry} at a deterministic address across chains
         salt = createSalt("StationRegistry");
         stationRegistry =
-            new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_OWNER, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
+            new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_ADMIN, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
 
         // Deploy {PaymentModule} at a deterministic address across chains
         salt = createSalt("PaymentModule");
         address paymentModuleImplementation = address(new PaymentModule());
         bytes memory paymentModuleInitData = abi.encodeWithSelector(
-            PaymentModule.initialize.selector, ISablierLockup(sablierLockupMap[block.chainid]), DEFAULT_PROTOCOL_OWNER
+            PaymentModule.initialize.selector, ISablierLockup(sablierLockupMap[block.chainid]), DEFAULT_PROTOCOL_ADMIN
         );
         bytes memory paymentModuleProxyBytecode = abi.encodePacked(
             type(ERC1967Proxy).creationCode, abi.encode(paymentModuleImplementation, paymentModuleInitData)
@@ -55,7 +55,7 @@ contract DeployDeterministicCore is BaseScript {
         salt = createSalt("CompensationModule");
         address compensationModuleImplementation = address(new CompensationModule());
         bytes memory compensationModuleInitData = abi.encodeWithSelector(
-            CompensationModule.initialize.selector, ISablierFlow(sablierFlowMap[block.chainid]), DEFAULT_PROTOCOL_OWNER
+            CompensationModule.initialize.selector, ISablierFlow(sablierFlowMap[block.chainid]), DEFAULT_PROTOCOL_ADMIN
         );
         bytes memory compensationModuleProxyBytecode = abi.encodePacked(
             type(ERC1967Proxy).creationCode, abi.encode(compensationModuleImplementation, compensationModuleInitData)

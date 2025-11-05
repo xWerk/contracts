@@ -5,7 +5,7 @@ import { Script } from "forge-std/Script.sol";
 
 contract BaseScript is Script {
     /// @dev The address of the default protocol owner
-    address internal constant DEFAULT_PROTOCOL_OWNER = 0xcaE83b7162d64022f7Da3D011fc96761cB14116a;
+    address internal constant DEFAULT_PROTOCOL_ADMIN = 0xcaE83b7162d64022f7Da3D011fc96761cB14116a;
 
     /// @dev The address of the Entrypoint v6 deployment
     address internal constant ENTRYPOINT_V6 = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
