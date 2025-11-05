@@ -114,5 +114,6 @@ interface IPaymentModule {
     /// - reverts if the payment method of the `id` payment request is not linear or tranched stream
     ///
     /// @param requestId The ID of the payment request
+    /// @param withdrawnAmount The amount withdrawn from the stream
     function withdrawMaxRequestStream(uint256 requestId) external returns (uint128 withdrawnAmount);
 }
