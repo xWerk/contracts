@@ -2,7 +2,9 @@
 pragma solidity >=0.8.22;
 
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
-import { Lockup, LockupLinear, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupLinear } from "@sablier/lockup/src/types/LockupLinear.sol";
+import { LockupTranched } from "@sablier/lockup/src/types/LockupTranched.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -296,7 +298,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     ///
     /// Notes:
     /// - `msg.sender` must be the initial stream creator
-    function _cancelStream(uint256 streamId) internal {
+    function _cancelStream(uint256 streamId) internal returns (uint128 refundedAmount) {
         // Retrieve the storage of the {StreamManager} contract
         StreamManagerStorage storage $ = _getStreamManagerStorage();
 
@@ -305,7 +307,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         if (msg.sender != initialSender) revert Errors.OnlyInitialStreamSender(initialSender);
 
         // Checks, Effect, Interactions: cancel the stream
-        SABLIER_LOCKUP().cancel(streamId);
+        refundedAmount = SABLIER_LOCKUP().cancel(streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
