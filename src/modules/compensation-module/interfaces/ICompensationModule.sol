@@ -121,6 +121,7 @@ interface ICompensationModule {
     /// - `componentId` must not reference a null component
     ///
     /// @param componentId The ID of the compensation component
+    /// @return withdrawnAmount The withdrawn amount
     function withdrawFromComponent(uint256 componentId) external returns (uint128 withdrawnAmount);
 
     /// @notice Pauses a compensation component by setting its rate per second to zero
