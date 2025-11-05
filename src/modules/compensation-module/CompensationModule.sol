@@ -51,8 +51,8 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @dev Initializes the proxy and the {Ownable} contract
-    function initialize(ISablierFlow _sablierFlow, address _initialOwner) public initializer {
-        __FlowStreamManager_init(_sablierFlow, _initialOwner);
+    function initialize(ISablierFlow _sablierFlow, address _initialAdmin) public initializer {
+        __FlowStreamManager_init(_sablierFlow, _initialAdmin);
         __UUPSUpgradeable_init();
 
         // Retrieve the contract storage

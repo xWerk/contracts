@@ -42,7 +42,7 @@ contract UpdateSablierLockup_Integration_Concret_Test is Integration_Test {
         // Run the test
         paymentModule.updateSablierLockup(newSablierLockup);
 
-        // Assert the actual and expected broker fee
+        // Assert the actual and expected Sablier Lockup address
         ISablierLockup actualSablierLockup = paymentModule.SABLIER_LOCKUP();
         assertEq(address(actualSablierLockup), address(newSablierLockup));
     }

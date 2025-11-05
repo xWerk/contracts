@@ -13,11 +13,11 @@ contract MockAdmin {
         return true;
     }
 
-    function calculateMinFeeWei(Protocol protocol) external view returns (uint256) {
+    function calculateMinFeeWei(Protocol protocol) external pure returns (uint256) {
         return 0;
     }
 
-    function calculateMinFeeWeiFor(Protocol protocol, address user) external view returns (uint256) {
+    function calculateMinFeeWeiFor(Protocol protocol, address user) external pure returns (uint256) {
         return 0;
     }
 }

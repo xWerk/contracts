@@ -32,7 +32,7 @@ contract DeployDeterministicWerkSubdomainCore is BaseScript {
 
         // Deterministically deploy the {WerkSubdomainRegistrar} contract
         subdomainRegistrar =
-            new WerkSubdomainRegistrar{ salt: salt }(IWerkSubdomainRegistry(address(registry)), DEFAULT_PROTOCOL_OWNER);
+            new WerkSubdomainRegistrar{ salt: salt }(IWerkSubdomainRegistry(address(registry)), DEFAULT_PROTOCOL_ADMIN);
 
         // Add the registrar to the registry
         registry.addRegistrar({ registrar: address(subdomainRegistrar) });

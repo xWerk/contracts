@@ -19,11 +19,7 @@ contract DeployPaymentModule is BaseScript {
 
         // Encode initialization data for the proxy constructor
         bytes memory initData = abi.encodeWithSelector(
-            PaymentModule.initialize.selector,
-            ISablierLockup(sablierLockupMap[block.chainid]),
-            DEFAULT_PROTOCOL_OWNER,
-            DEFAULT_BROKER_ADMIN,
-            DEFAULT_BROKER_FEE
+            PaymentModule.initialize.selector, ISablierLockup(sablierLockupMap[block.chainid]), DEFAULT_PROTOCOL_ADMIN
         );
 
         // Construct the ERC1967Proxy bytecode with implementation and initData

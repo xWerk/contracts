@@ -7,8 +7,6 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Lockup } from "@sablier/lockup/src/types/DataTypes.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
-import { UD60x18 } from "@prb/math/src/ud60x18/ValueType.sol";
-
 import { StreamManager } from "./sablier-lockup/StreamManager.sol";
 import { Types } from "./libraries/Types.sol";
 import { Errors } from "./libraries/Errors.sol";
@@ -61,16 +59,8 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     }
 
     /// @dev Initializes the proxy and the {Ownable} contract
-    function initialize(
-        ISablierLockup _sablierLinear,
-        address _initialOwner,
-        address _brokerAccount,
-        UD60x18 _brokerFee
-    )
-        public
-        initializer
-    {
-        __StreamManager_init(_sablierLinear, _initialOwner, _brokerAccount, _brokerFee);
+    function initialize(ISablierLockup _sablierLinear, address _initializeAdmin) public initializer {
+        __StreamManager_init(_sablierLinear, _initializeAdmin);
         __UUPSUpgradeable_init();
 
         // Retrieve the contract storage
@@ -296,7 +286,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     }
 
     /// @inheritdoc IPaymentModule
-    function cancelRequest(uint256 requestId) external {
+    function cancelRequest(uint256 requestId) external returns (uint128 refundedAmount) {
         // Retrieve the contract storage
         PaymentModuleStorage storage $ = _getPaymentModuleStorage();
 
@@ -335,7 +325,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // - A linear or tranched stream MUST be canceled by calling the `cancel` method on the according
         // {ISablierV2Lockup} contract
         else {
-            _cancelStream({ streamId: request.config.streamId });
+            refundedAmount = _cancelStream({ streamId: request.config.streamId });
         }
 
         // Effects: mark the payment request as canceled
@@ -387,7 +377,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     function _payByLinearStream(Types.PaymentRequest memory request) internal returns (uint256 streamId) {
         streamId = _createLinearStream({
             asset: IERC20(request.config.asset),
-            totalAmount: request.config.amount,
+            amount: request.config.amount,
             startTime: request.startTime,
             endTime: request.endTime,
             recipient: request.recipient
@@ -401,7 +391,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         streamId = _createTranchedStream({
             asset: IERC20(request.config.asset),
-            totalAmount: request.config.amount,
+            amount: request.config.amount,
             startTime: request.startTime,
             recipient: request.recipient,
             numberOfTranches: numberOfTranches,

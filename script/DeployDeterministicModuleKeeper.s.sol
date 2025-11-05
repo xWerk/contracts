@@ -14,6 +14,6 @@ contract DeployDeterministicModuleKeeper is BaseScript {
         bytes32 salt = createSalt("ModuleKeeper");
 
         // Deterministically deploy the {ModuleKeeper} contract
-        moduleKeeper = new ModuleKeeper{ salt: salt }(DEFAULT_PROTOCOL_OWNER);
+        moduleKeeper = new ModuleKeeper{ salt: salt }(DEFAULT_PROTOCOL_ADMIN);
     }
 }
