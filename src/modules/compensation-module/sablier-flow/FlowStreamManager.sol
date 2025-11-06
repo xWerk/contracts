@@ -79,19 +79,18 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
     /// @inheritdoc IFlowStreamManager
     function statusOf(uint256 streamId) public view returns (Flow.Status status) {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
         // Return the status of the stream
-        return $.SABLIER_FLOW.statusOf(streamId);
+        return SABLIER_FLOW().statusOf(streamId);
     }
 
     function withdrawableAmountOf(uint256 streamId) public view returns (uint128 withdrawableAmount) {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
         // Return the withdrawable amount from the stream
-        return $.SABLIER_FLOW.withdrawableAmountOf(streamId);
+        return SABLIER_FLOW().withdrawableAmountOf(streamId);
+    }
+
+    function calculateMinFeeWei(uint256 streamId) public view returns (uint256 minFee) {
+        // Return the minimum fee required to withdraw from the stream
+        return SABLIER_FLOW().calculateMinFeeWei(streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -210,19 +209,16 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Withdraw {amount} from the stream
-        $.SABLIER_FLOW.withdraw(streamId, to, amount);
+        $.SABLIER_FLOW.withdraw{ value: msg.value }(streamId, to, amount);
     }
 
     /// @dev See the documentation in {ISablierFlow-withdrawMax}
-    function _withdrawMaxFromStream(uint256 streamId, address to) internal returns (uint128) {
+    function _withdrawMaxFromStream(uint256 streamId, address to) internal returns (uint128 withdrawnAmount) {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Withdraw the maximum amount from the stream
-        uint128 withdrawnAmount = $.SABLIER_FLOW.withdrawMax(streamId, to);
-
-        // Return the withdrawn amount
-        return withdrawnAmount;
+        withdrawnAmount = $.SABLIER_FLOW.withdrawMax{ value: msg.value }(streamId, to);
     }
 
     /// @dev See the documentation in {ISablierFlow-pause}

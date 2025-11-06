@@ -38,6 +38,12 @@ interface IFlowStreamManager {
     /// @return withdrawableAmount The amount withdrawable by the recipient
     function withdrawableAmountOf(uint256 streamId) external view returns (uint128 withdrawableAmount);
 
+    /// @notice Returns the minimum fee required to withdraw from the stream
+    /// @dev See the documentation in {ISablierFlow-calculateMinFeeWei}
+    /// @param streamId The ID of the component stream
+    /// @return minFee the minimum fee required to withdraw from the stream
+    function calculateMinFeeWei(uint256 streamId) external view returns (uint256 minFee);
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
