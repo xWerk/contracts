@@ -5,5 +5,8 @@ withdrawFromComponent.t.sol
     ├── when the caller IS NOT the compensation component recipient
     │   └── it should revert with the {OnlyComponentRecipient} error
     └── when the caller IS the compensation component recipient
-        ├── it should withdraw the maximum amount from the compensation component stream
-        └── it should emit a {ComponentWithdrawn} event
+        ├── when `msg.value` IS NOT enough to cover minimum fee
+        │   └── it should revert with the {InsufficientFee} error
+        └── when `msg.value` IS enough to cover the minimum fee
+            ├── it should withdraw the maximum amount from the compensation component stream
+            └── it should emit a {ComponentWithdrawn} event

@@ -5,11 +5,20 @@ withdrawComponent.t.sol
     ├── when the caller IS NOT the compensation component recipient
     │   └── it should revert with the {OnlyComponentRecipient} error
     └── when the caller IS the compensation component recipient
-        ├── when the amount IS zero
-        │   └── it should revert with the {InvalidZeroWithdrawAmount} error
-        └── when the amount IS NOT zero
-            ├── when the amount exceeds the withdrawable amount
-            │   └── it should revert with the {Overdraw} error
-            └── when the amount does not exceed the withdrawable amount
-                ├── it should withdraw the maximum amount from the compensation component stream
-                └── it should emit a {ComponentWithdrawn} event
+        ├── when `msg.value` IS NOT enough to cover the fee
+        │   └── it should revert with the {OnlyComponentRecipient} error
+        └── when `msg.value` IS enough to cover the fee
+            ├── when the amount IS zero
+            │   └── it should revert with the {InvalidZeroWithdrawAmount} error
+            └── when the amount IS NOT zero
+                ├── when the amount exceeds the withdrawable amount
+                │   └── it should revert with the {Overdraw} error
+                └── when the amount does not exceed the withdrawable amount
+                    ├── it should withdraw the maximum amount from the compensation component stream
+                    └── it should emit a {ComponentWithdrawn} event
+
+
+
+
+
+   

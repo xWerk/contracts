@@ -13,6 +13,9 @@ contract Receive_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         // Make Bob the caller for this test suite
         vm.startPrank({ msgSender: users.bob });
 
+        // Retrieve the space balance before the deposit
+        uint256 spaceBalanceBefore = address(space).balance;
+
         // Expect the {NativeReceived} event to be emitted upon ETH deposit
         vm.expectEmit();
         emit ISpace.NativeReceived({ from: users.bob, amount: 1 ether });
@@ -21,7 +24,10 @@ contract Receive_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         (bool success,) = address(space).call{ value: 1 ether }("");
         if (!success) revert();
 
+        // Retrieve the space balance after the deposit
+        uint256 spaceBalanceAfter = address(space).balance;
+
         // Assert the {Space} contract balance
-        assertEq(address(space).balance, 1 ether);
+        assertEq(spaceBalanceAfter - spaceBalanceBefore, 1 ether);
     }
 }

@@ -65,7 +65,7 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         paymentModule.withdrawRequestStream({ requestId: paymentRequestId, amount: 1e6 });
     }
 
-    function test_RevertWhen_ZeroAmount()
+    function test_RevertWhen_MsgValueNotEnough()
         external
         whenRequestNotNull
         givenPaymentMethodLinearStream
@@ -73,6 +73,7 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
     {
         // Set current paymentRequest as a linear stream-based one
         uint256 paymentRequestId = 4;
+        uint256 streamId = 1;
 
         // The payment request must be paid in order to update its status to `Ongoing`
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
@@ -89,6 +90,54 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         // Advance the timestamp by 5 weeks to simulate the withdrawal
         vm.warp(block.timestamp + 5 weeks);
 
+        // Store Eve's space balance before withdrawing the USDT tokens
+        uint256 balanceOfBefore = usdt.balanceOf(address(space));
+
+        // Retrieve the minimum fee required to withdraw from the stream
+        uint256 minFee = paymentModule.calculateMinFeeWei(streamId);
+
+        // Compute an insufficient fee amount to simulate the error
+        uint256 actualFee = minFee / 2;
+
+        // Make Eve's space the caller in this test suite as her space is the recipient of the payment request
+        vm.startPrank({ msgSender: address(space) });
+
+        // Expect the next call to revert with the {InsufficientFee} error
+        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientFee.selector, actualFee, minFee));
+
+        // Run the test
+        paymentModule.withdrawRequestStream{ value: actualFee }({ requestId: paymentRequestId, amount: 1e6 });
+    }
+
+    function test_RevertWhen_ZeroAmount()
+        external
+        whenRequestNotNull
+        givenPaymentMethodLinearStream
+        givenRequestStatusPending
+        whenEnoughMsgValue
+    {
+        // Set current paymentRequest as a linear stream-based one
+        uint256 paymentRequestId = 4;
+        uint256 streamId = 1;
+
+        // The payment request must be paid in order to update its status to `Ongoing`
+        // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
+        vm.startPrank({ msgSender: users.bob });
+
+        // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
+        usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
+
+        // Pay the payment request first (status will be updated to `Ongoing`)
+        paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
+            requestId: paymentRequestId
+        });
+
+        // Advance the timestamp by 5 weeks to simulate the withdrawal
+        vm.warp(block.timestamp + 5 weeks);
+
+        // Retrieve the minimum fee required to withdraw from the stream
+        uint256 minFee = paymentModule.calculateMinFeeWei(streamId);
+
         // Make Eve's space the caller in this test suite as her space is the recipient of the payment request
         vm.startPrank({ msgSender: address(space) });
 
@@ -96,7 +145,7 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         vm.expectRevert(Errors.ZeroWithdrawAmount.selector);
 
         // Run the test
-        paymentModule.withdrawRequestStream({ requestId: paymentRequestId, amount: 0 });
+        paymentModule.withdrawRequestStream{ value: minFee }({ requestId: paymentRequestId, amount: 0 });
     }
 
     function test_RevertWhen_ExceedsWithdrawableAmount()
@@ -126,7 +175,10 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         vm.warp(block.timestamp + 5 weeks);
 
         // Get the maximum withdrawable amount from the stream
-        uint128 maxWithdrawableAmount = paymentModule.withdrawableAmountOf({ streamId: streamId });
+        uint128 maxWithdrawableAmount = paymentModule.withdrawableAmountOf(streamId);
+
+        // Retrieve the minimum fee required to withdraw from the stream
+        uint256 minFee = paymentModule.calculateMinFeeWei(streamId);
 
         // Make Eve's space the caller in this test suite as her space is the recipient of the payment request
         vm.startPrank({ msgSender: address(space) });
@@ -135,7 +187,9 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         vm.expectRevert(Errors.Overdraw.selector);
 
         // Run the test
-        paymentModule.withdrawRequestStream({ requestId: paymentRequestId, amount: maxWithdrawableAmount + 1 });
+        paymentModule.withdrawRequestStream{ value: minFee }({
+            requestId: paymentRequestId, amount: maxWithdrawableAmount + 1
+        });
     }
 
     function test_WithdrawStream_LinearStream()
@@ -167,11 +221,14 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         // Store Eve's space balance before withdrawing the USDT tokens
         uint256 balanceOfBefore = usdt.balanceOf(address(space));
 
+        // Revtrieve the minimum fee required to withdraw from the stream
+        uint256 minFee = paymentModule.calculateMinFeeWei(streamId);
+
         // Make Eve's space the caller in this test suite as her space is the recipient of the payment request
         vm.startPrank({ msgSender: address(space) });
 
         // Run the test
-        paymentModule.withdrawRequestStream({ requestId: paymentRequestId, amount: 1e6 });
+        paymentModule.withdrawRequestStream{ value: minFee }({ requestId: paymentRequestId, amount: 1e6 });
 
         // Assert the current and expected USDT balance of Eve
         assertEq(balanceOfBefore + 1e6, usdt.balanceOf(address(space)));
@@ -206,11 +263,14 @@ contract WithdrawRequestStream_Integration_Concret_Test is WithdrawLinearStream_
         // Store Eve's space balance before withdrawing the USDT tokens
         uint256 balanceOfBefore = usdt.balanceOf(address(space));
 
+        // Revtrieve the minimum fee required to withdraw from the stream
+        uint256 minFee = paymentModule.calculateMinFeeWei(streamId);
+
         // Make Eve's space the caller in this test suite as her space is the owner of the payment request
         vm.startPrank({ msgSender: address(space) });
 
         // Run the test
-        paymentModule.withdrawRequestStream({ requestId: paymentRequestId, amount: 1e6 });
+        paymentModule.withdrawRequestStream{ value: minFee }({ requestId: paymentRequestId, amount: 1e6 });
 
         // Assert the current and expected USDT balance of Eve's space
         assertEq(balanceOfBefore + 1e6, usdt.balanceOf(address(space)));

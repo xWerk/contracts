@@ -3,9 +3,7 @@ pragma solidity ^0.8.26;
 
 import { CompensationModule_Integration_Test } from "test/integration/CompensationModule.t.sol";
 import { Errors } from "src/modules/compensation-module/libraries/Errors.sol";
-import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
-import "forge-std/console.sol";
 
 contract WithdrawComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
@@ -31,12 +29,34 @@ contract WithdrawComponent_Integration_Concrete_Test is CompensationModule_Integ
         compensationModule.withdrawComponent({ componentId: 1, amount: 4e6 });
     }
 
-    function test_RevertWhen_AmountIsZero() public whenComponentNotNull whenCallerComponentRecipient(users.bob) {
+    function test_RevertWhen_MsgValueNotEnough() public whenComponentNotNull whenCallerComponentRecipient(users.bob) {
+        // Retrieve the minimum fee required to withdraw
+        uint256 minFee = compensationModule.calculateMinFeeWei({ streamId: 1 });
+
+        // Compute an insufficient fee amount to simulate the error
+        uint256 actualFee = minFee / 2;
+
+        // Expect the call to revert with the {InsufficientFee} error
+        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientFee.selector, actualFee, minFee));
+
+        // Run the test with insufficient `msg.value`
+        compensationModule.withdrawComponent{ value: actualFee }({ componentId: 1, amount: 0 });
+    }
+
+    function test_RevertWhen_AmountIsZero()
+        public
+        whenComponentNotNull
+        whenCallerComponentRecipient(users.bob)
+        whenEnoughMsgValue
+    {
+        // Retrieve the minimum fee required to withdraw
+        uint256 minFee = compensationModule.calculateMinFeeWei({ streamId: 1 });
+
         // Expect the call to revert with the {InvalidZeroWithdrawAmount} error
         vm.expectRevert(Errors.InvalidZeroWithdrawAmount.selector);
 
         // Run the test with Eve as the caller as she's not the compensation component recipient (Bob is)
-        compensationModule.withdrawComponent({ componentId: 1, amount: 0 });
+        compensationModule.withdrawComponent{ value: minFee }({ componentId: 1, amount: 0 });
     }
 
     function test_RevertWhen_AmountExceedsWithdrawableAmount()
@@ -45,7 +65,11 @@ contract WithdrawComponent_Integration_Concrete_Test is CompensationModule_Integ
         whenComponentPartiallyFunded
         whenCallerComponentRecipient(users.bob)
         whenAmountNotZero
+        whenEnoughMsgValue
     {
+        // Retrieve the minimum fee required to withdraw
+        uint256 minFee = compensationModule.calculateMinFeeWei({ streamId: 1 });
+
         // Retrieve the withdrawable amount
         uint128 withdrawableAmount = compensationModule.withdrawableAmountOfComponent({ componentId: 1 });
 
@@ -53,7 +77,7 @@ contract WithdrawComponent_Integration_Concrete_Test is CompensationModule_Integ
         vm.expectRevert(Errors.Overdraw.selector);
 
         // Run the test with amount slightly greater than the withdrawable amount
-        compensationModule.withdrawComponent({ componentId: 1, amount: withdrawableAmount + 1 });
+        compensationModule.withdrawComponent{ value: minFee }({ componentId: 1, amount: withdrawableAmount + 1 });
     }
 
     function test_WithdrawComponent()
@@ -63,16 +87,20 @@ contract WithdrawComponent_Integration_Concrete_Test is CompensationModule_Integ
         whenCallerComponentRecipient(users.bob)
         whenAmountNotZero
         whenAmountDoesNotExceedWithdrawableAmount
+        whenEnoughMsgValue
     {
+        // Retrieve the minimum fee required to withdraw
+        uint256 minFee = compensationModule.calculateMinFeeWei({ streamId: 1 });
+
         // Cache the USDT balance of Bob before the withdrawal
         uint256 balanceOfBobBefore = usdt.balanceOf(users.bob);
 
         // Expect the {ComponentWithdrawn} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.ComponentWithdrawn({ componentId: 1, amount: 4e6 });
+        emit ICompensationModule.ComponentWithdrawn({ componentId: 1, amount: 4e6, feePaid: minFee });
 
         // Run the test
-        compensationModule.withdrawComponent({ componentId: 1, amount: 4e6 });
+        compensationModule.withdrawComponent{ value: minFee }({ componentId: 1, amount: 4e6 });
 
         // Cache the USDT balance of Bob after the withdrawal
         uint256 balanceOfBobAfter = usdt.balanceOf(users.bob);
