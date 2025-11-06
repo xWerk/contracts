@@ -57,6 +57,9 @@ interface IStreamManager {
     /// @notice See the documentation in {ISablierLockup-statusOf}
     function statusOfStream(uint256 streamId) external view returns (Lockup.Status status);
 
+    /// @notice See the documentation in. {ISablierLockup-calculateMinFeeWei}
+    function calculateMinFeeWei(uint256 streamId) external view returns (uint256 minFeeWei);
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/

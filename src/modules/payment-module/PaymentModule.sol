@@ -336,15 +336,15 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     }
 
     /// @inheritdoc IPaymentModule
-    function withdrawRequestStream(uint256 requestId, uint128 amount) public {
+    function withdrawRequestStream(uint256 requestId, uint128 amount) external payable {
         // Retrieve the contract storage
         PaymentModuleStorage storage $ = _getPaymentModuleStorage();
 
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
 
-        // Checks
-        _checkIfValidWithdraw(request);
+        // Checks: withdrawal is valid and the fee is sufficient
+        uint256 minFee = _checkIfValidWithdraw(request);
 
         // Checks: `amount` is not zero
         if (amount == 0) revert Errors.ZeroWithdrawAmount();
@@ -356,25 +356,25 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         _withdrawStream({ streamId: request.config.streamId, to: request.recipient, amount: amount });
 
         // Log the stream withdrawal
-        emit RequestStreamWithdrawn(requestId, amount);
+        emit RequestStreamWithdrawn(requestId, amount, minFee);
     }
 
     /// @inheritdoc IPaymentModule
-    function withdrawMaxRequestStream(uint256 requestId) public returns (uint128 withdrawnAmount) {
+    function withdrawMaxRequestStream(uint256 requestId) public payable returns (uint128 withdrawnAmount) {
         // Retrieve the contract storage
         PaymentModuleStorage storage $ = _getPaymentModuleStorage();
 
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
 
-        // Checks
-        _checkIfValidWithdraw(request);
+        // Checks: withdrawal is valid and the fee is sufficient
+        uint256 minFee = _checkIfValidWithdraw(request);
 
-        // Withdraw the maximum amount from the stream
+        // Check, Effects, Interactions: withdraw the maximum amount from the stream
         withdrawnAmount = _withdrawMaxStream({ streamId: request.config.streamId, to: request.recipient });
 
         // Log the stream withdrawal
-        emit RequestStreamWithdrawn(requestId, withdrawnAmount);
+        emit RequestStreamWithdrawn(requestId, withdrawnAmount, minFee);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -503,7 +503,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     }
 
     /// @notice Preliminary checks used for withdraw methods
-    function _checkIfValidWithdraw(Types.PaymentRequest memory request) internal view {
+    function _checkIfValidWithdraw(Types.PaymentRequest memory request) internal view returns (uint256 minFee) {
         // Checks: the payment request exists
         if (request.recipient == address(0)) revert Errors.NullRequest();
 
@@ -512,5 +512,11 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         // Checks: `msg.sender` is the stream recipient
         if (msg.sender != request.recipient) revert Errors.OnlyStreamRecipient();
+
+        // Retrieve the minimum fee amount required to withdraw from the stream
+        minFee = calculateMinFeeWei(request.config.streamId);
+
+        // Checks: the caller sent a sufficient amount of ETH
+        if (msg.value < minFee) revert Errors.InsufficientFee(msg.value, minFee);
     }
 }

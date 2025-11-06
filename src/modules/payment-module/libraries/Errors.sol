@@ -75,4 +75,7 @@ library Errors {
 
     /// @notice Thrown when the amount attempted to withdraw exceeds the withdrawable amount
     error Overdraw();
+
+    /// @notice Thrown when `msg.value` is less than the expected fee amount
+    error InsufficientFee(uint256 feePaid, uint256 minFee);
 }
