@@ -101,6 +101,8 @@ abstract contract Base_Test is Test {
 
         // Fund the {Space} contract with 1M USDT
         deal({ token: address(usdt), to: address(_space), give: 1_000_000e6 });
+        // Fund the {Space} contract with 100 ether
+        deal(address(_space), 100 ether);
     }
 
     /// @dev Deploys a new {MockBadSpace} smart account based on the provided `owner` and `stationId` input params

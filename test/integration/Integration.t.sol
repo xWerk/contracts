@@ -14,7 +14,6 @@ import { FlowNFTDescriptor } from "@sablier/flow/src/FlowNFTDescriptor.sol";
 import { LockupNFTDescriptor } from "@sablier/lockup/src/LockupNFTDescriptor.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockBadSpace } from "../mocks/MockBadSpace.sol";
-import { ud } from "@prb/math/src/UD60x18.sol";
 
 abstract contract Integration_Test is Base_Test {
     /*//////////////////////////////////////////////////////////////////////////

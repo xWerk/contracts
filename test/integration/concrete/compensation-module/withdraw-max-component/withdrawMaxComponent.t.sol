@@ -19,7 +19,7 @@ contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_I
         vm.expectRevert(Errors.ComponentNull.selector);
 
         // Run the test
-        compensationModule.withdrawFromComponent({ componentId: 1 });
+        compensationModule.withdrawMaxComponent({ componentId: 1 });
     }
 
     function test_RevertWhen_CallerIsNotComponentRecipient() public whenComponentNotNull {
@@ -27,10 +27,10 @@ contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_I
         vm.expectRevert(Errors.OnlyComponentRecipient.selector);
 
         // Run the test with Eve as the caller as she's not the compensation component recipient (Bob is)
-        compensationModule.withdrawFromComponent({ componentId: 1 });
+        compensationModule.withdrawMaxComponent({ componentId: 1 });
     }
 
-    function test_WithdrawFromComponent()
+    function test_RevertWhen_MsgValueNotEnough()
         public
         whenComponentNotNull
         whenComponentPartiallyFunded
@@ -39,21 +39,50 @@ contract WithdrawFromComponent_Integration_Concrete_Test is CompensationModule_I
         // Fast forward the time by 1 day to ensure the stream amount is fully streamed
         vm.warp(block.timestamp + 1 days);
 
+        // Retrieve the minimum fee required to withdraw
+        uint256 minFee = compensationModule.calculateMinFeeWei({ streamId: 1 });
+
+        // Compute an insufficient fee amount to simulate the error
+        uint256 actualFee = minFee / 2;
+
+        // Expect the call to revert with the {InsufficientFee} error
+        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientFee.selector, actualFee, minFee));
+
+        // Run the test
+        compensationModule.withdrawMaxComponent{ value: actualFee }({ componentId: 1 });
+    }
+
+    function test_WithdrawMaxComponent()
+        public
+        whenComponentNotNull
+        whenComponentPartiallyFunded
+        whenCallerComponentRecipient(users.bob)
+        whenEnoughMsgValue
+    {
+        // Fast forward the time by 1 day to ensure the stream amount is fully streamed
+        vm.warp(block.timestamp + 1 days);
+
         // Cache the USDT balance of Bob before the withdrawal
         uint256 balanceOfBobBefore = usdt.balanceOf(users.bob);
 
+        // The amount to withdraw
+        uint128 amountToWithdraw = 10e6;
+
+        // Retrieve the minimum fee required to withdraw
+        uint256 minFee = compensationModule.calculateMinFeeWei({ streamId: 1 });
+
         // Expect the {ComponentWithdrawn} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.ComponentWithdrawn({ componentId: 1, amount: 10e6 });
+        emit ICompensationModule.ComponentWithdrawn({ componentId: 1, amount: amountToWithdraw, feePaid: minFee });
 
         // Run the test
-        compensationModule.withdrawFromComponent({ componentId: 1 });
+        compensationModule.withdrawMaxComponent{ value: minFee }({ componentId: 1 });
 
         // Cache the USDT balance of Bob after the withdrawal
         uint256 balanceOfBobAfter = usdt.balanceOf(users.bob);
 
         // Assert the USDT balance of Bob increased by the amount withdrawn
-        assertEq(balanceOfBobAfter - balanceOfBobBefore, 10e6);
+        assertEq(balanceOfBobAfter - balanceOfBobBefore, amountToWithdraw);
 
         // Assert the actual and expected status of the compensation component stream
         // The stream is now insolvent because the total debt exceeds the stream balance

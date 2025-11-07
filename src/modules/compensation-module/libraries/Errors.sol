@@ -44,6 +44,9 @@ library Errors {
     /// @notice Thrown when the deposit amount is zero
     error InvalidZeroDepositAmount();
 
+    /// @notice Thrown when the withdraw amount is zero
+    error InvalidZeroWithdrawAmount();
+
     /// @notice Thrown when the compensation component does not exist
     error ComponentNull();
 
@@ -52,4 +55,10 @@ library Errors {
 
     /// @notice Thrown when the foo value is invalid
     error InvalidFooValue();
+
+    /// @notice Thrown when the amount to withdraw is bigger than the withdrawable amount
+    error Overdraw();
+
+    /// @notice Thrown when `msg.value` is less than the expected fee amount
+    error InsufficientFee(uint256 feePaid, uint256 minFee);
 }

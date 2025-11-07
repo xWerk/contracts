@@ -44,7 +44,7 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.expectRevert(Errors.InsufficientNativeToWithdraw.selector);
 
         // Run the test
-        space.withdrawNative({ to: users.eve, amount: 2 ether });
+        space.withdrawNative({ to: users.eve, amount: 200 ether });
     }
 
     modifier whenSufficientNativeToWithdraw(Space space) {

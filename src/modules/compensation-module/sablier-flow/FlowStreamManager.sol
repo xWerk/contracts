@@ -79,11 +79,20 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
     /// @inheritdoc IFlowStreamManager
     function statusOf(uint256 streamId) public view returns (Flow.Status status) {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
         // Return the status of the stream
-        return $.SABLIER_FLOW.statusOf(streamId);
+        return SABLIER_FLOW().statusOf(streamId);
+    }
+
+    /// @inheritdoc IFlowStreamManager
+    function withdrawableAmountOf(uint256 streamId) public view returns (uint128 withdrawableAmount) {
+        // Return the withdrawable amount from the stream
+        return SABLIER_FLOW().withdrawableAmountOf(streamId);
+    }
+
+    /// @inheritdoc IFlowStreamManager
+    function calculateMinFeeWei(uint256 streamId) public view returns (uint256 minFee) {
+        // Return the minimum fee required to withdraw from the stream
+        return SABLIER_FLOW().calculateMinFeeWei(streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -174,10 +183,8 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
     /// @dev See the documentation in {ISablierFlow-adjustRatePerSecond}
     function _adjustStreamRatePerSecond(uint256 streamId, UD21x18 newRatePerSecond) internal {
-        FlowStreamManagerStorage storage $ = _onlyInitialStreamSender(streamId);
-
         // Adjust the rate per second of the stream
-        $.SABLIER_FLOW.adjustRatePerSecond(streamId, newRatePerSecond);
+        SABLIER_FLOW().adjustRatePerSecond(streamId, newRatePerSecond);
     }
 
     /// @dev See the documentation in {ISablierFlow-deposit}
@@ -196,16 +203,16 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         $.SABLIER_FLOW.deposit({ streamId: streamId, amount: amount, sender: address(this), recipient: recipient });
     }
 
+    /// @dev See the documentation in {ISablierFlow-withdraw}
+    function _withdrawFromStream(uint256 streamId, address to, uint128 amount) internal {
+        // Withdraw {amount} from the stream
+        SABLIER_FLOW().withdraw{ value: msg.value }(streamId, to, amount);
+    }
+
     /// @dev See the documentation in {ISablierFlow-withdrawMax}
-    function _withdrawMaxFromStream(uint256 streamId, address to) internal returns (uint128) {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
+    function _withdrawMaxFromStream(uint256 streamId, address to) internal returns (uint128 withdrawnAmount) {
         // Withdraw the maximum amount from the stream
-        uint128 withdrawnAmount = $.SABLIER_FLOW.withdrawMax(streamId, to);
-
-        // Return the withdrawn amount
-        return withdrawnAmount;
+        withdrawnAmount = SABLIER_FLOW().withdrawMax{ value: msg.value }(streamId, to);
     }
 
     /// @dev See the documentation in {ISablierFlow-pause}
@@ -223,21 +230,15 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
     /// @dev See the documentation in {ISablierFlow-restart}
     function _restartStream(uint256 streamId, UD21x18 newRatePerSecond) internal {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
         // Restart the stream
-        $.SABLIER_FLOW.restart(streamId, newRatePerSecond);
+        SABLIER_FLOW().restart(streamId, newRatePerSecond);
     }
 
     /// @dev Cancels a compensation component stream by forfeiting its uncovered debt (if any) and marking it as voided
     /// See the documentation in {ISablierFlow-void}
     function _cancelStream(uint256 streamId) internal {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
         // Cancel the stream
-        $.SABLIER_FLOW.void(streamId);
+        SABLIER_FLOW().void(streamId);
     }
 
     /// @dev Refunds the entire refundable amount of tokens from the compensation component stream to the sender's address
@@ -250,11 +251,8 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         internal
         returns (uint128 refundedAmount)
     {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
         // Refund the stream
-        refundedAmount = $.SABLIER_FLOW.refundMax(streamId);
+        refundedAmount = SABLIER_FLOW().refundMax(streamId);
 
         // Transfer assets to {initialStreamSender}
         asset.safeTransfer({ to: initialStreamSender, value: refundedAmount });
@@ -262,11 +260,8 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
 
     /// @dev See the documentation in {ISablierFlow-getStream}
     function _getStream(uint256 streamId) internal view returns (Flow.Stream memory stream) {
-        // Retrieve the storage of the {FlowStreamManager} contract
-        FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
-
         // Return the stream
-        return $.SABLIER_FLOW.getStream(streamId);
+        return SABLIER_FLOW().getStream(streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

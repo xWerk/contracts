@@ -5,11 +5,14 @@ import { IWerkSubdomainRegistry } from "./interfaces/IWerkSubdomainRegistry.sol"
 import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Ownable } from "./../../abstracts/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title WerkSubdomainRegistrar
 /// @notice This is a fork implementation of the L2Registrar contract created by NameStone
 /// @dev See the initial implementation here: https://github.com/namestonehq/durin/blob/main/src/L2Registrar.sol
 contract WerkSubdomainRegistrar is Ownable {
+    using SafeERC20 for IERC20;
+
     /// @notice Emitted when a new name is registered
     /// @param label The registered label (e.g. "name" in "name.werk.eth")
     /// @param owner The owner of the newly registered name
@@ -211,7 +214,7 @@ contract WerkSubdomainRegistrar is Ownable {
     /// @param amount The amount of tokens to withdraw
     function withdrawERC20(IERC20 asset, uint256 amount) public onlyOwner {
         // Withdraw by transferring the `amount` to the owner
-        asset.transfer(owner, amount);
+        asset.safeTransfer(owner, amount);
     }
 
     /// @notice Withdraws native tokens (ETH) from the Registrar

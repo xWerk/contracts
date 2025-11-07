@@ -128,6 +128,11 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         status = SABLIER_LOCKUP().statusOf(streamId);
     }
 
+    /// @inheritdoc IStreamManager
+    function calculateMinFeeWei(uint256 streamId) public view returns (uint256 minFeeWei) {
+        minFeeWei = SABLIER_LOCKUP().calculateMinFeeWei(streamId);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -283,12 +288,15 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     }
 
     /// @dev See the documentation in {ISablierV2Lockup-withdrawMax}
-    ///
-    /// Notes:
-    /// - `streamType` parameter has been added to withdraw from the according {ISablierV2Lockup} contract
-    function _withdrawStream(uint256 streamId, address to) internal returns (uint128 withdrawnAmount) {
+    function _withdrawMaxStream(uint256 streamId, address to) internal returns (uint128 withdrawnAmount) {
         // Withdraw the maximum withdrawable amount
-        return SABLIER_LOCKUP().withdrawMax(streamId, to);
+        return SABLIER_LOCKUP().withdrawMax{ value: msg.value }(streamId, to);
+    }
+
+    /// @dev See the documentation in {ISablierV2Lockup-withdraw}
+    function _withdrawStream(uint256 streamId, address to, uint128 amount) internal {
+        // Withdraw `amount` from the stream
+        SABLIER_LOCKUP().withdraw{ value: msg.value }(streamId, to, amount);
     }
 
     /// @dev See the documentation in {ISablierV2Lockup-cancel}

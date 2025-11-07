@@ -39,7 +39,8 @@ interface IPaymentModule {
     /// @notice Emitted when a payment request stream is withdrawn
     /// @param requestId The ID of the payment request
     /// @param withdrawnAmount The amount withdrawn from the stream
-    event RequestStreamWithdrawn(uint256 indexed requestId, uint128 withdrawnAmount);
+    /// @param feePaid The fee paid in order to withdraw from the stream
+    event RequestStreamWithdrawn(uint256 indexed requestId, uint128 withdrawnAmount, uint256 feePaid);
 
     /*//////////////////////////////////////////////////////////////////////////
                                  CONSTANT FUNCTIONS
@@ -94,13 +95,28 @@ interface IPaymentModule {
     /// @return refundedAmount The remaining funds that will be refunded to the stream payer
     function cancelRequest(uint256 requestId) external returns (uint128 refundedAmount);
 
+    /// @notice Withdraws from the stream associated with the `id` payment request
+    ///
+    /// Notes:
+    /// - reverts if request is null
+    /// - reverts if `msg.sender` is not the stream recipient
+    /// - reverts if the payment method of the `id` payment request is not linear or tranched stream
+    /// - reverts if `amount` is zero or exceeds the withdrawable amount
+    /// - reverts if `msg.value` is less than the minimum fee required to withdraw from the stream
+    ///
+    /// @param requestId The ID of the payment request
+    /// @param amount The amount to withdraw from the stream
+    function withdrawRequestStream(uint256 requestId, uint128 amount) external payable;
+
     /// @notice Withdraws the maximum withdrawable amount from the stream associated with the `id` payment request
     ///
     /// Notes:
+    /// - reverts if request is null
     /// - reverts if `msg.sender` is not the stream recipient
     /// - reverts if the payment method of the `id` payment request is not linear or tranched stream
+    /// - reverts if `msg.value` is less than the minimum fee required to withdraw from the stream
     ///
     /// @param requestId The ID of the payment request
-    /// @return withdrawnAmount The amount withdrawn
-    function withdrawRequestStream(uint256 requestId) external returns (uint128 withdrawnAmount);
+    /// @return withdrawnAmount The amount withdrawn from the stream
+    function withdrawMaxRequestStream(uint256 requestId) external payable returns (uint128 withdrawnAmount);
 }

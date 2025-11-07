@@ -55,6 +55,18 @@ contract CompensationModule_Integration_Test is Integration_Test {
         _;
     }
 
+    modifier whenAmountNotZero() {
+        _;
+    }
+
+    modifier whenAmountDoesNotExceedWithdrawableAmount() {
+        _;
+    }
+
+    modifier whenEnoughMsgValue() {
+        _;
+    }
+
     modifier whenComponentNotNull() {
         // Create a mock compensation component with 1 component
         Types.CompensationComponent memory component = createMockComponent(Types.ComponentType.Payroll);
