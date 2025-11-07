@@ -85,12 +85,6 @@ contract WithdrawMaxRequestStream_Integration_Concret_Test is WithdrawLinearStre
         // Advance the timestamp by 5 weeks to simulate the withdrawal
         vm.warp(block.timestamp + 5 weeks);
 
-        // Store Eve's space balance before withdrawing the USDT tokens
-        uint256 balanceOfBefore = usdt.balanceOf(address(space));
-
-        // Get the maximum withdrawable amount from the stream
-        uint128 maxWithdrawableAmount = paymentModule.withdrawableAmountOf({ streamId: streamId });
-
         // Retrieve the minimum fee required to withdraw from the stream
         uint256 minFee = paymentModule.calculateMinFeeWei(streamId);
 
