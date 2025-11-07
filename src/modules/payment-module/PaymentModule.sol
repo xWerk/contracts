@@ -502,7 +502,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         return Types.Status.Ongoing;
     }
 
-    /// @notice Preliminary checks used for withdraw methods
+    /// @dev Preliminary checks used for withdraw methods
     function _checkIfValidWithdraw(Types.PaymentRequest memory request) internal view returns (uint256 minFee) {
         // Checks: the payment request exists
         if (request.recipient == address(0)) revert Errors.NullRequest();

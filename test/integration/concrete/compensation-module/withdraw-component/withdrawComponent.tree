@@ -16,9 +16,3 @@ withdrawComponent.t.sol
                 └── when the amount does not exceed the withdrawable amount
                     ├── it should withdraw the maximum amount from the compensation component stream
                     └── it should emit a {ComponentWithdrawn} event
-
-
-
-
-
-   

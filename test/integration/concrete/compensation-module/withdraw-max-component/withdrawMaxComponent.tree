@@ -1,4 +1,4 @@
-withdrawFromComponent.t.sol
+withdrawMaxComponent.t.sol
 ├── when the compensation component IS null
 │   └── it should revert with the {ComponentNull} error
 └── when the compensation component IS NOT null and funded
