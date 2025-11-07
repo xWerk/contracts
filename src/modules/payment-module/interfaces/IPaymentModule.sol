@@ -117,6 +117,6 @@ interface IPaymentModule {
     /// - reverts if `msg.value` is less than the minimum fee required to withdraw from the stream
     ///
     /// @param requestId The ID of the payment request
-    /// @param withdrawnAmount The amount withdrawn from the stream
+    /// @return withdrawnAmount The amount withdrawn from the stream
     function withdrawMaxRequestStream(uint256 requestId) external payable returns (uint128 withdrawnAmount);
 }

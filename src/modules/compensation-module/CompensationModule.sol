@@ -132,6 +132,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         return statusOf($.components[componentId].streamId);
     }
 
+    /// @inheritdoc ICompensationModule
     function withdrawableAmountOfComponent(uint256 componentId) external view returns (uint128 withdrawableAmount) {
         // Checks: the compensation component is not null then cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(componentId);

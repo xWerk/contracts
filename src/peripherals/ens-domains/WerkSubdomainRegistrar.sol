@@ -12,6 +12,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 /// @dev See the initial implementation here: https://github.com/namestonehq/durin/blob/main/src/L2Registrar.sol
 contract WerkSubdomainRegistrar is Ownable {
     using SafeERC20 for IERC20;
+
     /// @notice Emitted when a new name is registered
     /// @param label The registered label (e.g. "name" in "name.werk.eth")
     /// @param owner The owner of the newly registered name
