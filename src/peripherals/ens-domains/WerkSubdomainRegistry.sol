@@ -15,16 +15,6 @@ contract WerkSubdomainRegistry is ERC721, AccessControl {
         return super.supportsInterface(x);
     }
 
-    /// @notice Check if caller is token operator or has registrar role
-    /// @param labelhash The hash of the label to check permissions for
-    modifier onlyTokenOperatorOrRegistrar(bytes32 labelhash) {
-        address owner = _ownerOf(uint256(labelhash));
-        if (owner != msg.sender && !isApprovedForAll(owner, msg.sender) && !hasRole(REGISTRAR_ROLE, msg.sender)) {
-            revert Unauthorized();
-        }
-        _;
-    }
-
     /// @notice Thrown when caller lacks required permissions
     error Unauthorized();
 
@@ -102,6 +92,22 @@ contract WerkSubdomainRegistry is ERC721, AccessControl {
 
     // Initialize with placeholder values that will be updated in initialize()
     constructor() ERC721("", "") { }
+
+    /// @notice Check if caller is token operator or has registrar role
+    /// @param labelhash The hash of the label to check permissions for
+    modifier onlyTokenOperatorOrRegistrar(bytes32 labelhash) {
+        _onlyTokenOperatorOrRegistrar(labelhash);
+        _;
+    }
+
+    /// @dev A private function is used instead of inlining this logic in a modifier because Solidity copies modifiers
+    /// into every function that uses them
+    function _onlyTokenOperatorOrRegistrar(bytes32 labelhash) internal view {
+        address owner = _ownerOf(uint256(labelhash));
+        if (owner != msg.sender && !isApprovedForAll(owner, msg.sender) && !hasRole(REGISTRAR_ROLE, msg.sender)) {
+            revert Unauthorized();
+        }
+    }
 
     /// @notice Initializes the registry with name, symbol, and base URI
     /// @param tokenName The name for the ERC721 token
