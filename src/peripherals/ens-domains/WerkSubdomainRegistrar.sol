@@ -79,14 +79,7 @@ contract WerkSubdomainRegistrar is Ownable {
 
     /// @dev Allow only calls from contracts implementing the {ISpace} interface
     modifier onlySpace() {
-        // Checks: the sender is a valid non-zero code size contract
-        if (msg.sender.code.length == 0) {
-            revert SpaceZeroCodeSize();
-        }
-
-        // Checks: the sender implements the ERC-165 interface required by {ISpace}
-        bytes4 interfaceId = type(ISpace).interfaceId;
-        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert SpaceUnsupportedInterface();
+        _onlySpace();
         _;
     }
 
@@ -224,5 +217,18 @@ contract WerkSubdomainRegistrar is Ownable {
         (bool success,) = owner.call{ value: amount }("");
         // Revert if the call failed
         if (!success) revert();
+    }
+
+    /// @dev A private function is used instead of inlining this logic in a modifier because Solidity copies modifiers
+    /// into every function that uses them
+    function _onlySpace() internal view {
+        // Checks: the sender is a valid non-zero code size contract
+        if (msg.sender.code.length == 0) {
+            revert SpaceZeroCodeSize();
+        }
+
+        // Checks: the sender implements the ERC-165 interface required by {ISpace}
+        bytes4 interfaceId = type(ISpace).interfaceId;
+        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert SpaceUnsupportedInterface();
     }
 }

@@ -29,8 +29,14 @@ abstract contract Ownable is IOwnable {
 
     /// @notice Reverts if the `msg.sender` is not the contract owner
     modifier onlyOwner() {
-        if (msg.sender != owner) revert Errors.Unauthorized();
+        _onlyOwner();
         _;
+    }
+
+    /// @dev A private function is used instead of inlining this logic in a modifier because Solidity copies modifiers
+    /// into every function that uses them
+    function _onlyOwner() internal view {
+        if (msg.sender != owner) revert Errors.Unauthorized();
     }
 
     /*//////////////////////////////////////////////////////////////////////////
