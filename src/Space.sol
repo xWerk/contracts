@@ -57,7 +57,9 @@ contract Space is ISpace, AccountCore, ERC1271 {
 
     /// @notice Checks whether the caller is the {EntryPoint}, the admin or the contract itself (redirected through `execute()`)
     modifier onlyAdminOrEntrypoint() virtual {
-        _onlyAdminOrEntrypoint();
+        if (!(msg.sender == address(entryPoint()) || isAdmin(msg.sender) || msg.sender == address(this))) {
+            revert Errors.CallerNotEntryPointOrAdmin();
+        }
         _;
     }
 
@@ -193,15 +195,7 @@ contract Space is ISpace, AccountCore, ERC1271 {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ERC1271
-    function isValidSignature(
-        bytes32 _hash,
-        bytes memory _signature
-    )
-        public
-        view
-        override
-        returns (bytes4 magicValue)
-    {
+    function isValidSignature(bytes32 _hash, bytes memory _signature) public view override returns (bytes4 magicValue) {
         // Compute the hash of message the should be signed
         bytes32 targetDigest = getMessageHash(_hash);
 
@@ -317,14 +311,6 @@ contract Space is ISpace, AccountCore, ERC1271 {
         } else {
             // Otherwise log the execution success
             emit ModuleExecutionSucceded(target, value, data);
-        }
-    }
-
-    /// @dev A private function is used instead of inlining this logic in a modifier because Solidity copies modifiers
-    /// into every function that uses them
-    function _onlyAdminOrEntrypoint() internal view {
-        if (!(msg.sender == address(entryPoint()) || isAdmin(msg.sender) || msg.sender == address(this))) {
-            revert Errors.CallerNotEntryPointOrAdmin();
         }
     }
 }
