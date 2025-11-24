@@ -174,8 +174,8 @@ contract BaseScript is Script {
     /// @notice Generates a deterministic deployment salt from a string input
     /// @dev Converts the given `salt` string into a `bytes32` value using `keccak256`
     /// Notes:
-    /// - Can be used for deterministic deployments with both CREATE2 and CREATE3
-    function createSalt(string memory salt) internal pure returns (bytes32) {
+    /// - Can be used for deterministic deployments with CREATE3
+    function create3Salt(string memory salt) internal pure returns (bytes32) {
         return bytes32(keccak256(bytes(salt)));
     }
 }

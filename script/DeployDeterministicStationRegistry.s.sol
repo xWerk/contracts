@@ -11,9 +11,17 @@ import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEn
 contract DeployDeterministicStationRegistry is BaseScript {
     /// @dev By using a salt, Forge will deploy the contract via a deterministic CREATE2 factory
     /// https://getfoundry.sh/guides/deterministic-deployments-using-create2/#deterministic-deployments-using-create2
-    function run(ModuleKeeper moduleKeeper) public virtual broadcast returns (StationRegistry stationRegistry) {
+    function run(
+        string memory createSalt,
+        ModuleKeeper moduleKeeper
+    )
+        public
+        virtual
+        broadcast
+        returns (StationRegistry stationRegistry)
+    {
         // Create deterministic salt
-        bytes32 salt = createSalt("StationRegistry");
+        bytes32 salt = bytes32(abi.encodePacked(createSalt));
 
         // Deploy the {StationRegistry} factory deterministically using CREATE2
         stationRegistry =

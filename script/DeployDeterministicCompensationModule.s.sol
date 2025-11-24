@@ -10,9 +10,9 @@ import { CREATE3 } from "solady/src/utils/CREATE3.sol";
 /// @notice Deterministically deploys an instance of {CompensationModule}
 /// @dev Uses `CREATE3` for deterministic proxy deployment across all EVM chains
 contract DeployCompensationModule is BaseScript {
-    function run() public virtual broadcast returns (CompensationModule compensationModule) {
+    function run(string memory createSalt) public virtual broadcast returns (CompensationModule compensationModule) {
         // Create deterministic salt
-        bytes32 salt = createSalt("CompensationModule");
+        bytes32 salt = create3Salt(createSalt);
 
         // Deploy the {CompensationModule} implementation (non-deterministic)
         address compensationModuleImplementation = address(new CompensationModule());

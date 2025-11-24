@@ -6,6 +6,7 @@ import { PaymentModule } from "src/modules/payment-module/PaymentModule.sol";
 import { CompensationModule } from "src/modules/compensation-module/CompensationModule.sol";
 import { StationRegistry } from "src/StationRegistry.sol";
 import { ModuleKeeper } from "src/ModuleKeeper.sol";
+import { IModuleKeeper } from "src/interfaces/IModuleKeeper.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
@@ -19,8 +20,8 @@ contract DeployDeterministicCore is BaseScript {
 
     /// @dev Uses `CREATE2` and `CREATE3` to ensure the same deployment addresses across chains
     /// Notes:
-    /// - Each deployment uses a unique salt derived from its contract name via `createSalt`
-    function run()
+    /// - Each deployment uses a unique salt derived from its contract name via `create3Salt`
+    function run(string memory createSalt)
         public
         virtual
         broadcast
@@ -32,16 +33,15 @@ contract DeployDeterministicCore is BaseScript {
         )
     {
         // Deploy {ModuleKeeper} at a deterministic address across chains
-        bytes32 salt = createSalt("ModuleKeeper");
+        bytes32 salt = bytes32(abi.encodePacked(createSalt));
         moduleKeeper = new ModuleKeeper{ salt: salt }(DEFAULT_PROTOCOL_ADMIN);
 
         // Deploy {StationRegistry} at a deterministic address across chains
-        salt = createSalt("StationRegistry");
         stationRegistry =
             new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_ADMIN, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
 
         // Deploy {PaymentModule} at a deterministic address across chains
-        salt = createSalt("PaymentModule");
+        salt = create3Salt("PaymentModule_v0");
         address paymentModuleImplementation = address(new PaymentModule());
         bytes memory paymentModuleInitData = abi.encodeWithSelector(
             PaymentModule.initialize.selector, ISablierLockup(sablierLockupMap[block.chainid]), DEFAULT_PROTOCOL_ADMIN
@@ -52,7 +52,7 @@ contract DeployDeterministicCore is BaseScript {
         paymentModule = PaymentModule(CREATE3.deployDeterministic(paymentModuleProxyBytecode, salt));
 
         // Deploy {CompensationModule} at a deterministic address across chains
-        salt = createSalt("CompensationModule");
+        salt = create3Salt("CompensationModule_v0");
         address compensationModuleImplementation = address(new CompensationModule());
         bytes memory compensationModuleInitData = abi.encodeWithSelector(
             CompensationModule.initialize.selector, ISablierFlow(sablierFlowMap[block.chainid]), DEFAULT_PROTOCOL_ADMIN
@@ -70,6 +70,7 @@ contract DeployDeterministicCore is BaseScript {
         modules.push(address(usdcMap[block.chainid]));
         modules.push(address(wethMap[block.chainid]));
         modules.push(address(acrossSpokePoolMap[block.chainid]));
+        modules.push(address(0x5555555555555555555555555555555555555555));
 
         // Add the {WerkSubdomainRegistrar} deployment to the allowlist if deployed on Base or Base Sepolia
         if (block.chainid == 8453 || block.chainid == 84_532) {

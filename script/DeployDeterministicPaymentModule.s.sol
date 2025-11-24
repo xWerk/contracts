@@ -10,9 +10,9 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 /// @notice Deterministically deploys an instance of {PaymentModule}
 /// @dev Uses `CREATE3` for deterministic proxy deployment across all EVM chains
 contract DeployPaymentModule is BaseScript {
-    function run() public virtual broadcast returns (PaymentModule paymentModule) {
+    function run(string memory createSalt) public virtual broadcast returns (PaymentModule paymentModule) {
         // Create deterministic salt
-        bytes32 salt = createSalt("PaymentModule");
+        bytes32 salt = create3Salt(createSalt);
 
         // Deploy the {PaymentModule} implementation (non-deterministic)
         address paymentModuleImplementation = address(new PaymentModule());
