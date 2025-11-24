@@ -62,18 +62,21 @@ contract BaseScript is Script {
         // Mainnets
 
         // Ethereum Mainnet deployment
-        sablierLockupMap[1] = 0x7C01AA3783577E15fD7e272443D44B92d5b21056;
+        sablierLockupMap[1] = 0xcF8ce57fa442ba50aCbC57147a62aD03873FfA73;
 
         // Base deployment
-        sablierLockupMap[8453] = 0xb5D78DD3276325f5FAF3106Cc4Acc56E28e0Fe3B;
+        sablierLockupMap[8453] = 0xe261B366f231B12FCB58D6BbD71e57fAEE82431D;
+
+        // HyperEVM deployment
+        sablierLockupMap[999] = 0x50ff828e66612A4D1F7141936F2B4078C7356329;
 
         // Testnets
 
         // Base Sepolia deployment
-        sablierLockupMap[84_532] = 0xa4777CA525d43a7aF55D45b11b430606d7416f8d;
+        sablierLockupMap[84_532] = 0x98A2bec0F94526Abef78893DE0B5756B921D08d5;
 
         // Ethereum Sepolia deployment
-        sablierLockupMap[11_155_111] = 0xd116c275541cdBe7594A202bD6AE4DBca4578462;
+        sablierLockupMap[11_155_111] = 0x6b0307b4338f2963A62106028E3B074C2c0510DA;
     }
 
     /// @dev Populates the Sablier Flow deployments map
@@ -82,18 +85,21 @@ contract BaseScript is Script {
         // Mainnets
 
         // Ethereum Mainnet deployment
-        sablierFlowMap[1] = 0x3DF2AAEdE81D2F6b261F79047517713B8E844E04;
+        sablierFlowMap[1] = 0x7a86d3e6894f9c5B5f25FFBDAaE658CFc7569623;
 
         // Base deployment
-        sablierFlowMap[8453] = 0x6FE93c7f6cd1DC394e71591E3c42715Be7180A6A;
+        sablierFlowMap[8453] = 0x8551208F75375AbfAEE1FBE0a69e390a94000EC2;
+
+        // HyperEVM deployment
+        sablierFlowMap[999] = 0x70ce7795896c1e226C71360F9d77B743d8302182;
 
         // Testnets
 
         // Ethereum Sepolia deployment
-        sablierFlowMap[11_155_111] = 0x93FE8f86e881a23e5A2FEB4B160514Fd332576A6;
+        sablierFlowMap[11_155_111] = 0xde489096eC9C718358c52a8BBe4ffD74857356e9;
 
         // Base Sepolia deployment
-        sablierFlowMap[84_532] = 0xFB6B72a5988A7701a9090C56936269241693a9CC;
+        sablierFlowMap[84_532] = 0x19e99DCDbAF2fBf43c60cFD026D571860dA29D43;
     }
 
     /// @dev Populates the USDC deployments map
@@ -106,6 +112,9 @@ contract BaseScript is Script {
 
         // Base deployment
         usdcMap[8453] = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+
+        // HyperEVM deployment
+        usdcMap[999] = 0xb88339CB7199b77E23DB6E890353E22632Ba630f;
 
         // Testnets
 
@@ -126,6 +135,10 @@ contract BaseScript is Script {
         // Base deployment
         wethMap[8453] = 0x4200000000000000000000000000000000000006;
 
+        // HyperEVM deployment
+        // Note: WETH is represented as UETH
+        wethMap[999] = 0xBe6727B535545C67d5cAa73dEa54865B92CF7907;
+
         // Testnets
 
         // Ethereum Sepolia deployment
@@ -145,6 +158,9 @@ contract BaseScript is Script {
 
         // Base deployment
         acrossSpokePoolMap[8453] = 0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64;
+
+        // HyperEVM deployment
+        acrossSpokePoolMap[999] = 0x35E63eA3eb0fb7A3bc543C71FB66412e1F6B0E04;
 
         // Testnets
 
