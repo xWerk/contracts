@@ -19,8 +19,10 @@ contract DeployDeterministicCore is BaseScript {
 
     /// @dev Uses `CREATE2` and `CREATE3` to ensure the same deployment addresses across chains
     /// Notes:
-    /// - Each deployment uses a unique salt derived from its contract name via `createSalt`
-    function run()
+    /// - Each deployment uses a unique salt derived from its contract name via `create3Salt`
+    function run(
+        string memory createSalt
+    )
         public
         virtual
         broadcast
@@ -32,33 +34,42 @@ contract DeployDeterministicCore is BaseScript {
         )
     {
         // Deploy {ModuleKeeper} at a deterministic address across chains
-        bytes32 salt = createSalt("ModuleKeeper");
-        moduleKeeper = new ModuleKeeper{ salt: salt }(DEFAULT_PROTOCOL_ADMIN);
+        bytes32 salt = create3Salt("ModuleKeeper", createSalt);
+        bytes memory args = abi.encode(DEFAULT_PROTOCOL_ADMIN);
+        bytes memory moduleKeeperInitCode = abi.encodePacked(vm.getCode("ModuleKeeper.sol"), args);
+        moduleKeeper = ModuleKeeper(CREATE3.deployDeterministic(moduleKeeperInitCode, salt));
 
         // Deploy {StationRegistry} at a deterministic address across chains
-        salt = createSalt("StationRegistry");
-        stationRegistry =
-            new StationRegistry{ salt: salt }(DEFAULT_PROTOCOL_ADMIN, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
+        salt = create3Salt("StationRegistry", createSalt);
+        args = abi.encode(DEFAULT_PROTOCOL_ADMIN, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
+        bytes memory stationRegistryInitCode = abi.encodePacked(vm.getCode("StationRegistry.sol"), args);
+        stationRegistry = StationRegistry(CREATE3.deployDeterministic(stationRegistryInitCode, salt));
 
         // Deploy {PaymentModule} at a deterministic address across chains
-        salt = createSalt("PaymentModule");
+        salt = create3Salt("PaymentModule", createSalt);
         address paymentModuleImplementation = address(new PaymentModule());
         bytes memory paymentModuleInitData = abi.encodeWithSelector(
-            PaymentModule.initialize.selector, ISablierLockup(sablierLockupMap[block.chainid]), DEFAULT_PROTOCOL_ADMIN
+            PaymentModule.initialize.selector,
+            ISablierLockup(sablierLockupMap[block.chainid]),
+            DEFAULT_PROTOCOL_ADMIN
         );
         bytes memory paymentModuleProxyBytecode = abi.encodePacked(
-            type(ERC1967Proxy).creationCode, abi.encode(paymentModuleImplementation, paymentModuleInitData)
+            type(ERC1967Proxy).creationCode,
+            abi.encode(paymentModuleImplementation, paymentModuleInitData)
         );
         paymentModule = PaymentModule(CREATE3.deployDeterministic(paymentModuleProxyBytecode, salt));
 
         // Deploy {CompensationModule} at a deterministic address across chains
-        salt = createSalt("CompensationModule");
+        salt = create3Salt("CompensationModule", createSalt);
         address compensationModuleImplementation = address(new CompensationModule());
         bytes memory compensationModuleInitData = abi.encodeWithSelector(
-            CompensationModule.initialize.selector, ISablierFlow(sablierFlowMap[block.chainid]), DEFAULT_PROTOCOL_ADMIN
+            CompensationModule.initialize.selector,
+            ISablierFlow(sablierFlowMap[block.chainid]),
+            DEFAULT_PROTOCOL_ADMIN
         );
         bytes memory compensationModuleProxyBytecode = abi.encodePacked(
-            type(ERC1967Proxy).creationCode, abi.encode(compensationModuleImplementation, compensationModuleInitData)
+            type(ERC1967Proxy).creationCode,
+            abi.encode(compensationModuleImplementation, compensationModuleInitData)
         );
         compensationModule = CompensationModule(CREATE3.deployDeterministic(compensationModuleProxyBytecode, salt));
 

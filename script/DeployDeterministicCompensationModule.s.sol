@@ -10,21 +10,25 @@ import { CREATE3 } from "solady/src/utils/CREATE3.sol";
 /// @notice Deterministically deploys an instance of {CompensationModule}
 /// @dev Uses `CREATE3` for deterministic proxy deployment across all EVM chains
 contract DeployCompensationModule is BaseScript {
-    function run() public virtual broadcast returns (CompensationModule compensationModule) {
+    function run(string memory salt) public virtual broadcast returns (CompensationModule compensationModule) {
         // Create deterministic salt
-        bytes32 salt = createSalt("CompensationModule");
+        bytes32 salt = create3Salt("CompensationModule", salt);
 
         // Deploy the {CompensationModule} implementation (non-deterministic)
         address compensationModuleImplementation = address(new CompensationModule());
 
         // Encode initialization data for the proxy constructor
         bytes memory initData = abi.encodeWithSelector(
-            CompensationModule.initialize.selector, ISablierFlow(sablierFlowMap[block.chainid]), DEFAULT_PROTOCOL_ADMIN
+            CompensationModule.initialize.selector,
+            ISablierFlow(sablierFlowMap[block.chainid]),
+            DEFAULT_PROTOCOL_ADMIN
         );
 
         // Construct the ERC1967Proxy bytecode with implementation and initData
-        bytes memory proxyBytecode =
-            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(compensationModuleImplementation, initData));
+        bytes memory proxyBytecode = abi.encodePacked(
+            type(ERC1967Proxy).creationCode,
+            abi.encode(compensationModuleImplementation, initData)
+        );
 
         // Deploy the proxy deterministically using CREATE3
         compensationModule = CompensationModule(CREATE3.deployDeterministic(proxyBytecode, salt));
