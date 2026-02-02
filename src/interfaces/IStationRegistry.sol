@@ -31,6 +31,9 @@ interface IStationRegistry {
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns the current version of the StationRegistry implementation
+    function VERSION() external view returns (string memory);
+
     /// @notice Returns the address of the {ModuleKeeper} contract
     function moduleKeeper() external view returns (ModuleKeeper);
 
@@ -39,9 +42,6 @@ interface IStationRegistry {
 
     /// @notice Retrieves the station ID of the given space address
     function stationIdOfSpace(address space) external view returns (uint256);
-
-    /// @notice Retrieves the total number of accounts created by the `signer` address
-    function totalAccountsOfSigner(address signer) external view returns (uint256);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
