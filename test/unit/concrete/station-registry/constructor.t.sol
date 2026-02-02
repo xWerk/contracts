@@ -11,12 +11,7 @@ contract Constructor_StationRegistry_Test is Base_Test {
         Base_Test.setUp();
     }
 
-    function test_Constructor() external {
-        // Run the test
-        new StationRegistry({
-            _initialAdmin: users.admin, _entrypoint: IEntryPoint(entrypoint), _moduleKeeper: moduleKeeper
-        });
-
+    function test_Initialize() external view {
         // Assert the actual and expected {ModuleKeeper} address
         address actualModuleKeeper = address(stationRegistry.moduleKeeper());
         assertEq(actualModuleKeeper, address(moduleKeeper));
@@ -28,5 +23,17 @@ contract Constructor_StationRegistry_Test is Base_Test {
         // Assert the actual and expected {Entrypoint} address
         address actualEntrypoint = stationRegistry.entrypoint();
         assertEq(actualEntrypoint, address(entrypoint));
+
+        // Assert VERSION is set correctly
+        assertEq(stationRegistry.VERSION(), "1.0.0");
+    }
+
+    function test_RevertWhen_InitializeTwice() external {
+        // Get the account implementation first
+        address spaceImpl = stationRegistry.accountImplementation();
+
+        // Expect revert with InvalidInitialization error when trying to initialize again
+        vm.expectRevert(abi.encodeWithSignature("InvalidInitialization()"));
+        stationRegistry.initialize(users.admin, IEntryPoint(entrypoint), moduleKeeper, spaceImpl);
     }
 }

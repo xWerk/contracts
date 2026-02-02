@@ -14,7 +14,7 @@ import { StationRegistry } from "./../src/StationRegistry.sol";
 import { MockERC721Collection } from "./mocks/MockERC721Collection.sol";
 import { MockERC1155Collection } from "./mocks/MockERC1155Collection.sol";
 import { MockBadSpace } from "./mocks/MockBadSpace.sol";
-import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 
 abstract contract Base_Test is Test {
@@ -60,12 +60,17 @@ abstract contract Base_Test is Test {
 
         // Create test users
         users = Users({
-            admin: createUser("admin"), eve: createUser("eve"), bob: createUser("bob"), alice: createUser("alice")
+            admin: createUser("admin"),
+            eve: createUser("eve"),
+            bob: createUser("bob"),
+            alice: createUser("alice")
         });
 
         // Deploy test contracts
         moduleKeeper = new ModuleKeeper({ _initialOwner: users.admin });
-        stationRegistry = new StationRegistry(users.admin, IEntryPoint(entrypoint), moduleKeeper);
+
+        // Deploy StationRegistry via proxy pattern
+        stationRegistry = _deployStationRegistry(users.admin, IEntryPoint(entrypoint), moduleKeeper);
         containerImplementation = address(new Space(IEntryPoint(entrypoint), address(stationRegistry)));
 
         mockModule = new MockModule();
@@ -85,6 +90,32 @@ abstract contract Base_Test is Test {
         vm.label({ account: address(usdt), newLabel: "USDT" });
         vm.label({ account: address(mockModule), newLabel: "MockModule" });
         vm.label({ account: address(mockNonCompliantSpace), newLabel: "MockNonCompliantSpace" });
+    }
+
+    /// @dev Deploys StationRegistry via ERC1967Proxy
+    function _deployStationRegistry(
+        address _admin,
+        IEntryPoint _entrypoint,
+        ModuleKeeper _moduleKeeper
+    ) internal returns (StationRegistry) {
+        // Deploy StationRegistry implementation
+        StationRegistry implementation = new StationRegistry();
+
+        // Deploy Space implementation with proxy address (we need to predict it first)
+        // For simplicity in tests, we deploy proxy first then Space, then reinitialize
+        // Actually, we can compute the proxy address or use a two-step approach
+
+        // Deploy proxy without initialization first to get its address
+        bytes memory emptyData;
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), emptyData);
+
+        // Deploy Space implementation with proxy address as factory
+        Space spaceImpl = new Space(_entrypoint, address(proxy));
+
+        // Initialize the StationRegistry proxy
+        StationRegistry(address(proxy)).initialize(_admin, _entrypoint, _moduleKeeper, address(spaceImpl));
+
+        return StationRegistry(address(proxy));
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -139,30 +170,33 @@ abstract contract Base_Test is Test {
     function computeDeploymentAddressAndCalldata(
         address deployer,
         uint256 stationId
-    )
-        internal
-        view
-        returns (address expectedAddress, bytes memory data)
-    {
+    ) internal view returns (address expectedAddress, bytes memory data) {
         data = computeCreateAccountCalldata(deployer, stationId);
 
         // Compute the final salt made by the deployer address and initialization data
         bytes32 salt = keccak256(abi.encode(deployer, data));
 
-        // Use {Clones} library to predict the smart account address based on the smart account implementation, salt and account factory
-        expectedAddress =
-            Clones.predictDeterministicAddress(stationRegistry.accountImplementation(), salt, address(stationRegistry));
+        // Predict ERC1967Proxy address using CREATE2 formula
+        bytes memory initData = abi.encodeWithSignature("initialize(address,bytes)", deployer, data);
+        bytes memory proxyBytecode = abi.encodePacked(
+            type(ERC1967Proxy).creationCode,
+            abi.encode(stationRegistry.accountImplementation(), initData)
+        );
+
+        expectedAddress = address(
+            uint160(
+                uint256(
+                    keccak256(abi.encodePacked(bytes1(0xff), address(stationRegistry), salt, keccak256(proxyBytecode)))
+                )
+            )
+        );
     }
 
     /// @dev Constructs the calldata passed to the {StationRegistry}.createAccount method
     function computeCreateAccountCalldata(
         address deployer,
         uint256 stationId
-    )
-        internal
-        view
-        returns (bytes memory data)
-    {
+    ) internal view returns (bytes memory data) {
         // Get the total account deployed by `deployer` and use it as a unique salt field
         // because a signer must be able to deploy multiple smart accounts within one
         // station with the same initial modules
