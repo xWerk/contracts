@@ -80,13 +80,16 @@ abstract contract BaseAccountFactory is IAccountFactory, Multicall, Initializabl
         // Retrieve the storage of the {StreamManager} contract
         BaseAccountFactoryStorage storage $ = _getBaseAccountFactoryStorage();
 
+        // Cache the Account implementation address
         address impl = $.accountImplementation;
+
+        // Construct the salt used for the deterministic deployment
         bytes32 salt = _generateSalt(_admin, _data);
 
         // Encode initialization data for the proxy
         bytes memory initData = abi.encodeWithSignature("initialize(address,bytes)", _admin, _data);
 
-        // Predict the proxy address
+        // Predict the Account proxy address
         address account = _predictProxyAddress(impl, initData, salt);
 
         // Return early if there's an already deployed account at the predicted address
@@ -101,8 +104,6 @@ abstract contract BaseAccountFactory is IAccountFactory, Multicall, Initializabl
 
         // Deploy the ERC1967Proxy at a deterministic address and initialize it
         account = address(new ERC1967Proxy{ salt: salt }(impl, initData));
-
-        emit AccountCreated(account, _admin);
 
         return account;
     }
