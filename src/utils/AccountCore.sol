@@ -10,7 +10,6 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import "@thirdweb/contracts/extension/upgradeable/AccountPermissions.sol";
 
 // Utils
-import "@thirdweb/contracts/prebuilts/account/utils/Helpers.sol";
 import "@thirdweb/contracts/prebuilts/account/utils/AccountCoreStorage.sol";
 import { BaseAccountFactory } from "./BaseAccountFactory.sol";
 import { AccountExtension } from "@thirdweb/contracts/prebuilts/account/utils/AccountExtension.sol";
@@ -56,8 +55,10 @@ contract AccountCore is IAccountCore, Initializable, Multicall, BaseAccount, Acc
 
     /// @notice Initializes the smart contract wallet.
     function __AccountCore_init(address _defaultAdmin, bytes calldata _data) public virtual initializer {
-        // This is passed as data in the `_registerOnFactory()` call in `AccountExtension` / `Account`.
+        // Store the creation data in the Account storage
         AccountCoreStorage.data().creationSalt = _generateSalt(_defaultAdmin, _data);
+
+        // Set the initial admin of the Account
         _setAdmin(_defaultAdmin, true);
     }
 
@@ -74,18 +75,14 @@ contract AccountCore is IAccountCore, Initializable, Multicall, BaseAccount, Acc
         return entrypointContract;
     }
 
-    /**
-     * @notice Returns whether a signer is authorized to perform transactions using the account.
-     *         Validity of the signature is based upon signer permission start/end timestamps, txn target, and txn value.
-     *         Account admins will always return true, and signers with address(0) as the only approved target will skip target checks.
-     *
-     * @param _signer The signer to check.
-     * @param _userOp The user operation to check.
-     *
-     * @return Whether the signer is authorized to perform the transaction.
-     */
-
-    /* solhint-disable*/
+    /// @notice Returns whether a signer is authorized to perform transactions using the account.
+    ///       Validity of the signature is based upon signer permission start/end timestamps, txn target, and txn value.
+    ///         Account admins will always return true, and signers with address(0) as the only approved target will skip target checks.
+    ///
+    /// @param _signer The signer to check.
+    /// @param _userOp The user operation to check.
+    ///
+    /// @return Whether the signer is authorized to perform the transaction.
     function isValidSigner(address _signer, UserOperation calldata _userOp) public view virtual returns (bool) {
         // First, check if the signer is an admin.
         if (_accountPermissionsStorage().isAdmin[_signer]) {
@@ -159,8 +156,6 @@ contract AccountCore is IAccountCore, Initializable, Multicall, BaseAccount, Acc
 
         return true;
     }
-
-    /* solhint-enable */
 
     /*///////////////////////////////////////////////////////////////
                             External functions

@@ -35,6 +35,27 @@ contract Space is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
     string public constant VERSION = "1.0.0";
 
     /*//////////////////////////////////////////////////////////////////////////
+                                    STORAGE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @custom:storage-location erc7201:werk.storage.Space
+    struct SpaceStorage {
+        /// @inheritdoc ISpace
+        bytes creationData;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("werk.storage.Space")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SPACE_STORAGE_LOCATION =
+        0x72f72cb8947b73fbb502a80bbd90a9f82e470925fc2b9fa28d33634322fabe00;
+
+    /// @dev Retrieves the storage of the {SpaceStorage} contract
+    function _getSpaceStorage() internal pure returns (SpaceStorage storage $) {
+        assembly {
+            $.slot := SPACE_STORAGE_LOCATION
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
                                   CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
@@ -46,6 +67,13 @@ contract Space is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
 
     /// @notice Initializes the Space proxy with the initial admin and data
     function initialize(address _defaultAdmin, bytes calldata _data) public virtual initializer {
+        // Retrive the Space storage pointer
+        SpaceStorage storage $ = _getSpaceStorage();
+
+        // Store the creation data
+        $.creationData = _data;
+
+        // Initialize the {AccountCore} implementation
         __AccountCore_init(_defaultAdmin, _data);
     }
 
@@ -208,6 +236,12 @@ contract Space is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ISpace
+    function getCreationData() external view returns (bytes memory) {
+        SpaceStorage storage $ = _getSpaceStorage();
+        return $.creationData;
+    }
 
     /// @inheritdoc ERC1271
     function isValidSignature(

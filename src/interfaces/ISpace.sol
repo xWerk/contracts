@@ -69,6 +69,9 @@ interface ISpace is IERC165, IERC721Receiver, IERC1155Receiver {
     /// @return messageHash The digest to sign for EIP-1271 verification
     function getMessageHash(bytes32 _hash) external view returns (bytes32);
 
+    /// @notice Returns the creation data used during the Account initialization
+    function getCreationData() external view returns (bytes memory);
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
