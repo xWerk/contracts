@@ -60,10 +60,7 @@ abstract contract Base_Test is Test {
 
         // Create test users
         users = Users({
-            admin: createUser("admin"),
-            eve: createUser("eve"),
-            bob: createUser("bob"),
-            alice: createUser("alice")
+            admin: createUser("admin"), eve: createUser("eve"), bob: createUser("bob"), alice: createUser("alice")
         });
 
         // Deploy test contracts
@@ -74,7 +71,7 @@ abstract contract Base_Test is Test {
         containerImplementation = address(new Space(IEntryPoint(entrypoint), address(stationRegistry)));
 
         mockModule = new MockModule();
-        mockNonCompliantSpace = new MockNonCompliantSpace({ _owner: users.admin });
+        mockNonCompliantSpace = new MockNonCompliantSpace({ initialAdmin: users.admin });
         mockBadReceiver = new MockBadReceiver();
         mockERC721 = new MockERC721Collection("MockERC721Collection", "MC");
         mockERC1155 = new MockERC1155Collection("https://nft.com/0x1.json");
@@ -97,7 +94,10 @@ abstract contract Base_Test is Test {
         address _admin,
         IEntryPoint _entrypoint,
         ModuleKeeper _moduleKeeper
-    ) internal returns (StationRegistry) {
+    )
+        internal
+        returns (StationRegistry)
+    {
         // Deploy StationRegistry implementation
         StationRegistry implementation = new StationRegistry();
 
@@ -122,12 +122,12 @@ abstract contract Base_Test is Test {
                             DEPLOYMENT-RELATED FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Deploys a new {Space} smart account based on the provided `owner` and `stationId` input params
-    function deploySpace(address _owner, uint256 _stationId) internal returns (Space _space) {
-        bytes memory data = computeCreateAccountCalldata({ deployer: _owner, stationId: _stationId });
+    /// @dev Deploys a new {Space} smart account based on the provided `admin` input
+    function deploySpace(address admin) internal returns (Space _space) {
+        bytes memory data = computeCreateAccountCalldata({ deployer: admin });
 
-        vm.prank({ msgSender: _owner });
-        _space = Space(payable(stationRegistry.createAccount({ _admin: _owner, _data: data })));
+        vm.prank({ msgSender: admin });
+        _space = Space(payable(stationRegistry.createAccount(admin, data)));
         vm.stopPrank();
 
         // Fund the {Space} contract with 1M USDT
@@ -136,12 +136,12 @@ abstract contract Base_Test is Test {
         deal(address(_space), 100 ether);
     }
 
-    /// @dev Deploys a new {MockBadSpace} smart account based on the provided `owner` and `stationId` input params
-    function deployBadSpace(address _owner, uint256 _stationId) internal returns (MockBadSpace _badSpace) {
-        bytes memory data = computeCreateAccountCalldata({ deployer: _owner, stationId: _stationId });
+    /// @dev Deploys a new {MockBadSpace} smart account based on the provided `admin` input
+    function deployBadSpace(address admin) internal returns (MockBadSpace _badSpace) {
+        bytes memory data = computeCreateAccountCalldata({ deployer: admin });
 
-        vm.prank({ msgSender: _owner });
-        _badSpace = MockBadSpace(payable(stationRegistry.createAccount({ _admin: _owner, _data: data })));
+        vm.prank({ msgSender: admin });
+        _badSpace = MockBadSpace(payable(stationRegistry.createAccount(admin, data)));
         vm.stopPrank();
     }
 
@@ -167,11 +167,12 @@ abstract contract Base_Test is Test {
 
     /// @dev Predicts the address of the next contract that is going to be deployed by the `deployer`
     /// and constructs the calldata to be used to create the new smart account
-    function computeDeploymentAddressAndCalldata(
-        address deployer,
-        uint256 stationId
-    ) internal view returns (address expectedAddress, bytes memory data) {
-        data = computeCreateAccountCalldata(deployer, stationId);
+    function computeDeploymentAddressAndCalldata(address deployer)
+        internal
+        view
+        returns (address expectedAddress, bytes memory data)
+    {
+        data = computeCreateAccountCalldata(deployer);
 
         // Compute the final salt made by the deployer address and initialization data
         bytes32 salt = keccak256(abi.encode(deployer, data));
@@ -179,8 +180,7 @@ abstract contract Base_Test is Test {
         // Predict ERC1967Proxy address using CREATE2 formula
         bytes memory initData = abi.encodeWithSignature("initialize(address,bytes)", deployer, data);
         bytes memory proxyBytecode = abi.encodePacked(
-            type(ERC1967Proxy).creationCode,
-            abi.encode(stationRegistry.accountImplementation(), initData)
+            type(ERC1967Proxy).creationCode, abi.encode(stationRegistry.accountImplementation(), initData)
         );
 
         expectedAddress = address(
@@ -193,16 +193,12 @@ abstract contract Base_Test is Test {
     }
 
     /// @dev Constructs the calldata passed to the {StationRegistry}.createAccount method
-    function computeCreateAccountCalldata(
-        address deployer,
-        uint256 stationId
-    ) internal view returns (bytes memory data) {
+    function computeCreateAccountCalldata(address deployer) internal view returns (bytes memory data) {
         // Get the total account deployed by `deployer` and use it as a unique salt field
-        // because a signer must be able to deploy multiple smart accounts within one
-        // station with the same initial modules
+        // because a signer must be able to deploy multiple smart accounts
         uint256 totalAccountsOfDeployer = stationRegistry.totalAccountsOfSigner(deployer);
 
         // Construct the calldata to be used to initialize the {Space} smart account
-        data = abi.encode(totalAccountsOfDeployer, stationId);
+        data = abi.encode(totalAccountsOfDeployer);
     }
 }

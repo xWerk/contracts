@@ -1,0 +1,8 @@
+upgrade.t.sol
+├── it should return the initial version
+├── when the caller IS NOT the registry owner
+│   └── it should revert
+└── when the caller IS the registry owner
+    ├── it should upgrade to the new implementation
+    ├── it should preserve the state after upgrade
+    └── it should still be able to create a Space after upgrade

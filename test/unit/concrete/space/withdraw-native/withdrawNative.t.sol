@@ -19,7 +19,7 @@ contract WithdrawNative_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         vm.deal({ account: badReceiver, newBalance: 100 ether });
 
         // Deploy the `badSpace` space
-        badSpace = deploySpace({ _owner: address(badReceiver), _stationId: 0 });
+        badSpace = deploySpace({ admin: address(badReceiver) });
     }
 
     function test_RevertWhen_CallerNotOwner() external {

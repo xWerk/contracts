@@ -37,6 +37,26 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /*//////////////////////////////////////////////////////////////////////////
+                                  STORAGE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @custom:storage-location erc7201:werk.storage.Space
+    struct SpaceStorage {
+        bytes creationData;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("werk.storage.Space")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SPACE_STORAGE_LOCATION =
+        0x72f72cb8947b73fbb502a80bbd90a9f82e470925fc2b9fa28d33634322fabe00;
+
+    /// @dev Retrieves the storage of the {SpaceStorage} contract
+    function _getSpaceStorage() internal pure returns (SpaceStorage storage $) {
+        assembly {
+            $.slot := SPACE_STORAGE_LOCATION
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
                                     CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
@@ -197,6 +217,12 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ISpace
+    function getCreationData() external view returns (bytes memory) {
+        SpaceStorage storage $ = _getSpaceStorage();
+        return $.creationData;
+    }
 
     /// @inheritdoc ERC1271
     function isValidSignature(

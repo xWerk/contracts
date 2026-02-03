@@ -2,20 +2,19 @@
 pragma solidity ^0.8.26;
 
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
-import { PermissionsEnumerable } from "@thirdweb/contracts/extension/PermissionsEnumerable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { ContextUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import { Multicall } from "@thirdweb/contracts/extension/Multicall.sol";
 
-import { Space } from "./../../src/Space.sol";
 import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
-import { Errors } from "./../../src/libraries/Errors.sol";
 import { IStationRegistry } from "./../../src/interfaces/IStationRegistry.sol";
 import { BaseAccountFactory } from "./../../src/utils/BaseAccountFactory.sol";
 
 /// @title Mock StationRegistry v2
 /// @notice Implementation of StationRegistry v2 to use in the upgrade-related tests
-contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, PermissionsEnumerable, UUPSUpgradeable {
+contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, OwnableUpgradeable, UUPSUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -33,12 +32,6 @@ contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, PermissionsE
     struct StationRegistryStorage {
         /// @inheritdoc IStationRegistry
         ModuleKeeper moduleKeeper;
-        /// @inheritdoc IStationRegistry
-        mapping(uint256 stationId => address owner) ownerOfStation;
-        /// @inheritdoc IStationRegistry
-        mapping(address space => uint256 stationId) stationIdOfSpace;
-        /// @dev Counter to keep track of the next station ID
-        uint256 stationNextId;
     }
 
     // keccak256(abi.encode(uint256(keccak256("werk.storage.StationRegistry")) - 1)) & ~bytes32(uint256(0xff))
@@ -76,14 +69,16 @@ contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, PermissionsE
         IEntryPoint _entrypoint,
         ModuleKeeper _moduleKeeper,
         address _spaceImplementation
-    ) external initializer {
+    )
+        external
+        initializer
+    {
         __BaseAccountFactory_init(_spaceImplementation, address(_entrypoint));
-        _setupRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
+        __Ownable_init(_initialAdmin);
 
         // Retrieve the storage of the {StationRegistry} contract
         StationRegistryStorage storage $ = _getStationRegistryStorage();
 
-        $.stationNextId = 1;
         $.moduleKeeper = _moduleKeeper;
     }
 
@@ -95,68 +90,23 @@ contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, PermissionsE
     function createAccount(
         address _admin,
         bytes calldata _data
-    ) public override(BaseAccountFactory, IStationRegistry) returns (address) {
-        // Decode the `stationId` station ID from the calldata
-        // Note: `_data` calldata is the result of the `abi.encode` operation
-        // between the number of Spaces created by an admin on a specific station
-        (, uint256 stationId) = abi.decode(_data, (uint256, uint256));
-
-        // Retrieve the storage of the {StationRegistry} contract
-        StationRegistryStorage storage $ = _getStationRegistryStorage();
-
-        // Checks: a new station must be created first
-        if (stationId == 0) {
-            // Store the ID of the next station
-            stationId = $.stationNextId;
-
-            // Effects: set the owner of the freshly created station
-            $.ownerOfStation[stationId] = msg.sender;
-
-            // Effects: increment the next station ID
-            // Use unchecked because the station ID cannot realistically overflow
-            unchecked {
-                $.stationNextId++;
-            }
-        } else {
-            // Checks: `msg.sender` is the station owner
-            if ($.ownerOfStation[stationId] != msg.sender) {
-                revert Errors.CallerNotStationOwner();
-            }
-        }
-
+    )
+        public
+        override(BaseAccountFactory, IStationRegistry)
+        returns (address)
+    {
         // Interactions: deploy a new {Space} smart account
         address space = super.createAccount(_admin, _data);
 
-        // Assign the ID of the station to which the new space belongs
-        $.stationIdOfSpace[space] = stationId;
-
         // Log the {Space} creation
-        emit SpaceCreated(_admin, stationId, space);
+        emit SpaceCreated(_admin, space);
 
         // Return {Space} smart account address
         return space;
     }
 
     /// @inheritdoc IStationRegistry
-    function transferStationOwnership(uint256 stationId, address newOwner) external {
-        // Retrieve the storage of the {StationRegistry} contract
-        StationRegistryStorage storage $ = _getStationRegistryStorage();
-
-        // Checks: `msg.sender` is the current owner of the station
-        address currentOwner = $.ownerOfStation[stationId];
-        if (msg.sender != currentOwner) {
-            revert Errors.CallerNotStationOwner();
-        }
-
-        // fects: update station's ownership
-        $.ownerOfStation[stationId] = newOwner;
-
-        // Log the ownership transfer
-        emit StationOwnershipTransferred({ stationId: stationId, oldOwner: currentOwner, newOwner: newOwner });
-    }
-
-    /// @inheritdoc IStationRegistry
-    function updateModuleKeeper(ModuleKeeper newModuleKeeper) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateModuleKeeper(ModuleKeeper newModuleKeeper) external onlyOwner {
         // Retrieve the storage of the {StationRegistry} contract
         StationRegistryStorage storage $ = _getStationRegistryStorage();
 
@@ -177,18 +127,6 @@ contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, PermissionsE
         return $.moduleKeeper;
     }
 
-    /// @inheritdoc IStationRegistry
-    function ownerOfStation(uint256 stationId) external view returns (address) {
-        StationRegistryStorage storage $ = _getStationRegistryStorage();
-        return $.ownerOfStation[stationId];
-    }
-
-    /// @inheritdoc IStationRegistry
-    function stationIdOfSpace(address space) external view returns (uint256) {
-        StationRegistryStorage storage $ = _getStationRegistryStorage();
-        return $.stationIdOfSpace[space];
-    }
-
     /// @notice New feature available only in V2
     function newFeature() external pure returns (string memory) {
         return "V2";
@@ -200,5 +138,14 @@ contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, PermissionsE
 
     /// @dev Authorizes an upgrade to a new implementation
     /// @param newImplementation Address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                    OVERRIDES
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Override required due to inheritance conflict between ContextUpgradeable and Multicall
+    function _msgSender() internal view override(ContextUpgradeable, Multicall) returns (address) {
+        return msg.sender;
+    }
 }

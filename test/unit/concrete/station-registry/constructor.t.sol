@@ -16,8 +16,8 @@ contract Constructor_StationRegistry_Test is Base_Test {
         address actualModuleKeeper = address(stationRegistry.moduleKeeper());
         assertEq(actualModuleKeeper, address(moduleKeeper));
 
-        // Assert the actual and expected {DEFAULT_ADMIN_ROLE} user
-        address actualInitialAdmin = stationRegistry.getRoleMember(Constants.DEFAULT_ADMIN_ROLE, 0);
+        // Assert the actual and expected owner
+        address actualInitialAdmin = stationRegistry.owner();
         assertEq(actualInitialAdmin, users.admin);
 
         // Assert the actual and expected {Entrypoint} address

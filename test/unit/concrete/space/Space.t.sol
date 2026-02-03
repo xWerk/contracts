@@ -8,6 +8,6 @@ contract Space_Unit_Concrete_Test is Base_Test {
         Base_Test.setUp();
 
         // Deploy a new {Space} smart account for Eve
-        space = deploySpace({ _owner: users.eve, _stationId: 0 });
+        space = deploySpace({ admin: users.eve });
     }
 }

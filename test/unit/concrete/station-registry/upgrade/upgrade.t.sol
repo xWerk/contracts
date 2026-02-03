@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import { Base_Test } from "../../../../Base.t.sol";
 import { StationRegistryV2 } from "test/mocks/MockStationRegistryV2.sol";
-import { Constants } from "../../../../utils/Constants.sol";
 
 contract Upgrade_StationRegistry_Unit_Concrete_Test is Base_Test {
     StationRegistryV2 internal stationRegistryV2Implementation;
@@ -53,7 +52,7 @@ contract Upgrade_StationRegistry_Unit_Concrete_Test is Base_Test {
         vm.stopPrank();
 
         // Deploy a Space first to have some state
-        space = deploySpace({ _owner: users.eve, _stationId: 0 });
+        space = deploySpace({ admin: users.eve });
 
         // Restart the admin prank for upgrade
         vm.startPrank({ msgSender: users.admin });
@@ -61,11 +60,9 @@ contract Upgrade_StationRegistry_Unit_Concrete_Test is Base_Test {
         // Record state before upgrade
         address moduleKeeperBefore = address(stationRegistry.moduleKeeper());
         address spaceImplBefore = stationRegistry.accountImplementation();
-        uint256 stationIdOfSpaceBefore = stationRegistry.stationIdOfSpace(address(space));
-        address ownerOfStationBefore = stationRegistry.ownerOfStation(1);
 
         // Verify admin role before upgrade
-        assertTrue(stationRegistry.hasRole(Constants.DEFAULT_ADMIN_ROLE, users.admin));
+        assertEq(stationRegistry.owner(), users.admin);
 
         // Upgrade the station registry to V2
         stationRegistry.upgradeToAndCall(address(stationRegistryV2Implementation), "");
@@ -73,12 +70,9 @@ contract Upgrade_StationRegistry_Unit_Concrete_Test is Base_Test {
         // Verify state is preserved after upgrade
         assertEq(address(stationRegistry.moduleKeeper()), moduleKeeperBefore);
         assertEq(stationRegistry.accountImplementation(), spaceImplBefore);
-        assertEq(stationRegistry.stationIdOfSpace(address(space)), stationIdOfSpaceBefore);
-        assertEq(stationRegistry.ownerOfStation(1), ownerOfStationBefore);
 
         // Verify admin role is preserved
-        assertTrue(stationRegistry.hasRole(Constants.DEFAULT_ADMIN_ROLE, users.admin));
-
+        assertEq(stationRegistry.owner(), users.admin);
         // Verify VERSION changed to V2
         assertEq(stationRegistry.VERSION(), "2.0.0");
     }
@@ -90,11 +84,9 @@ contract Upgrade_StationRegistry_Unit_Concrete_Test is Base_Test {
         vm.stopPrank();
 
         // Deploy a Space after upgrade
-        space = deploySpace({ _owner: users.eve, _stationId: 0 });
+        space = deploySpace({ admin: users.eve });
 
         // Verify Space was created successfully
         assertTrue(address(space) != address(0));
-        assertEq(stationRegistry.stationIdOfSpace(address(space)), 1);
-        assertEq(stationRegistry.ownerOfStation(1), users.eve);
     }
 }

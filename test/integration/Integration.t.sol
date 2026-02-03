@@ -57,10 +57,10 @@ abstract contract Integration_Test is Base_Test {
         allowlistModules(modules);
 
         // Deploy the {Space} contract with the {PaymentModule} enabled by default
-        space = deploySpace({ _owner: users.eve, _stationId: 0 });
+        space = deploySpace({ admin: users.eve });
 
         // Deploy a "bad" {Space} with the `mockBadReceiver` as the owner
-        badSpace = deployBadSpace({ _owner: address(mockBadReceiver), _stationId: 0 });
+        badSpace = deployBadSpace({ admin: address(mockBadReceiver) });
 
         // Label the test contracts so we can easily track them
         vm.label({ account: address(paymentModule), newLabel: "PaymentModule" });

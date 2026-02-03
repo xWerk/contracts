@@ -13,7 +13,6 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { ERC1271 } from "@thirdweb/contracts/eip/ERC1271.sol";
 import { AccountCore } from "./../../src/utils/AccountCore.sol";
-import { AccountCoreStorage } from "@thirdweb/contracts/prebuilts/account/utils/AccountCoreStorage.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
@@ -33,6 +32,26 @@ contract SpaceV2 is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
 
     /// @dev Version identifier for the current implementation of the contract
     string public constant VERSION = "2.0.0";
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                  STORAGE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @custom:storage-location erc7201:werk.storage.Space
+    struct SpaceStorage {
+        bytes creationData;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("werk.storage.Space")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SPACE_STORAGE_LOCATION =
+        0x72f72cb8947b73fbb502a80bbd90a9f82e470925fc2b9fa28d33634322fabe00;
+
+    /// @dev Retrieves the storage of the {SpaceStorage} contract
+    function _getSpaceStorage() internal pure returns (SpaceStorage storage $) {
+        assembly {
+            $.slot := SPACE_STORAGE_LOCATION
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                   CONSTRUCTOR
@@ -213,6 +232,12 @@ contract SpaceV2 is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ISpace
+    function getCreationData() external view returns (bytes memory) {
+        SpaceStorage storage $ = _getSpaceStorage();
+        return $.creationData;
+    }
 
     /// @inheritdoc ERC1271
     function isValidSignature(
