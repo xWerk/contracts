@@ -1,0 +1,2 @@
+getCreationData.t.sol
+└── it should return the `creationData` value 

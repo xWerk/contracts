@@ -9,8 +9,9 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import { AccountCore } from "@thirdweb/contracts/prebuilts/account/utils/AccountCore.sol";
+import { AccountCore } from "./utils/AccountCore.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { ERC1271 } from "@thirdweb/contracts/eip/ERC1271.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
@@ -22,19 +23,63 @@ import { ModuleKeeper } from "./ModuleKeeper.sol";
 
 /// @title Space
 /// @notice See the documentation in {ISpace}
-contract Space is ISpace, AccountCore, ERC1271 {
+contract Space is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
     using ECDSA for bytes32;
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    /// @dev Type hash used for the EIP1271 verification
     bytes32 private constant MSG_TYPEHASH = keccak256("AccountMessage(bytes message)");
+
+    /// @dev Version identifier for the current implementation of the contract
+    string public constant VERSION = "1.0.0";
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                    STORAGE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @custom:storage-location erc7201:werk.storage.Space
+    struct SpaceStorage {
+        /// @inheritdoc ISpace
+        bytes creationData;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("werk.storage.Space")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SPACE_STORAGE_LOCATION =
+        0x72f72cb8947b73fbb502a80bbd90a9f82e470925fc2b9fa28d33634322fabe00;
+
+    /// @dev Retrieves the storage of the {SpaceStorage} contract
+    function _getSpaceStorage() internal pure returns (SpaceStorage storage $) {
+        assembly {
+            $.slot := SPACE_STORAGE_LOCATION
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                   CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Initializes the address of the EIP 4337 factory and EntryPoint contract
-    constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) { }
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) {
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the Space proxy with the initial admin and data
+    function initialize(address _defaultAdmin, bytes calldata _data) public virtual initializer {
+        // Retrive the Space storage pointer
+        SpaceStorage storage $ = _getSpaceStorage();
+
+        // Store the creation data
+        $.creationData = _data;
+
+        // Initialize the {AccountCore} implementation
+        __AccountCore_init(_defaultAdmin, _data);
+    }
+
+    /// @dev Authorizes an upgrade to a new implementation
+    /// @param newImplementation Address of the new implementation
+    function _authorizeUpgrade(address newImplementation) internal override onlyAdminOrEntrypoint { }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 RECEIVE & FALLBACK
@@ -56,7 +101,7 @@ contract Space is ISpace, AccountCore, ERC1271 {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Checks whether the caller is the {EntryPoint}, the admin or the contract itself (redirected through `execute()`)
-    modifier onlyAdminOrEntrypoint() virtual {
+    modifier onlyAdminOrEntrypoint() {
         _onlyAdminOrEntrypoint();
         _;
     }
@@ -71,7 +116,7 @@ contract Space is ISpace, AccountCore, ERC1271 {
         uint256 value,
         bytes calldata data
     )
-        public
+        external
         onlyAdminOrEntrypoint
         returns (bool success)
     {
@@ -108,7 +153,7 @@ contract Space is ISpace, AccountCore, ERC1271 {
     }
 
     /// @inheritdoc ISpace
-    function withdrawERC20(address to, IERC20 asset, uint256 amount) public onlyAdminOrEntrypoint {
+    function withdrawERC20(address to, IERC20 asset, uint256 amount) external onlyAdminOrEntrypoint {
         // Checks: the available ERC20 balance of the space is greater enough to support the withdrawal
         if (amount > asset.balanceOf(address(this))) revert Errors.InsufficientERC20ToWithdraw();
 
@@ -120,7 +165,7 @@ contract Space is ISpace, AccountCore, ERC1271 {
     }
 
     /// @inheritdoc ISpace
-    function withdrawERC721(address to, IERC721 collection, uint256 tokenId) public onlyAdminOrEntrypoint {
+    function withdrawERC721(address to, IERC721 collection, uint256 tokenId) external onlyAdminOrEntrypoint {
         // Checks, Effects, Interactions: withdraw by transferring the `tokenId` token to the `to` address
         // Notes:
         // - we're using `safeTransferFrom` as the owner can be a smart contract
@@ -135,10 +180,10 @@ contract Space is ISpace, AccountCore, ERC1271 {
     function withdrawERC1155(
         address to,
         IERC1155 collection,
-        uint256[] memory ids,
-        uint256[] memory amounts
+        uint256[] calldata ids,
+        uint256[] calldata amounts
     )
-        public
+        external
         onlyAdminOrEntrypoint
     {
         // Checks, Effects, Interactions: withdraw by transferring the tokens to the `to` address
@@ -161,7 +206,7 @@ contract Space is ISpace, AccountCore, ERC1271 {
     }
 
     /// @inheritdoc ISpace
-    function withdrawNative(address to, uint256 amount) public onlyAdminOrEntrypoint {
+    function withdrawNative(address to, uint256 amount) external onlyAdminOrEntrypoint {
         // Checks: the native balance of the space is greater enough to support the withdrawal
         if (amount > address(this).balance) revert Errors.InsufficientNativeToWithdraw();
 
@@ -191,6 +236,12 @@ contract Space is ISpace, AccountCore, ERC1271 {
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ISpace
+    function getCreationData() external view returns (bytes memory) {
+        SpaceStorage storage $ = _getSpaceStorage();
+        return $.creationData;
+    }
 
     /// @inheritdoc ERC1271
     function isValidSignature(

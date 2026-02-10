@@ -6,16 +6,16 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 /// @title MockNonCompliantSpace
 /// @notice A mock non-compliant {Space} contract that do not support the {ISpace} interface
 contract MockNonCompliantSpace is IERC165 {
-    address public owner;
+    address public admin;
 
     event ModuleExecutionSucceded(address module, uint256 value, bytes data);
     event ModuleExecutionFailed(address module, uint256 value, bytes data, bytes error);
 
-    constructor(address _owner) {
-        owner = _owner;
+    constructor(address initialAdmin) {
+        admin = initialAdmin;
     }
 
-    modifier onlyOwner() {
+    modifier onlyAdmin() {
         _;
     }
 

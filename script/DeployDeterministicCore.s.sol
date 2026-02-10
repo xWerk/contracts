@@ -11,13 +11,14 @@ import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { CREATE3 } from "solady/src/utils/CREATE3.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Space } from "src/Space.sol";
 
 /// @notice Deploys the Werk Protocol core contracts deterministically across all supported EVM chains
 /// @dev Reverts if any contract has already been deployed
 contract DeployDeterministicCore is BaseScript {
     address[] modules;
 
-    /// @dev Uses `CREATE2` and `CREATE3` to ensure the same deployment addresses across chains
+    /// @dev Uses `CREATE3` to ensure the same deployment addresses across chains
     /// Notes:
     /// - Each deployment uses a unique salt derived from its contract name via `create3Salt`
     function run(
@@ -33,20 +34,59 @@ contract DeployDeterministicCore is BaseScript {
             CompensationModule compensationModule
         )
     {
-        // Deploy {ModuleKeeper} at a deterministic address across chains
+        moduleKeeper = _deployModuleKeeper(createSalt);
+        stationRegistry = _deployStationRegistry(createSalt, moduleKeeper);
+        paymentModule = _deployPaymentModule(createSalt);
+        compensationModule = _deployCompensationModule(createSalt);
+        _configureModuleKeeper(moduleKeeper, paymentModule, compensationModule);
+    }
+
+    /// @dev Deploys {ModuleKeeper} at a deterministic address across chains
+    function _deployModuleKeeper(string memory createSalt) internal returns (ModuleKeeper moduleKeeper) {
         bytes32 salt = create3Salt("ModuleKeeper", createSalt);
         bytes memory args = abi.encode(DEFAULT_PROTOCOL_ADMIN);
         bytes memory moduleKeeperInitCode = abi.encodePacked(vm.getCode("ModuleKeeper.sol"), args);
         moduleKeeper = ModuleKeeper(CREATE3.deployDeterministic(moduleKeeperInitCode, salt));
+    }
 
-        // Deploy {StationRegistry} at a deterministic address across chains
-        salt = create3Salt("StationRegistry", createSalt);
-        args = abi.encode(DEFAULT_PROTOCOL_ADMIN, IEntryPoint(ENTRYPOINT_V6), moduleKeeper);
-        bytes memory stationRegistryInitCode = abi.encodePacked(vm.getCode("StationRegistry.sol"), args);
-        stationRegistry = StationRegistry(CREATE3.deployDeterministic(stationRegistryInitCode, salt));
+    /// @dev Deploys {StationRegistry} as an ERC1967 proxy at a deterministic address across chains
+    /// and initializes it with a {Space} implementation
+    /// Notes:
+    /// - The proxy is deployed without initialization first to resolve the circular dependency with {Space}
+    function _deployStationRegistry(
+        string memory createSalt,
+        ModuleKeeper moduleKeeper
+    ) internal returns (StationRegistry stationRegistry) {
+        // Deploy the {StationRegistry} implementation (non-deterministic)
+        address implementation = address(new StationRegistry());
 
-        // Deploy {PaymentModule} at a deterministic address across chains
-        salt = create3Salt("PaymentModule", createSalt);
+        // Deploy the proxy deterministically using CREATE3 without initialization
+        // to resolve the circular dependency with {Space}
+        bytes32 salt = create3Salt("StationRegistry", createSalt);
+        bytes memory emptyData;
+        bytes memory proxyBytecode = abi.encodePacked(
+            type(ERC1967Proxy).creationCode,
+            abi.encode(implementation, emptyData)
+        );
+        address proxy = CREATE3.deployDeterministic(proxyBytecode, salt);
+
+        // Deploy {Space} implementation with the proxy address as factory
+        Space spaceImplementation = new Space(IEntryPoint(ENTRYPOINT_V6), proxy);
+
+        // Initialize the {StationRegistry} proxy
+        StationRegistry(proxy).initialize(
+            DEFAULT_PROTOCOL_ADMIN,
+            IEntryPoint(ENTRYPOINT_V6),
+            moduleKeeper,
+            address(spaceImplementation)
+        );
+
+        stationRegistry = StationRegistry(proxy);
+    }
+
+    /// @dev Deploys {PaymentModule} as an ERC1967 proxy at a deterministic address across chains
+    function _deployPaymentModule(string memory createSalt) internal returns (PaymentModule paymentModule) {
+        bytes32 salt = create3Salt("PaymentModule", createSalt);
         address paymentModuleImplementation = address(new PaymentModule());
         bytes memory paymentModuleInitData = abi.encodeWithSelector(
             PaymentModule.initialize.selector,
@@ -58,9 +98,13 @@ contract DeployDeterministicCore is BaseScript {
             abi.encode(paymentModuleImplementation, paymentModuleInitData)
         );
         paymentModule = PaymentModule(CREATE3.deployDeterministic(paymentModuleProxyBytecode, salt));
+    }
 
-        // Deploy {CompensationModule} at a deterministic address across chains
-        salt = create3Salt("CompensationModule", createSalt);
+    /// @dev Deploys {CompensationModule} as an ERC1967 proxy at a deterministic address across chains
+    function _deployCompensationModule(
+        string memory createSalt
+    ) internal returns (CompensationModule compensationModule) {
+        bytes32 salt = create3Salt("CompensationModule", createSalt);
         address compensationModuleImplementation = address(new CompensationModule());
         bytes memory compensationModuleInitData = abi.encodeWithSelector(
             CompensationModule.initialize.selector,
@@ -71,13 +115,20 @@ contract DeployDeterministicCore is BaseScript {
             type(ERC1967Proxy).creationCode,
             abi.encode(compensationModuleImplementation, compensationModuleInitData)
         );
-        compensationModule = CompensationModule(CREATE3.deployDeterministic(compensationModuleProxyBytecode, salt));
 
-        // Add the {PaymentModule} and {CompensationModule} modules to the allowlist of the {ModuleKeeper}
+        compensationModule = CompensationModule(CREATE3.deployDeterministic(compensationModuleProxyBytecode, salt));
+    }
+
+    /// @dev Adds deployed modules and external contract addresses to the {ModuleKeeper} allowlist
+    function _configureModuleKeeper(
+        ModuleKeeper moduleKeeper,
+        PaymentModule paymentModule,
+        CompensationModule compensationModule
+    ) internal {
         modules.push(address(paymentModule));
         modules.push(address(compensationModule));
 
-        // Add the USDC, WETH and Across {SpokePool} deployments to the allowlist of the {ModuleKeeper}
+        // Add the USDC, WETH and Across {SpokePool} deployments to the allowlist
         modules.push(address(usdcMap[block.chainid]));
         modules.push(address(wethMap[block.chainid]));
         modules.push(address(acrossSpokePoolMap[block.chainid]));

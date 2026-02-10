@@ -4,25 +4,25 @@ pragma solidity ^0.8.26;
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { ContextUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import { Multicall } from "@thirdweb/contracts/extension/Multicall.sol";
 
-import { ModuleKeeper } from "./ModuleKeeper.sol";
-import { IStationRegistry } from "./interfaces/IStationRegistry.sol";
-import { BaseAccountFactory } from "./utils/BaseAccountFactory.sol";
+import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
+import { IStationRegistry } from "./../../src/interfaces/IStationRegistry.sol";
+import { BaseAccountFactory } from "./../../src/utils/BaseAccountFactory.sol";
 
-/// @title StationRegistry
-/// @notice See the documentation in {IStationRegistry}
-contract StationRegistry is IStationRegistry, BaseAccountFactory, OwnableUpgradeable, UUPSUpgradeable {
+/// @title Mock StationRegistry v2
+/// @notice Implementation of StationRegistry v2 to use in the upgrade-related tests
+contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, OwnableUpgradeable, UUPSUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /*//////////////////////////////////////////////////////////////////////////
                                     CONSTANTS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Current version of the {StationRegistry} implementation
-    string public constant VERSION = "1.0.0";
+    /// @dev Current version of the StationRegistry implementation
+    string public constant VERSION = "2.0.0";
 
     /*//////////////////////////////////////////////////////////////////////////
                                     STORAGE
@@ -55,6 +55,10 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, OwnableUpgrade
         _disableInitializers();
     }
 
+    /*//////////////////////////////////////////////////////////////////////////
+                                    INITIALIZER
+    //////////////////////////////////////////////////////////////////////////*/
+
     /// @notice Initializes the StationRegistry proxy
     /// @param _initialAdmin The address of the initial admin
     /// @param _entrypoint The address of the EIP-4337 EntryPoint contract
@@ -75,13 +79,8 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, OwnableUpgrade
         // Retrieve the storage of the {StationRegistry} contract
         StationRegistryStorage storage $ = _getStationRegistryStorage();
 
-        // Store the {ModuleKeeper} address
         $.moduleKeeper = _moduleKeeper;
     }
-
-    /// @dev Authorizes an upgrade to a new implementation
-    /// @param newImplementation Address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
@@ -127,6 +126,19 @@ contract StationRegistry is IStationRegistry, BaseAccountFactory, OwnableUpgrade
         StationRegistryStorage storage $ = _getStationRegistryStorage();
         return $.moduleKeeper;
     }
+
+    /// @notice New feature available only in V2
+    function newFeature() external pure returns (string memory) {
+        return "V2";
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Authorizes an upgrade to a new implementation
+    /// @param newImplementation Address of the new implementation
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 
     /*//////////////////////////////////////////////////////////////////////////
                                     OVERRIDES

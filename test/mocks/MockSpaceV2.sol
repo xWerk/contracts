@@ -12,18 +12,18 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { ERC1271 } from "@thirdweb/contracts/eip/ERC1271.sol";
-import { AccountCore } from "@thirdweb/contracts/prebuilts/account/utils/AccountCore.sol";
-import { AccountCoreStorage } from "@thirdweb/contracts/prebuilts/account/utils/AccountCoreStorage.sol";
+import { AccountCore } from "./../../src/utils/AccountCore.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { ISpace } from "./../../src/interfaces/ISpace.sol";
 import { Errors } from "./../../src/libraries/Errors.sol";
 import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
 import { StationRegistry } from "./../../src/StationRegistry.sol";
 
-/// @title MockBadSpace
-/// @notice Space that reverts when receiving native tokens (ETH)
-contract MockBadSpace is ISpace, AccountCore, ERC1271 {
+/// @title Mock Space v2
+/// @notice Implementation of Space v2 to use in the upgrade-related tests
+contract SpaceV2 is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
     using ECDSA for bytes32;
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -31,10 +31,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     bytes32 private constant MSG_TYPEHASH = keccak256("AccountMessage(bytes message)");
 
     /// @dev Version identifier for the current implementation of the contract
-    string public constant VERSION = "1.0.0";
-
-    /// @dev The address of the native token (ETH) this contract is deployed on following the ERC-7528 standard
-    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    string public constant VERSION = "2.0.0";
 
     /*//////////////////////////////////////////////////////////////////////////
                                   STORAGE
@@ -57,11 +54,23 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     }
 
     /*//////////////////////////////////////////////////////////////////////////
-                                    CONSTRUCTOR
+                                  CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Initializes the address of the {Space} owner, {ModuleKeeper} and enables the initial module(s)
-    constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) { }
+    /// @dev Initializes the address of the EIP 4337 factory and EntryPoint contract
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(IEntryPoint _entrypoint, address _factory) AccountCore(_entrypoint, _factory) {
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the Space proxy with the initial admin and data
+    function initialize(address _defaultAdmin, bytes calldata _data) public virtual initializer {
+        __AccountCore_init(_defaultAdmin, _data);
+    }
+
+    /// @dev Authorizes an upgrade to a new implementation
+    /// @param newImplementation Address of the new implementation
+    function _authorizeUpgrade(address newImplementation) internal override onlyAdminOrEntrypoint { }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 RECEIVE & FALLBACK
@@ -75,7 +84,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
 
     /// @dev Fallback function to handle incoming calls with data
     fallback() external payable {
-        revert();
+        emit NativeReceived({ from: msg.sender, amount: msg.value });
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -84,15 +93,18 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
 
     /// @notice Checks whether the caller is the {EntryPoint}, the admin or the contract itself (redirected through `execute()`)
     modifier onlyAdminOrEntrypoint() {
-        if (!(msg.sender == address(entryPoint()) || isAdmin(msg.sender) || msg.sender == address(this))) {
-            revert Errors.CallerNotEntryPointOrAdmin();
-        }
+        _onlyAdminOrEntrypoint();
         _;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev New mock feature method introduced in {Space} v2
+    function newFeature() public view onlyAdminOrEntrypoint returns (string memory) {
+        return "V2";
+    }
 
     /// @inheritdoc ISpace
     function execute(
@@ -200,11 +212,14 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
         if (!success) revert Errors.NativeWithdrawFailed();
 
         // Log the successful native token withdrawal
-        emit AssetWithdrawn({ to: to, asset: NATIVE_TOKEN, amount: amount });
+        emit AssetWithdrawn({ to: to, asset: address(0), amount: amount });
     }
 
     /// @dev Checks if the module is allowlisted
     function _checkIfModuleAllowlisted(address module) internal view {
+        // Do not check for allowlist if this is a self-call (e.g. `execute()` or `executeBatch()`)
+        if (module == address(this)) return;
+
         // Retrieve the address of the {ModuleKeeper}
         ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
@@ -240,18 +255,18 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
         // Recover the signer of the hash
         address signer = targetDigest.recover(_signature);
 
-        // Check: the signer is an admin and return the magic value if so
+        // Checks: the signer is an admin and return the magic value if so
         if (isAdmin(signer)) {
             return MAGICVALUE;
         }
 
-        // Check: either `msg.sender` is an approved target or there are no restrictions for approved targets
+        // Checks: either `msg.sender` is an approved target or there are no restrictions for approved targets
         EnumerableSet.AddressSet storage targets = _accountPermissionsStorage().approvedTargets[signer];
         if (!(targets.contains(msg.sender) || (targets.length() == 1 && targets.at(0) == address(0)))) {
             revert Errors.CallerNotApprovedTarget();
         }
 
-        // Check: the signer is an active signer and return the magic value if so
+        // Checks: the signer is an active signer and return the magic value if so
         if (isActiveSigner(signer)) {
             magicValue = MAGICVALUE;
         }
@@ -335,32 +350,28 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
                                 INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Registers the account on the factory if it hasn't been registered yet
-    function _registerOnFactory() internal virtual {
-        // Get the address of the factory contract
-        StationRegistry factoryContract = StationRegistry(factory);
-
-        // Check if this smart account is registered in the factory contract
-        if (!factoryContract.isRegistered(address(this))) {
-            // Otherwise register it
-            factoryContract.onRegister();
-        }
-    }
-
-    /// @dev Executes a low-level call on the `module` contract with the `data` data forwarding the `value` value
-    function _call(address module, uint256 value, bytes calldata data) internal returns (bool success) {
-        // Execute the call via assembly
+    /// @dev Executes a low-level call on the `target` contract with the `data` data forwarding the `value` value
+    function _call(address target, uint256 value, bytes calldata data) internal returns (bool success) {
+        // Execute the low-level call
         bytes memory result;
-        (success, result) = module.call{ value: value }(data);
+        (success, result) = target.call{ value: value }(data);
 
-        // Revert with the same error returned by the module contract if the call failed
+        // Revert with the same error returned by the target contract if the call failed
         if (!success) {
             assembly {
                 revert(add(result, 0x20), mload(result))
             }
         } else {
             // Otherwise log the execution success
-            emit ModuleExecutionSucceded(module, value, data);
+            emit ModuleExecutionSucceded(target, value, data);
+        }
+    }
+
+    /// @dev A private function is used instead of inlining this logic in a modifier because Solidity copies modifiers
+    /// into every function that uses them
+    function _onlyAdminOrEntrypoint() internal view {
+        if (!(msg.sender == address(entryPoint()) || isAdmin(msg.sender) || msg.sender == address(this))) {
+            revert Errors.CallerNotEntryPointOrAdmin();
         }
     }
 }

@@ -61,10 +61,16 @@ interface ISpace is IERC165, IERC721Receiver, IERC1155Receiver {
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns the current version of the Space implementation
+    function VERSION() external view returns (string memory);
+
     /// @notice Returns the hash of message that should be signed for EIP1271 verification
     /// @param _hash The message hash to sign for the EIP-1271 origin verifying contract
     /// @return messageHash The digest to sign for EIP-1271 verification
     function getMessageHash(bytes32 _hash) external view returns (bytes32);
+
+    /// @notice Returns the creation data used during the Account initialization
+    function getCreationData() external view returns (bytes memory);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
@@ -127,8 +133,8 @@ interface ISpace is IERC165, IERC721Receiver, IERC1155Receiver {
     function withdrawERC1155(
         address to,
         IERC1155 collection,
-        uint256[] memory ids,
-        uint256[] memory amounts
+        uint256[] calldata ids,
+        uint256[] calldata amounts
     )
         external;
 
