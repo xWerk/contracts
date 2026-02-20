@@ -45,13 +45,13 @@ contract WithdrawERC721_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     function test_WithdrawERC721() external whenCallerOwner whenExistingERC721Token {
         // Expect the {ERC721Withdrawn} event to be emitted
         vm.expectEmit();
-        emit ISpace.ERC721Withdrawn({ to: users.eve, collection: address(mockERC721), tokenId: 1 });
+        emit ISpace.ERC721Withdrawn({ to: users.bob, collection: address(mockERC721), tokenId: 1 });
 
         // Run the test
-        space.withdrawERC721({ to: users.eve, collection: mockERC721, tokenId: 1 });
+        space.withdrawERC721({ to: users.bob, collection: mockERC721, tokenId: 1 });
 
         // Assert the actual and expected owner of the ERC721 token
         address actualOwner = mockERC721.ownerOf(1);
-        assertEq(actualOwner, users.eve);
+        assertEq(actualOwner, users.bob);
     }
 }
