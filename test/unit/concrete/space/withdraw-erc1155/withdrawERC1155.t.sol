@@ -70,18 +70,12 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         // Expect the {ERC721Withdrawn} event to be emitted
         vm.expectEmit();
         emit ISpace.ERC1155Withdrawn({
-            to: users.eve,
-            collection: address(mockERC1155),
-            ids: idsToWithdraw,
-            values: amountsToWithdraw
+            to: users.eve, collection: address(mockERC1155), ids: idsToWithdraw, values: amountsToWithdraw
         });
 
         // Run the test
         space.withdrawERC1155({
-            to: users.eve,
-            collection: mockERC1155,
-            ids: idsToWithdraw,
-            amounts: amountsToWithdraw
+            to: users.eve, collection: mockERC1155, ids: idsToWithdraw, amounts: amountsToWithdraw
         });
 
         // Assert the actual and expected token type 1 ERC1155 balance of Eve
