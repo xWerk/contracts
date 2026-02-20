@@ -8,11 +8,11 @@ import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { CREATE3 } from "solady/src/utils/CREATE3.sol";
 
 /// @notice Deterministically deploys an instance of {CompensationModule}
-/// @dev Uses `CREATE3` for deterministic proxy deployment across all EVM chains
-contract DeployCompensationModule is BaseScript {
-    function run(string memory createSalt) public virtual broadcast returns (CompensationModule compensationModule) {
-        // Create deterministic salt
-        bytes32 salt = create3Salt("CompensationModule", createSalt);
+/// @dev Reverts if any contract has already been deployed
+contract DeployDeterministicCompensationModule is BaseScript {
+    function run(string memory inputSalt) public virtual broadcast returns (CompensationModule compensationModule) {
+        // Construct the CREATE3 salt based on the contract name and the provided input salt
+        bytes32 salt = constructCreate3Salt("CompensationModule", inputSalt);
 
         // Deploy the {CompensationModule} implementation (non-deterministic)
         address compensationModuleImplementation = address(new CompensationModule());

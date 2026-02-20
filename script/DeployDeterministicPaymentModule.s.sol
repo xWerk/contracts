@@ -8,11 +8,11 @@ import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.so
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /// @notice Deterministically deploys an instance of {PaymentModule}
-/// @dev Uses `CREATE3` for deterministic proxy deployment across all EVM chains
-contract DeployPaymentModule is BaseScript {
-    function run(string memory createSalt) public virtual broadcast returns (PaymentModule paymentModule) {
-        // Create deterministic salt
-        bytes32 salt = create3Salt("PaymentModule", createSalt);
+/// @dev Reverts if any contract has already been deployed
+contract DeployDeterministicPaymentModule is BaseScript {
+    function run(string memory inputSalt) public virtual broadcast returns (PaymentModule paymentModule) {
+        // Construct the CREATE3 salt based on the contract name and the provided input salt
+        bytes32 salt = constructCreate3Salt("PaymentModule", inputSalt);
 
         // Deploy the {PaymentModule} implementation (non-deterministic)
         address paymentModuleImplementation = address(new PaymentModule());

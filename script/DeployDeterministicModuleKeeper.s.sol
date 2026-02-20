@@ -5,18 +5,16 @@ import { BaseScript } from "./Base.s.sol";
 import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
 import { CREATE3 } from "solady/src/utils/CREATE3.sol";
 
-/// @notice Deploys at deterministic addresses across chains the {ModuleKeeper} contract
+/// @notice Deploys the {ModuleKeeper} contract at deterministic addresses across chains
 /// @dev Reverts if any contract has already been deployed
 contract DeployDeterministicModuleKeeper is BaseScript {
-    /// @dev By using a salt, Forge will deploy the contract via a deterministic CREATE2 factory
-    /// https://getfoundry.sh/guides/deterministic-deployments-using-create2/#deterministic-deployments-using-create2
-    function run(string memory salt) public virtual broadcast returns (ModuleKeeper moduleKeeper) {
-        // Create deterministic salt
-        bytes32 create3Salt = create3Salt("ModuleKeeper", salt);
+    function run(string memory inputSalt) public virtual broadcast returns (ModuleKeeper moduleKeeper) {
+        // Construct the CREATE3 salt based on the contract name and the provided input salt
+        bytes32 salt = constructCreate3Salt("ModuleKeeper", inputSalt);
 
         // Deterministically deploy the {ModuleKeeper} contract
         bytes memory args = abi.encode(DEFAULT_PROTOCOL_ADMIN);
         bytes memory moduleKeeperInitCode = abi.encodePacked(vm.getCode("ModuleKeeper.sol"), args);
-        moduleKeeper = ModuleKeeper(CREATE3.deployDeterministic(moduleKeeperInitCode, create3Salt));
+        moduleKeeper = ModuleKeeper(CREATE3.deployDeterministic(moduleKeeperInitCode, salt));
     }
 }

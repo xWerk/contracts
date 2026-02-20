@@ -4,7 +4,7 @@ pragma solidity ^0.8.22;
 import { Script } from "forge-std/Script.sol";
 
 contract BaseScript is Script {
-    /// @dev The address of the default protocol owner
+    /// @dev The address of the default protocol admin
     address internal constant DEFAULT_PROTOCOL_ADMIN = 0xcaE83b7162d64022f7Da3D011fc96761cB14116a;
 
     /// @dev The address of the Entrypoint v6 deployment
@@ -171,11 +171,16 @@ contract BaseScript is Script {
         acrossSpokePoolMap[84_532] = 0x82B564983aE7274c86695917BBf8C99ECb6F0F8F;
     }
 
-    /// @notice Generates a deterministic deployment salt from a string input
-    /// @dev Converts the given `salt` string into a `bytes32` value using `keccak256`
-    /// Notes:
-    /// - Can be used for deterministic deployments with both CREATE2 and CREATE3
-    function create3Salt(string memory contractName, string memory salt) internal pure returns (bytes32) {
-        return bytes32(abi.encodePacked(contractName, salt));
+    /// @notice Generates a salt used for deterministic deployments based on the contract name and a given input salt
+    /// @dev ABI encodes the given `contractName` and `inputSalt` strings into a `bytes32` value
+    function constructCreate3Salt(
+        string memory contractName,
+        string memory inputSalt
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
+        return bytes32(abi.encodePacked(contractName, inputSalt));
     }
 }
