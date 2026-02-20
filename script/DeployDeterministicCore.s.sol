@@ -70,8 +70,8 @@ contract DeployDeterministicCore is BaseScript {
         );
         address proxy = CREATE3.deployDeterministic(proxyBytecode, salt);
 
-        // Deploy {Space} implementation with the proxy address as factory
-        Space spaceImplementation = new Space(IEntryPoint(ENTRYPOINT_V6), proxy);
+        // Deploy the {Space} implementation deterministically with the proxy address as factory
+        Space spaceImplementation = _deploySpaceImplementation(createSalt, proxy);
 
         // Initialize the {StationRegistry} proxy
         StationRegistry(proxy).initialize(
@@ -82,6 +82,17 @@ contract DeployDeterministicCore is BaseScript {
         );
 
         stationRegistry = StationRegistry(proxy);
+    }
+
+    /// @dev Deploys {Space} at a deterministic address across chains
+    function _deploySpaceImplementation(
+        string memory createSalt,
+        address stationRegistryProxy
+    ) internal returns (Space space) {
+        bytes32 salt = create3Salt("Space", createSalt);
+        bytes memory args = abi.encode(IEntryPoint(ENTRYPOINT_V6), stationRegistryProxy);
+        bytes memory spaceInitCode = abi.encodePacked(vm.getCode("Space.sol"), args);
+        space = Space(payable(CREATE3.deployDeterministic(spaceInitCode, salt)));
     }
 
     /// @dev Deploys {PaymentModule} as an ERC1967 proxy at a deterministic address across chains

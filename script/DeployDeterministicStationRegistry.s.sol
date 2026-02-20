@@ -2,9 +2,9 @@
 pragma solidity ^0.8.26;
 
 import { BaseScript } from "./Base.s.sol";
-import { StationRegistry } from "./../src/StationRegistry.sol";
-import { Space } from "./../src/Space.sol";
-import { ModuleKeeper } from "./../src/ModuleKeeper.sol";
+import { StationRegistry } from "src/StationRegistry.sol";
+import { Space } from "src/Space.sol";
+import { ModuleKeeper } from "src/ModuleKeeper.sol";
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { CREATE3 } from "solady/src/utils/CREATE3.sol";
@@ -23,7 +23,7 @@ contract DeployDeterministicStationRegistry is BaseScript {
         public
         virtual
         broadcast
-        returns (StationRegistry stationRegistry)
+        returns (StationRegistry stationRegistry, Space spaceImplementation)
     {
         // Create deterministic salt
         bytes32 create3Salt = create3Salt("StationRegistry", salt);
@@ -38,13 +38,27 @@ contract DeployDeterministicStationRegistry is BaseScript {
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(implementation, emptyData));
         address proxy = CREATE3.deployDeterministic(proxyBytecode, create3Salt);
 
-        // Deploy {Space} implementation with the proxy address as factory
-        Space spaceImplementation = new Space(IEntryPoint(ENTRYPOINT_V6), proxy);
+        // Deploy the {Space} implementation deterministically with the proxy address as factory
+        spaceImplementation = _deploySpaceImplementation(salt, proxy);
 
         // Initialize the {StationRegistry} proxy
         StationRegistry(proxy)
             .initialize(DEFAULT_PROTOCOL_ADMIN, IEntryPoint(ENTRYPOINT_V6), moduleKeeper, address(spaceImplementation));
 
         stationRegistry = StationRegistry(proxy);
+    }
+
+    /// @dev Deploys {Space} at a deterministic address across chains
+    function _deploySpaceImplementation(
+        string memory createSalt,
+        address stationRegistryProxy
+    )
+        internal
+        returns (Space space)
+    {
+        bytes32 salt = create3Salt("Space", createSalt);
+        bytes memory args = abi.encode(IEntryPoint(ENTRYPOINT_V6), stationRegistryProxy);
+        bytes memory spaceInitCode = abi.encodePacked(vm.getCode("Space.sol"), args);
+        space = Space(payable(CREATE3.deployDeterministic(spaceInitCode, salt)));
     }
 }
