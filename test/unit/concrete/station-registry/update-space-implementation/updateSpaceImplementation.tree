@@ -1,0 +1,6 @@
+updateSpaceImplementation.t.sol
+├── when the caller IS NOT the registry owner
+│   └── it should revert with the {OwnableUnauthorizedAccount} error
+└── when the caller IS the registry owner
+    ├── it should update the space implementation address
+    └── it should emit a {SpaceImplementationUpdated} event
