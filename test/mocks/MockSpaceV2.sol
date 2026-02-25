@@ -12,14 +12,14 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import { IEntryPoint } from "@thirdweb/contracts/prebuilts/account/interface/IEntrypoint.sol";
 import { ERC1271 } from "@thirdweb/contracts/eip/ERC1271.sol";
-import { AccountCore } from "./../../src/utils/AccountCore.sol";
+import { AccountCore } from "src/utils/AccountCore.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import { ISpace } from "./../../src/interfaces/ISpace.sol";
-import { Errors } from "./../../src/libraries/Errors.sol";
-import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
-import { StationRegistry } from "./../../src/StationRegistry.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { IModuleKeeper } from "src/interfaces/IModuleKeeper.sol";
+import { StationRegistry } from "src/StationRegistry.sol";
 
 /// @title Mock Space v2
 /// @notice Implementation of Space v2 to use in the upgrade-related tests
@@ -221,7 +221,7 @@ contract SpaceV2 is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
         if (module == address(this)) return;
 
         // Retrieve the address of the {ModuleKeeper}
-        ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
+        IModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
         // Checks: module is in the allowlist
         if (!moduleKeeper.isAllowlisted(module)) {

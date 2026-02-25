@@ -8,9 +8,10 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { ContextUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import { Multicall } from "@thirdweb/contracts/extension/Multicall.sol";
 
-import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
-import { IStationRegistry } from "./../../src/interfaces/IStationRegistry.sol";
-import { BaseAccountFactory } from "./../../src/utils/BaseAccountFactory.sol";
+import { IModuleKeeper } from "src/interfaces/IModuleKeeper.sol";
+import { IStationRegistry } from "src/interfaces/IStationRegistry.sol";
+import { BaseAccountFactory } from "src/utils/BaseAccountFactory.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
 
 /// @title Mock StationRegistry v2
 /// @notice Implementation of StationRegistry v2 to use in the upgrade-related tests
@@ -31,7 +32,7 @@ contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, OwnableUpgra
     /// @custom:storage-location erc7201:werk.storage.StationRegistry
     struct StationRegistryStorage {
         /// @inheritdoc IStationRegistry
-        ModuleKeeper moduleKeeper;
+        IModuleKeeper moduleKeeper;
     }
 
     // keccak256(abi.encode(uint256(keccak256("werk.storage.StationRegistry")) - 1)) & ~bytes32(uint256(0xff))
@@ -67,7 +68,7 @@ contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, OwnableUpgra
     function initialize(
         address _initialAdmin,
         IEntryPoint _entrypoint,
-        ModuleKeeper _moduleKeeper,
+        IModuleKeeper _moduleKeeper,
         address _spaceImplementation
     )
         external
@@ -106,7 +107,7 @@ contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, OwnableUpgra
     }
 
     /// @inheritdoc IStationRegistry
-    function updateModuleKeeper(ModuleKeeper newModuleKeeper) external onlyOwner {
+    function updateModuleKeeper(IModuleKeeper newModuleKeeper) external onlyOwner {
         // Retrieve the storage of the {StationRegistry} contract
         StationRegistryStorage storage $ = _getStationRegistryStorage();
 
@@ -117,12 +118,24 @@ contract StationRegistryV2 is IStationRegistry, BaseAccountFactory, OwnableUpgra
         emit ModuleKeeperUpdated(newModuleKeeper);
     }
 
+    /// @inheritdoc IStationRegistry
+    function updateSpaceImplementation(ISpace newSpaceImplementation) external onlyOwner {
+        // Retrieve the storage of the {BaseAccountFactory} contract
+        BaseAccountFactoryStorage storage $ = _getBaseAccountFactoryStorage();
+
+        // Effects: update the {Space} implementation address
+        $.accountImplementation = address(newSpaceImplementation);
+
+        // Log the update
+        emit SpaceImplementationUpdated(newSpaceImplementation);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IStationRegistry
-    function moduleKeeper() external view returns (ModuleKeeper) {
+    function moduleKeeper() external view returns (IModuleKeeper) {
         StationRegistryStorage storage $ = _getStationRegistryStorage();
         return $.moduleKeeper;
     }

@@ -17,9 +17,9 @@ import { ERC1271 } from "@thirdweb/contracts/eip/ERC1271.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 
 import { ISpace } from "./interfaces/ISpace.sol";
+import { IModuleKeeper } from "./interfaces/IModuleKeeper.sol";
 import { Errors } from "./libraries/Errors.sol";
 import { StationRegistry } from "./StationRegistry.sol";
-import { ModuleKeeper } from "./ModuleKeeper.sol";
 
 /// @title Space
 /// @notice See the documentation in {ISpace}
@@ -192,13 +192,9 @@ contract Space is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
         // therefore the `onERC1155Received` hook must be implemented
         // - depending on the length of the `ids` array, we're using `safeBatchTransferFrom` or `safeTransferFrom`
         if (ids.length > 1) {
-            collection.safeBatchTransferFrom({
-                from: address(this), to: msg.sender, ids: ids, values: amounts, data: ""
-            });
+            collection.safeBatchTransferFrom({ from: address(this), to: to, ids: ids, values: amounts, data: "" });
         } else {
-            collection.safeTransferFrom({
-                from: address(this), to: msg.sender, id: ids[0], value: amounts[0], data: ""
-            });
+            collection.safeTransferFrom({ from: address(this), to: to, id: ids[0], value: amounts[0], data: "" });
         }
 
         // Log the successful ERC-1155 token withdrawal
@@ -225,7 +221,7 @@ contract Space is ISpace, AccountCore, ERC1271, UUPSUpgradeable {
         if (module == address(this)) return;
 
         // Retrieve the address of the {ModuleKeeper}
-        ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
+        IModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
         // Checks: module is in the allowlist
         if (!moduleKeeper.isAllowlisted(module)) {

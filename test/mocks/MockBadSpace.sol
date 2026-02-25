@@ -16,10 +16,10 @@ import { AccountCore } from "@thirdweb/contracts/prebuilts/account/utils/Account
 import { AccountCoreStorage } from "@thirdweb/contracts/prebuilts/account/utils/AccountCoreStorage.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 
-import { ISpace } from "./../../src/interfaces/ISpace.sol";
-import { Errors } from "./../../src/libraries/Errors.sol";
-import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
-import { StationRegistry } from "./../../src/StationRegistry.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
+import { IModuleKeeper } from "src/interfaces/IModuleKeeper.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { StationRegistry } from "src/StationRegistry.sol";
 
 /// @title MockBadSpace
 /// @notice Space that reverts when receiving native tokens (ETH)
@@ -206,7 +206,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     /// @dev Checks if the module is allowlisted
     function _checkIfModuleAllowlisted(address module) internal view {
         // Retrieve the address of the {ModuleKeeper}
-        ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
+        IModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
         // Checks: module is in the allowlist
         if (!moduleKeeper.isAllowlisted(module)) {

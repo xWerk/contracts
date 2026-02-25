@@ -67,7 +67,7 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         idsToWithdraw[0] = 1;
         amountsToWithdraw[0] = 100;
 
-        // Expect the {ERC721Withdrawn} event to be emitted
+        // Expect the {ERC1155Withdrawn} event to be emitted
         vm.expectEmit();
         emit ISpace.ERC1155Withdrawn({
             to: users.eve, collection: address(mockERC1155), ids: idsToWithdraw, values: amountsToWithdraw
@@ -84,17 +84,17 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     }
 
     function test_WithdrawERC1155_Batch() external whenCallerOwner whenExistingERC1155Token {
-        // Expect the {ERC721Withdrawn} event to be emitted
+        // Expect the {ERC1155Withdrawn} event to be emitted
         vm.expectEmit();
-        emit ISpace.ERC1155Withdrawn({ to: users.eve, collection: address(mockERC1155), ids: ids, values: amounts });
+        emit ISpace.ERC1155Withdrawn({ to: users.bob, collection: address(mockERC1155), ids: ids, values: amounts });
 
         // Run the test
-        space.withdrawERC1155({ to: users.eve, collection: mockERC1155, ids: ids, amounts: amounts });
+        space.withdrawERC1155({ to: users.bob, collection: mockERC1155, ids: ids, amounts: amounts });
 
         // Assert the actual and expected balance of any ERC1155 tokens
         uint256 numberOfTokens = ids.length;
         for (uint256 i; i < numberOfTokens; ++i) {
-            uint256 actualBalanceOfEve = mockERC1155.balanceOf(users.eve, ids[i]);
+            uint256 actualBalanceOfEve = mockERC1155.balanceOf(users.bob, ids[i]);
             assertEq(actualBalanceOfEve, amounts[i]);
         }
     }

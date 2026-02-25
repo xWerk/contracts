@@ -46,25 +46,25 @@ contract WithdrawERC20_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     }
 
     function test_WithdrawERC20() external whenCallerOwner whenSufficientERC20ToWithdraw {
-        // Store the USDT balance of Eve before withdrawal
-        uint256 balanceOfEveBefore = usdt.balanceOf(users.eve);
+        // Store the USDT balance of Bob before withdrawal
+        uint256 balanceOfBobBefore = usdt.balanceOf(users.bob);
 
         // Store the USDT balance of the {Space} contract before withdrawal
         uint256 balanceOfSpaceBefore = usdt.balanceOf(address(space));
 
         // Expect the {AssetWithdrawn} event to be emitted
         vm.expectEmit();
-        emit ISpace.AssetWithdrawn({ to: users.eve, asset: address(usdt), amount: 10e6 });
+        emit ISpace.AssetWithdrawn({ to: users.bob, asset: address(usdt), amount: 10e6 });
 
         // Run the test
-        space.withdrawERC20({ to: users.eve, asset: IERC20(address(usdt)), amount: 10e6 });
+        space.withdrawERC20({ to: users.bob, asset: IERC20(address(usdt)), amount: 10e6 });
 
         // Assert the USDT balance of the {Space} contract
         uint256 actualBalanceOfSpace = usdt.balanceOf(address(space));
         assertEq(actualBalanceOfSpace, balanceOfSpaceBefore - 10e6);
 
         // Assert the USDT balance of Eve
-        uint256 actualBalanceOfEve = usdt.balanceOf(users.eve);
-        assertEq(actualBalanceOfEve, balanceOfEveBefore + 10e6);
+        uint256 actualBalanceOfBob = usdt.balanceOf(users.bob);
+        assertEq(actualBalanceOfBob, balanceOfBobBefore + 10e6);
     }
 }
