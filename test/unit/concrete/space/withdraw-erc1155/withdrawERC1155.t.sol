@@ -67,7 +67,7 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
         idsToWithdraw[0] = 1;
         amountsToWithdraw[0] = 100;
 
-        // Expect the {ERC721Withdrawn} event to be emitted
+        // Expect the {ERC1155Withdrawn} event to be emitted
         vm.expectEmit();
         emit ISpace.ERC1155Withdrawn({
             to: users.eve, collection: address(mockERC1155), ids: idsToWithdraw, values: amountsToWithdraw
@@ -84,7 +84,7 @@ contract WithdrawERC1155_Unit_Concrete_Test is Space_Unit_Concrete_Test {
     }
 
     function test_WithdrawERC1155_Batch() external whenCallerOwner whenExistingERC1155Token {
-        // Expect the {ERC721Withdrawn} event to be emitted
+        // Expect the {ERC1155Withdrawn} event to be emitted
         vm.expectEmit();
         emit ISpace.ERC1155Withdrawn({ to: users.bob, collection: address(mockERC1155), ids: ids, values: amounts });
 
