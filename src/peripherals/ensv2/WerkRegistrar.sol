@@ -34,7 +34,7 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
     bytes32 public immutable WERK_NODE;
 
     /// @notice Maps a Werk space to its claimed label hash
-    // Note: helps to enforce once subname per space
+    // Note: helps to enforce one subname per space
     mapping(address space => bytes32 labelHash) public spaceToLabel;
 
     /// @notice Maps a label hash to the Werk space that claimed it
@@ -154,13 +154,13 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
 
         bytes32 labelHash = keccak256(labelBytes);
 
-        // Check if the label is already claimed.
+        // Check if the label is already claimed
         address existingSpace = labelToSpace[labelHash];
         if (existingSpace != address(0)) {
             revert LabelAlreadyTaken(labelHash, existingSpace);
         }
 
-        // Check if there is an existing reservation that is still valid (not expired).
+        // Check if there is an existing reservation that is still valid (not expired)
         Reservation memory reservation = reservations[labelHash];
         if (reservation.owner != address(0) && reservation.expiresAt > block.timestamp) {
             revert AlreadyReserved({ expiresAt: reservation.expiresAt });
@@ -186,16 +186,16 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
 
         bytes32 labelHash = keccak256(labelBytes);
 
-        // Validate reservation.
+        // Validate reservation
         _validateReservation(labelHash, msg.sender);
 
-        // One subname per space.
+        // One subname per space
         bytes32 existingLabelForSpace = spaceToLabel[msg.sender];
         if (existingLabelForSpace != bytes32(0)) {
             revert SpaceAlreadyHasSubname(msg.sender, existingLabelForSpace);
         }
 
-        // Unique label across spaces.
+        // Unique label across spaces
         address existingSpace = labelToSpace[labelHash];
         if (existingSpace != address(0)) {
             revert LabelAlreadyTaken(labelHash, existingSpace);
@@ -206,7 +206,7 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
         spaceToLabel[msg.sender] = labelHash;
         labelToSpace[labelHash] = msg.sender;
 
-        // Register the name in the Werk registry and set the default address record.
+        // Register the name in the Werk registry and set the default address record
         uint256 tokenId = _registerAndSetAddr(label, labelHash, msg.sender);
 
         emit WerkSubnameClaimed(msg.sender, label, tokenId, keccak256(abi.encodePacked(WERK_NODE, labelHash)));
@@ -227,7 +227,7 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
 
         bytes32 labelHash = keccak256(labelBytes);
 
-        // Only the space that owns this label may extend its records.
+        // Only the space that owns this label may extend its records
         address space = labelToSpace[labelHash];
         if (space == address(0) || space != msg.sender) {
             revert NotSpaceCaller();
@@ -274,7 +274,7 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
         if (reservation.owner == address(0)) {
             revert ReservationNotFound();
         }
-        if (reservation.expiresAt < block.timestamp) {
+        if (reservation.expiresAt <= block.timestamp) {
             revert ReservationExpired();
         }
         if (reservation.owner != space) {

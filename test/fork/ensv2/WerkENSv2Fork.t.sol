@@ -183,7 +183,7 @@ contract WerkENSv2Fork_Test is Test {
         assertEq(baseAddrBytes, abi.encodePacked(address(space)), "Base fallback mismatch");
     }
 
-    /// @notice Test that a space cannot claim two subnames.a
+    /// @notice Test that a space cannot claim two subnames
     function test_RevertWhen_SpaceAlreadyHasSubname() external {
         _reserveAndClaimSubname(space, "alice");
 
