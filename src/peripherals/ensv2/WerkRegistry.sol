@@ -9,16 +9,16 @@ import { IRegistryMetadata } from "@ensv2/registry/interfaces/IRegistryMetadata.
 /// @notice Dedicated ENSv2 `PermissionedRegistry` instance for subnames under `werk.eth`
 /// @dev Thin wrapper around `PermissionedRegistry` with an explicit type for Werk
 contract WerkRegistry is PermissionedRegistry {
-    /// @param hcaFactory_ Hierarchical component authority factory
-    /// @param metadataProvider_ Metadata provider for registry entries
-    /// @param ownerAddress_ Initial owner that receives `ownerRoles_` on the root resource
-    /// @param ownerRoles_ Role bitmap granted to `ownerAddress_` on the root resource
+    /// @param hcaFactory Hierarchical component authority factory
+    /// @param metadataProvider Metadata provider for registry entries
+    /// @param ownerAddress Initial owner that receives `ownerRoles` on the root resource
+    /// @param ownerRoles Role bitmap granted to `ownerAddress` on the root resource
     constructor(
-        IHCAFactoryBasic hcaFactory_,
-        IRegistryMetadata metadataProvider_,
-        address ownerAddress_,
-        uint256 ownerRoles_
+        IHCAFactoryBasic hcaFactory,
+        IRegistryMetadata metadataProvider,
+        address ownerAddress,
+        uint256 ownerRoles
     )
-        PermissionedRegistry(hcaFactory_, metadataProvider_, ownerAddress_, ownerRoles_)
+        PermissionedRegistry(hcaFactory, metadataProvider, ownerAddress, ownerRoles)
     { }
 }

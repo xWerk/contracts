@@ -6,7 +6,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 import { IRegistry } from "@ensv2/registry/interfaces/IRegistry.sol";
-import { IStandardRegistry } from "@ensv2/registry/interfaces/IStandardRegistry.sol";
 import { RegistryRolesLib } from "@ensv2/registry/libraries/RegistryRolesLib.sol";
 import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Ownable } from "./../../abstracts/Ownable.sol";
@@ -31,7 +30,8 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
     address public immutable RESOLVER;
 
     /// @notice Namehash of `werk.eth`, used as parent node for subname nodes
-    bytes32 public immutable WERK_NODE;
+    /// @dev See https://docs.ens.domains/resolution/names/
+    bytes32 public constant WERK_NODE = 0x628ee8eef5c1212354266f4458b77fa81c351f6d80eef1cdd59827763d44edb8;
 
     /// @notice Maps a Werk space to its claimed label hash
     // Note: helps to enforce one subname per space
@@ -105,19 +105,10 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
 
     /// @param werkRegistry ENSv2 registry that holds all `werk.eth` subnames
     /// @param resolver Shared resolver used for all werk subnames
-    /// @param werkNode Namehash of `werk.eth`
     /// @param owner Address of the registrar owner
-    constructor(IPermissionedRegistry werkRegistry, address resolver, bytes32 werkNode, address owner) Ownable(owner) {
-        if (address(werkRegistry) == address(0)) {
-            revert ZeroSpace();
-        }
-        if (resolver == address(0)) {
-            revert ZeroSpace();
-        }
-
+    constructor(IPermissionedRegistry werkRegistry, address resolver, address owner) Ownable(owner) {
         WERK_REGISTRY = werkRegistry;
         RESOLVER = resolver;
-        WERK_NODE = werkNode;
     }
 
     /// @dev Allow only calls from contracts implementing the {ISpace} interface
@@ -148,7 +139,7 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
 
     /// @notice Reserves a label for 30 minutes for the caller
     /// @param label The label to reserve (e.g. "alice" for "alice.werk.eth")
-    function reserve(string calldata label) external {
+    function reserve(string calldata label) external onlySpace {
         bytes memory labelBytes = bytes(label);
         if (labelBytes.length == 0) revert EmptyLabel();
 
@@ -173,14 +164,14 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
     }
 
     /// @notice Claim a subname `<label>.werk.eth` for a Werk space
-    /// @dev Enforces:
+    /// @dev Requirements:
     ///  - `msg.sender` must be a contract implementing {ISpace}
     ///  - `msg.sender` must have a valid reservation for the label
     ///  - one subname per space
     ///  - unique labels under `werk.eth`
     /// Requires this contract to have `ROLE_REGISTRAR` on `werkRegistry`
     /// @param label subname for "werk.eth", e.g. "alice" for `alice.werk.eth`
-    function claimSubname(string calldata label) external onlySpace nonReentrant {
+    function register(string calldata label) external onlySpace nonReentrant {
         bytes memory labelBytes = bytes(label);
         if (labelBytes.length == 0) revert EmptyLabel();
 
@@ -296,8 +287,7 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
         uint256 rolesForSpace =
             RegistryRolesLib.ROLE_SET_RESOLVER | RegistryRolesLib.ROLE_RENEW | RegistryRolesLib.ROLE_UNREGISTER;
 
-        tokenId = IStandardRegistry(address(WERK_REGISTRY))
-            .register(label, space, IRegistry(address(0)), RESOLVER, rolesForSpace, type(uint64).max);
+        tokenId = WERK_REGISTRY.register(label, space, IRegistry(address(0)), RESOLVER, rolesForSpace, type(uint64).max);
 
         bytes32 node = keccak256(abi.encodePacked(WERK_NODE, labelHash));
         IAddrResolver(RESOLVER).setAddr(node, COIN_TYPE_DEFAULT, abi.encodePacked(space));
