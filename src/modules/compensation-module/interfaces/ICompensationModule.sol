@@ -46,11 +46,13 @@ interface ICompensationModule {
 
     /// @notice Emitted when a component stream is cancelled
     /// @param componentId The ID of the compensation component
-    event ComponentCancelled(uint256 indexed componentId);
+    /// @param refundedAmount The amount refunded to the stream sender's address
+    event ComponentCanceled(uint256 indexed componentId, uint128 refundedAmount);
 
     /// @notice Emitted when a component stream is refunded
     /// @param componentId The ID of the compensation component
-    event ComponentRefunded(uint256 indexed componentId);
+    /// @param refundedAmount The amount refunded to the stream sender's address
+    event ComponentRefunded(uint256 indexed componentId, uint128 refundedAmount);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
@@ -93,9 +95,7 @@ interface ICompensationModule {
         UD21x18 ratePerSecond,
         Types.ComponentType componentType,
         IERC20 asset
-    )
-        external
-        returns (uint256 componentId, uint256 streamId);
+    ) external returns (uint256 componentId, uint256 streamId);
 
     /// @notice Adjusts the rate per second of a compensation component
     ///
@@ -152,7 +152,8 @@ interface ICompensationModule {
     /// @param componentId The ID of the compensation component
     function pauseComponent(uint256 componentId) external;
 
-    /// @notice Cancels a compensation component by forfeiting its uncovered debt (if any) and marking it as voided
+    /// @notice Cancels a compensation component by refunding the entire refunding amount to the sender's address,
+    /// forfeiting its uncovered debt (if any) and marking the stream as voided
     ///
     /// Notes:
     /// - `msg.sender` must be a valid Space account and the component sender

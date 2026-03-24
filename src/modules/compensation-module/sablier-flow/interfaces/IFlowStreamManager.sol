@@ -38,6 +38,12 @@ interface IFlowStreamManager {
     /// @return withdrawableAmount The amount withdrawable by the recipient
     function withdrawableAmountOf(uint256 streamId) external view returns (uint128 withdrawableAmount);
 
+    /// @notice Returns the refundable amount of a stream
+    /// @dev See the documentation in {ISablierFlow-refundableAmountOf}
+    /// @param streamId The ID of the compensation component stream
+    /// @return refundableAmount The amount that the sender can be refunded from the stream
+    function refundableAmountOf(uint256 streamId) external view returns (uint128 refundableAmount);
+
     /// @notice Returns the minimum fee required to withdraw from the stream
     /// @dev See the documentation in {ISablierFlow-calculateMinFeeWei}
     /// @param streamId The ID of the component stream
