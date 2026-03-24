@@ -151,9 +151,11 @@ contract CompensationModule_Integration_Test is Integration_Test {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Creates a mock compensation component
-    function createMockComponent(
-        Types.ComponentType componentType
-    ) internal view returns (Types.CompensationComponent memory component) {
+    function createMockComponent(Types.ComponentType componentType)
+        internal
+        view
+        returns (Types.CompensationComponent memory component)
+    {
         component = Types.CompensationComponent({
             sender: address(space),
             recipient: users.bob,
