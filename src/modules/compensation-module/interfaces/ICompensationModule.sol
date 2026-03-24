@@ -95,7 +95,9 @@ interface ICompensationModule {
         UD21x18 ratePerSecond,
         Types.ComponentType componentType,
         IERC20 asset
-    ) external returns (uint256 componentId, uint256 streamId);
+    )
+        external
+        returns (uint256 componentId, uint256 streamId);
 
     /// @notice Adjusts the rate per second of a compensation component
     ///

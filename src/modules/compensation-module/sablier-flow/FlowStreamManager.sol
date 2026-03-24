@@ -52,7 +52,13 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @dev Initializes the {FlowStreamManager} contract
-    function __FlowStreamManager_init(ISablierFlow _sablierFlow, address _initialAdmin) internal onlyInitializing {
+    function __FlowStreamManager_init(
+        ISablierFlow _sablierFlow,
+        address _initialAdmin
+    )
+        internal
+        onlyInitializing
+    {
         __Ownable_init(_initialAdmin);
 
         // Retrieve the storage of the {FlowStreamManager} contract
@@ -120,19 +126,27 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     /// @param ratePerSecond The rate per second of the compensation component
     /// @param asset The address of the compensation asset
     /// @return streamId The ID of the newly created stream
-    function _createStream(address recipient, UD21x18 ratePerSecond, IERC20 asset) internal returns (uint256 streamId) {
+    function _createStream(
+        address recipient,
+        UD21x18 ratePerSecond,
+        IERC20 asset
+    )
+        internal
+        returns (uint256 streamId)
+    {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Create the flow stream using the `create` function
-        streamId = $.SABLIER_FLOW.create({
-            sender: address(this), // The sender will be able to pause the stream or change rate per second
-            recipient: recipient, // The recipient of the streamed tokens
-            ratePerSecond: ratePerSecond, // The rate per second of the stream
-            startTime: 0, // The starting time of the stream. Zero means startTime is block.timestamp
-            token: asset, // The streaming token
-            transferable: false // Whether the stream will be transferable or not
-        });
+        streamId = $.SABLIER_FLOW
+            .create({
+                sender: address(this), // The sender will be able to pause the stream or change rate per second
+                recipient: recipient, // The recipient of the streamed tokens
+                ratePerSecond: ratePerSecond, // The rate per second of the stream
+                startTime: 0, // The starting time of the stream. Zero means startTime is block.timestamp
+                token: asset, // The streaming token
+                transferable: false // Whether the stream will be transferable or not
+            });
 
         // Set `msg.sender` as the initial stream sender to allow authenticated stream management
         $.initialStreamSender[streamId] = msg.sender;
@@ -150,20 +164,24 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         UD21x18 ratePerSecond,
         IERC20 asset,
         uint128 amount
-    ) internal returns (uint256 streamId) {
+    )
+        internal
+        returns (uint256 streamId)
+    {
         // Retrieve the storage of the {FlowStreamManager} contract
         FlowStreamManagerStorage storage $ = _getFlowStreamManagerStorage();
 
         // Create the flow stream using the `create` function
-        streamId = $.SABLIER_FLOW.createAndDeposit({
-            sender: address(this), // The sender will be able to pause the stream or change rate per second
-            recipient: recipient, // The recipient of the streamed tokens
-            startTime: 0, // The starting time of the stream. Zero means startTime is block.timestamp
-            ratePerSecond: ratePerSecond, // The rate per second of the stream
-            token: asset, // The streaming token
-            transferable: false, // Whether the stream will be transferable or not
-            amount: amount // The deposit amount, denoted in token's decimals
-        });
+        streamId = $.SABLIER_FLOW
+            .createAndDeposit({
+                sender: address(this), // The sender will be able to pause the stream or change rate per second
+                recipient: recipient, // The recipient of the streamed tokens
+                startTime: 0, // The starting time of the stream. Zero means startTime is block.timestamp
+                ratePerSecond: ratePerSecond, // The rate per second of the stream
+                token: asset, // The streaming token
+                transferable: false, // Whether the stream will be transferable or not
+                amount: amount // The deposit amount, denoted in token's decimals
+            });
 
         // Set `msg.sender` as the initial stream sender to allow authenticated stream management
         $.initialStreamSender[streamId] = msg.sender;
@@ -235,7 +253,10 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
         uint256 streamId,
         IERC20 asset,
         address initialStreamSender
-    ) internal returns (uint128 refundedAmount) {
+    )
+        internal
+        returns (uint128 refundedAmount)
+    {
         // Refund the stream
         refundedAmount = SABLIER_FLOW().refundMax(streamId);
 

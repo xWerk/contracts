@@ -63,7 +63,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @dev Allows only the owner to upgrade the contract
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 
     /*//////////////////////////////////////////////////////////////////////////
                                 MODIFIERS & CHECKS
@@ -150,7 +150,10 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         UD21x18 ratePerSecond,
         Types.ComponentType componentType,
         IERC20 asset
-    ) external returns (uint256 componentId, uint256 streamId) {
+    )
+        external
+        returns (uint256 componentId, uint256 streamId)
+    {
         // Checks: the recipient is not the zero address
         if (recipient == address(0)) revert Errors.InvalidZeroAddressRecipient();
 
@@ -201,10 +204,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
         // Checks, Effects, Interactions: deposit the amount to the compensation component stream
         _depositToStream({
-            streamId: component.streamId,
-            asset: component.asset,
-            amount: amount,
-            recipient: component.recipient
+            streamId: component.streamId, asset: component.asset, amount: amount, recipient: component.recipient
         });
 
         // Log the compensation component deposit
@@ -347,7 +347,10 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         UD21x18 ratePerSecond,
         Types.ComponentType componentType,
         IERC20 asset
-    ) internal returns (uint256 componentId, uint256 streamId) {
+    )
+        internal
+        returns (uint256 componentId, uint256 streamId)
+    {
         // Retrieve the contract storage
         CompensationModuleStorage storage $ = _getComponentModuleStorage();
 
