@@ -5,5 +5,5 @@ refundComponent.t.sol
     ├── when the caller IS NOT the component sender
     │   └── it should revert with the {OnlyComponentSender} error
     └── when the caller IS the component sender
-        ├── it should refund the maximum amount of tokens to the component sender
+        ├── it should refund the entire refundable amount to the sender's address
         └── it should emit a {ComponentRefunded} event

@@ -86,6 +86,26 @@ contract CompensationModule_Integration_Test is Integration_Test {
         _;
     }
 
+    modifier whenComponentFunded() {
+        // Create the calldata for the ERC-20 `approve` call to approve the compensation module to spend the ERC-20 tokens
+        bytes memory data = abi.encodeWithSignature("approve(address,uint256)", address(compensationModule), 100e6);
+
+        // Approve the compensation module to spend the ERC-20 tokens from Eve's Space
+        space.execute({ module: address(usdt), value: 0, data: data });
+
+        // Create the calldata for the `depositToComponent` call
+        data = abi.encodeWithSignature("depositToComponent(uint256,uint128)", 1, 100e6);
+
+        // Fund the compensation component with 100 USDT
+        space.execute({ module: address(compensationModule), value: 0, data: data });
+
+        // Fast forward the time by 1 hour so only a portion of the deposited amount is streamed
+        // At a rate of 0.001 tokens/second (~86.4 USDT/day), 1 hour streams ~3.6 USDT, leaving ~96.4 USDT refundable
+        vm.warp(block.timestamp + 1 hours);
+
+        _;
+    }
+
     modifier whenComponentPartiallyFunded() {
         // Create the calldata for the ERC-20 `approve` call to approve the compensation module to spend the ERC-20 tokens
         bytes memory data = abi.encodeWithSignature("approve(address,uint256)", address(compensationModule), 10e6);
@@ -116,7 +136,7 @@ contract CompensationModule_Integration_Test is Integration_Test {
         _;
     }
 
-    modifier whenComponentCancelled() {
+    modifier whenComponentCanceled() {
         // Create the calldata for the `cancelComponent` call
         bytes memory data = abi.encodeWithSignature("cancelComponent(uint256)", 1);
 
@@ -131,11 +151,9 @@ contract CompensationModule_Integration_Test is Integration_Test {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Creates a mock compensation component
-    function createMockComponent(Types.ComponentType componentType)
-        internal
-        view
-        returns (Types.CompensationComponent memory component)
-    {
+    function createMockComponent(
+        Types.ComponentType componentType
+    ) internal view returns (Types.CompensationComponent memory component) {
         component = Types.CompensationComponent({
             sender: address(space),
             recipient: users.bob,
