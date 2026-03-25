@@ -75,7 +75,7 @@ contract StatusOfComponent_Integration_Concrete_Test is CompensationModule_Integ
     /// @dev Scenario for this test:
     /// - Payer creates a compensation component with one single component streaming USDT at a rate of `RATE_PER_SECOND` USDT/day
     /// - Payer cancels the stream resulting in a voided stream
-    function test_GivenComponentCancelled() public whenComponentNotNull whenComponentCancelled {
+    function test_GivenComponentCanceled() public whenComponentNotNull whenComponentCanceled {
         // Retrieve the compensation component
         uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
 

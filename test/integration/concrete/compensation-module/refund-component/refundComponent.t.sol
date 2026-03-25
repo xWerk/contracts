@@ -29,32 +29,27 @@ contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integra
         compensationModule.refundComponent({ componentId: 1 });
     }
 
-    function test_RefundComponent() public whenComponentNotNull whenCallerComponentSender(users.eve) {
-        // Fund the compensation component first
+    function test_RefundComponent()
+        public
+        whenComponentNotNull
+        whenComponentFunded
+        whenCallerComponentSender(users.eve)
+    {
+        // Retrieve the refundable amount before the cancellation
+        uint128 refundableAmount = compensationModule.refundableAmountOf({ streamId: 1 });
 
-        // Create the calldata for the ERC-20 `approve` call to approve the compensation module to spend the ERC-20 tokens
-        bytes memory data = abi.encodeWithSignature("approve(address,uint256)", address(compensationModule), 100e6);
-
-        // Approve the compensation module to spend the ERC-20 tokens from Eve's Space
-        space.execute({ module: address(usdt), value: 0, data: data });
-
-        // Create the calldata for the `depositToComponent` call
-        data = abi.encodeWithSignature("depositToComponent(uint256,uint128)", 1, 100e6);
-
-        // Fund the compensation component
-        space.execute({ module: address(compensationModule), value: 0, data: data });
+        // Sanity check: there should be a non-zero refundable amount
+        assertGt(refundableAmount, 0);
 
         // Cache the balance of the {Space} contract before the refund
         uint256 balanceOfSpaceBefore = usdt.balanceOf(address(space));
 
-        // Refund the entire amount deposited before
-
         // Create the calldata for the `refundComponent` call
-        data = abi.encodeWithSelector(compensationModule.refundComponent.selector, 1);
+        bytes memory data = abi.encodeWithSelector(compensationModule.refundComponent.selector, 1);
 
         // Expect the {ComponentRefunded} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.ComponentRefunded({ componentId: 1 });
+        emit ICompensationModule.ComponentRefunded({ componentId: 1, refundedAmount: refundableAmount });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
@@ -62,7 +57,7 @@ contract RefundComponent_Integration_Concrete_Test is CompensationModule_Integra
         // Cache the balance of the {Space} contract after the refund
         uint256 balanceOfSpaceAfter = usdt.balanceOf(address(space));
 
-        // Assert the balance of the {Space} contract has increased by the amount of the refund
-        assertEq(balanceOfSpaceAfter - balanceOfSpaceBefore, 100e6);
+        // Assert the entire refundable amount has been refunded to the sender's address (the Space)
+        assertEq(balanceOfSpaceAfter - balanceOfSpaceBefore, refundableAmount);
     }
 }

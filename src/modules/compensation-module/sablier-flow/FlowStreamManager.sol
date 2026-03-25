@@ -90,6 +90,12 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc IFlowStreamManager
+    function refundableAmountOf(uint256 streamId) public view returns (uint128 refundableAmount) {
+        // Return the withdrawable amount from the stream
+        return SABLIER_FLOW().refundableAmountOf(streamId);
+    }
+
+    /// @inheritdoc IFlowStreamManager
     function calculateMinFeeWei(uint256 streamId) public view returns (uint256 minFee) {
         // Return the minimum fee required to withdraw from the stream
         return SABLIER_FLOW().calculateMinFeeWei(streamId);

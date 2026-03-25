@@ -303,11 +303,20 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: `msg.sender` is the component sender
         _onlyComponentSender(component.sender);
 
+        // Retrieve the refundable amount of the stream's sender
+        uint128 refundableAmount = refundableAmountOf(component.streamId);
+
+        // Refund if refundable amount is greater than zero
+        if (refundableAmount > 0) {
+            // Checks, Effects, Interactions: refund the entire refundable amount to sender's address
+            _refundStream(component.streamId, component.asset, component.sender);
+        }
+
         // Checks, Effects, Interactions: cancel the compensation component stream
         _cancelStream(component.streamId);
 
         // Log the compensation component stream cancellation
-        emit ComponentCancelled(componentId);
+        emit ComponentCanceled(componentId, refundableAmount);
     }
 
     /// @inheritdoc ICompensationModule
@@ -322,10 +331,10 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         _onlyComponentSender(component.sender);
 
         // Checks, Effects, Interactions: refund the compensation component stream
-        _refundStream(component.streamId, component.asset, component.sender);
+        uint128 refundedAmount = _refundStream(component.streamId, component.asset, component.sender);
 
         // Log the compensation component stream refund
-        emit ComponentRefunded(componentId);
+        emit ComponentRefunded(componentId, refundedAmount);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
