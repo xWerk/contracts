@@ -326,13 +326,16 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // {ISablierV2Lockup} contract
         else {
             refundedAmount = _cancelStream({ streamId: request.config.streamId });
+            if (refundedAmount > 0) {
+                IERC20(request.config.asset).safeTransfer(msg.sender, refundedAmount);
+            }
         }
 
         // Effects: mark the payment request as canceled
         $.requests[requestId].wasCanceled = true;
 
         // Log the payment request cancelation
-        emit RequestCanceled(requestId);
+        emit RequestCanceled(requestId, refundedAmount);
     }
 
     /// @inheritdoc IPaymentModule
