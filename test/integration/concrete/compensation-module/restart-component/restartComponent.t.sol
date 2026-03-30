@@ -7,6 +7,7 @@ import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 import { ICompensationModule } from "src/modules/compensation-module/interfaces/ICompensationModule.sol";
 import { Constants } from "test/utils/Constants.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
+import { Types } from "src/modules/compensation-module/libraries/Types.sol";
 
 contract RestartComponent_Integration_Concrete_Test is CompensationModule_Integration_Test {
     function setUp() public override {
@@ -52,21 +53,27 @@ contract RestartComponent_Integration_Concrete_Test is CompensationModule_Integr
         bytes memory data = abi.encodeWithSelector(compensationModule.pauseComponent.selector, 1);
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
+        // Use a different rate per second than the one used at creation
+        UD21x18 newRatePerSecond = UD21x18.wrap(0.002e18);
+
         // Create the calldata for the `restartComponent` call
-        data = abi.encodeWithSelector(compensationModule.restartComponent.selector, 1, Constants.RATE_PER_SECOND);
+        data = abi.encodeWithSelector(compensationModule.restartComponent.selector, 1, newRatePerSecond);
 
         // Expect the {ComponentRestarted} event to be emitted
         vm.expectEmit();
-        emit ICompensationModule.ComponentRestarted({ componentId: 1, newRatePerSecond: Constants.RATE_PER_SECOND });
+        emit ICompensationModule.ComponentRestarted({ componentId: 1, newRatePerSecond: newRatePerSecond });
 
         // Run the test
         space.execute({ module: address(compensationModule), value: 0, data: data });
 
         // Retrieve the compensation component
-        uint8 actualStatus = uint8(compensationModule.statusOfComponent({ componentId: 1 }));
+        Types.CompensationComponent memory component = compensationModule.getComponent({ componentId: 1 });
+
+        // Assert the stored rate per second was updated in storage
+        assertEq(component.ratePerSecond.unwrap(), newRatePerSecond.unwrap());
 
         // Assert the actual and expected status of the compensation component stream
         // The component stream status should be solvent as the total debt is not exceeding the stream balance
-        assertEq(actualStatus, uint8(Flow.Status.STREAMING_SOLVENT));
+        assertEq(uint8(compensationModule.statusOfComponent({ componentId: 1 })), uint8(Flow.Status.STREAMING_SOLVENT));
     }
 }
