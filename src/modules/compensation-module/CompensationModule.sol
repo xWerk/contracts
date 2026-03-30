@@ -276,14 +276,17 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: if the compensation component is not null, cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(componentId);
 
-        // Load the component in memory
-        Types.CompensationComponent memory component = $.components[componentId];
+        // Load the component in storage
+        Types.CompensationComponent storage component = $.components[componentId];
 
         // Checks: `msg.sender` is the component sender
         _onlyComponentSender(component.sender);
 
         // Checks: the new rate per second is not zero
         if (newRatePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
+
+        // Effects: update the compensation component rate per second
+        component.ratePerSecond = newRatePerSecond;
 
         // Checks, Effects, Interactions: restart the compensation component stream with a new rate per second
         _restartStream(component.streamId, newRatePerSecond);
