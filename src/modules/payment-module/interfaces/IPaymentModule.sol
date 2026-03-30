@@ -34,7 +34,8 @@ interface IPaymentModule {
 
     /// @notice Emitted when a payment request is canceled
     /// @param requestId The ID of the payment request
-    event RequestCanceled(uint256 indexed requestId);
+    /// @param refundedAmount The amount refunded to the stream sender's address
+    event RequestCanceled(uint256 indexed requestId, uint128 refundedAmount);
 
     /// @notice Emitted when a payment request stream is withdrawn
     /// @param requestId The ID of the payment request
