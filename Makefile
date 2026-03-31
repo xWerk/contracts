@@ -56,7 +56,7 @@ deploy-deterministic-station-registry:
 #	- {RPC_URL} with the network RPC used for deployment
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-payment-module: 
-					forge script script/DeployPaymentModule.s.sol:DeployPaymentModule \
+					FOUNDRY_PROFILE=optimized  forge script script/DeployPaymentModule.s.sol:DeployPaymentModule \
 					--sig "run(string)" $(CREATE3SALT) \
 					--rpc-url $(RPC_URL) \
 					--account werk-deployer --verify --etherscan-api-key $(ETHERSCAN_API_KEY) \
@@ -64,7 +64,7 @@ deploy-payment-module:
 
 # Deploys the {CompensationModule} contract deterministically 
 deploy-compensation-module:
-					forge script script/DeployCompensationModule.s.sol:DeployCompensationModule \
+					FOUNDRY_PROFILE=optimized  forge script script/DeployCompensationModule.s.sol:DeployCompensationModule \
 					--sig "run(string)" $(CREATE3SALT) \
 					--rpc-url $(RPC_URL) --account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
@@ -116,7 +116,7 @@ configure-ens-subdomain-registry:
 #   - {RPC_URL} with the network RPC used for deployment
 #   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 upgrade-payment-module:
-					forge script script/upgrade/UpgradePaymentModule.s.sol:UpgradePaymentModule \
+					FOUNDRY_PROFILE=optimized forge script script/upgrade/UpgradePaymentModule.s.sol:UpgradePaymentModule \
 					$(PAYMENT_MODULE_PROXY) \
 					--sig "run(address)" --rpc-url $(RPC_URL) --account werk-deployer \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
@@ -128,7 +128,7 @@ upgrade-payment-module:
 #   - {RPC_URL} with the network RPC used for deployment
 #   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 upgrade-compensation-module:
-					forge script script/upgrade/UpgradeCompensationModule.s.sol:UpgradeCompensationModule \
+					FOUNDRY_PROFILE=optimized forge script script/upgrade/UpgradeCompensationModule.s.sol:UpgradeCompensationModule \
 					$(COMPENSATION_MODULE_PROXY) \
 					--sig "run(address)" --rpc-url $(RPC_URL) --account werk-deployer \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
