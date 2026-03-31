@@ -73,7 +73,7 @@ contract BaseScript is Script {
         // Testnets
 
         // Base Sepolia deployment
-        sablierLockupMap[84_532] = 0x98A2bec0F94526Abef78893DE0B5756B921D08d5;
+        sablierLockupMap[84_532] = 0x5C51EA827Bfa65f7c9AF699e19Ec9fB12A2D40E2;
 
         // Ethereum Sepolia deployment
         sablierLockupMap[11_155_111] = 0x6b0307b4338f2963A62106028E3B074C2c0510DA;
