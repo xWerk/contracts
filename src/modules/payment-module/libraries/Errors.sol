@@ -23,6 +23,9 @@ library Errors {
     /// @notice Thrown when the payment amount set for a new paymentRequest is zero
     error ZeroPaymentAmount();
 
+    /// @notice Thrown when the withdraw amount is zero
+    error ZeroWithdrawAmount();
+
     /// @notice Thrown when the payment amount is less than the payment request value
     error PaymentAmountLessThanRequestedAmount(uint256 amount);
 
@@ -40,6 +43,9 @@ library Errors {
 
     /// @notice Thrown when `msg.sender` is not the payment request sender or the recipient
     error OnlyRequestSenderOrRecipient();
+
+    /// @notice Thrown when `msg.sender` is not the stream recipient
+    error OnlyStreamRecipient();
 
     /// @notice Thrown when the recipient address is the zero address
     error InvalidZeroAddressRecipient();
@@ -60,6 +66,16 @@ library Errors {
     /// @notice Thrown when the payment request has an unlimited recurrence type but the payment method is not transfer-based
     error OnlyTransferAllowedForCustomRecurrence();
 
-    /// @notice Thrown when the payment request has an unlimited recurrence type and the current block timestamp is greater than the payment request end time
+    /// @notice Thrown when withdrawal is attempted from a transfer-based payment request
+    error OnlyForStreamPaymentMethods();
+
+    /// @notice Thrown when the payment request has an unlimited recurrence type and the current block timestamp is greater
+    /// than the payment request end time
     error RequestExpired();
+
+    /// @notice Thrown when the amount attempted to withdraw exceeds the withdrawable amount
+    error Overdraw();
+
+    /// @notice Thrown when `msg.value` is less than the expected fee amount
+    error InsufficientFee(uint256 feePaid, uint256 minFee);
 }

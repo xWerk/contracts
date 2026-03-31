@@ -2,10 +2,11 @@
 pragma solidity >=0.8.22;
 
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
-import { Broker, Lockup, LockupLinear, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupLinear } from "@sablier/lockup/src/types/LockupLinear.sol";
+import { LockupTranched } from "@sablier/lockup/src/types/LockupTranched.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ud60x18, UD60x18, ud, intoUint128 } from "@prb/math/src/UD60x18.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { IStreamManager } from "./interfaces/IStreamManager.sol";
@@ -29,8 +30,6 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         /// By default, each stream will be created by this contract (the sender address of each stream will be address(this))
         /// therefore this mapping is used to allow only authorized senders to execute management-related actions i.e. cancellations
         mapping(uint256 streamId => address initialSender) initialStreamSender;
-        /// @notice The broker parameters charged to create Sablier Lockup stream
-        Broker broker;
     }
 
     // keccak256(abi.encode(uint256(keccak256("werk.storage.StreamManager")) - 1)) & ~bytes32(uint256(0xff))
@@ -56,9 +55,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
 
     function __StreamManager_init(
         ISablierLockup _sablierLockup,
-        address _initialAdmin,
-        address _brokerAccount,
-        UD60x18 _brokerFee
+        address _initialAdmin
     )
         internal
         onlyInitializing
@@ -70,9 +67,6 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
 
         // Set the {SablierLockup} contract address
         $.SABLIER_LOCKUP = _sablierLockup;
-
-        // Set the broker account and fee
-        $.broker = Broker({ account: _brokerAccount, fee: _brokerFee });
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -82,15 +76,6 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     /// @inheritdoc IStreamManager
     function SABLIER_LOCKUP() public view returns (ISablierLockup sablierLockup) {
         return _getStreamManagerStorage().SABLIER_LOCKUP;
-    }
-
-    /// @inheritdoc IStreamManager
-    function broker() public view returns (Broker memory brokerConfig) {
-        // Retrieve the storage of the {StreamManager} contract
-        StreamManagerStorage storage $ = _getStreamManagerStorage();
-
-        // Return the broker fee
-        brokerConfig = $.broker;
     }
 
     /// @inheritdoc IStreamManager
@@ -143,21 +128,14 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         status = SABLIER_LOCKUP().statusOf(streamId);
     }
 
+    /// @inheritdoc IStreamManager
+    function calculateMinFeeWei(uint256 streamId) public view returns (uint256 minFeeWei) {
+        minFeeWei = SABLIER_LOCKUP().calculateMinFeeWei(streamId);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IStreamManager
-    function updateStreamBrokerFee(UD60x18 newBrokerFee) public onlyOwner {
-        // Retrieve the storage of the {StreamManager} contract
-        StreamManagerStorage storage $ = _getStreamManagerStorage();
-
-        // Log the broker fee update
-        emit BrokerFeeUpdated({ oldFee: $.broker.fee, newFee: newBrokerFee });
-
-        // Update the fee charged by the broker
-        $.broker.fee = newBrokerFee;
-    }
 
     /// @inheritdoc IStreamManager
     function updateSablierLockup(ISablierLockup newSablierLockup) public onlyOwner {
@@ -179,13 +157,13 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     /// See https://docs.sablier.com/concepts/protocol/stream-types#lockup-linear
     ///
     /// @param asset The address of the ERC-20 token to be streamed
-    /// @param totalAmount The total amount of ERC-20 tokens to be streamed
+    /// @param amount The amount of ERC-20 tokens to be streamed
     /// @param startTime The timestamp when the stream takes effect
     /// @param endTime The timestamp by which the stream must be paid
     /// @param recipient The address receiving the ERC-20 tokens
     function _createLinearStream(
         IERC20 asset,
-        uint128 totalAmount,
+        uint128 amount,
         uint40 startTime,
         uint40 endTime,
         address recipient
@@ -197,7 +175,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         StreamManagerStorage storage $ = _getStreamManagerStorage();
 
         // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
-        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address($.SABLIER_LOCKUP) });
+        _transferFromAndApprove({ asset: asset, amount: amount, spender: address($.SABLIER_LOCKUP) });
 
         // Declare the params struct
         Lockup.CreateWithTimestamps memory params;
@@ -205,12 +183,11 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         // Declare the function parameters
         params.sender = address(this); // The sender will be able to cancel the stream
         params.recipient = recipient; // The recipient of the streamed assets
-        params.totalAmount = totalAmount; // Total amount is the amount inclusive of all fees
+        params.depositAmount = amount; // Total amount of tokens to be streamed
         params.token = asset; // The streaming asset
         params.cancelable = true; // Whether the stream will be cancelable or not
         params.transferable = false; // Whether the stream will be transferable or not
         params.timestamps = Lockup.Timestamps({ start: startTime, end: endTime });
-        params.broker = Broker({ account: $.broker.account, fee: $.broker.fee }); // Optional parameter for charging a fee
 
         // Declare the unlock amounts
         LockupLinear.UnlockAmounts memory unlockAmounts = LockupLinear.UnlockAmounts({ start: 0, cliff: 0 });
@@ -227,14 +204,14 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     /// See https://docs.sablier.com/concepts/protocol/stream-types#unlock-monthly
     ///
     /// @param asset The address of the ERC-20 token to be streamed
-    /// @param totalAmount The total amount of ERC-20 tokens to be streamed
+    /// @param amount The amount of ERC-20 tokens to be streamed
     /// @param startTime The timestamp when the stream takes effect
     /// @param recipient The address receiving the ERC-20 tokens
     /// @param numberOfTranches The number of tranches paid by the stream
     /// @param recurrence The recurrence of each tranche
     function _createTranchedStream(
         IERC20 asset,
-        uint128 totalAmount,
+        uint128 amount,
         uint40 startTime,
         address recipient,
         uint128 numberOfTranches,
@@ -247,31 +224,22 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         StreamManagerStorage storage $ = _getStreamManagerStorage();
 
         // Transfer the provided amount of ERC-20 tokens to this contract and approve the Sablier contract to spend it
-        _transferFromAndApprove({ asset: asset, amount: totalAmount, spender: address($.SABLIER_LOCKUP) });
-
-        // Calculate the broker fee amount
-        uint128 brokerFeeAmount = ud(totalAmount).mul($.broker.fee).intoUint128();
-
-        // Calculate the remaining amount to be streamed after subtracting the broker fee
-        uint128 deposit = totalAmount - brokerFeeAmount;
+        _transferFromAndApprove({ asset: asset, amount: amount, spender: address($.SABLIER_LOCKUP) });
 
         // Declare the params struct
         Lockup.CreateWithTimestamps memory params;
 
         // Create the tranches array
-        LockupTranched.Tranche[] memory tranches = _createTranches(startTime, deposit, numberOfTranches, recurrence);
+        LockupTranched.Tranche[] memory tranches = _createTranches(startTime, amount, numberOfTranches, recurrence);
 
         // Populate the stream parameters
         params.sender = address(this); // The sender will be able to cancel the stream
         params.recipient = recipient; // The recipient of the streamed assets
-        params.totalAmount = totalAmount; // Total amount is the amount inclusive of all fees
+        params.depositAmount = amount; // Total amount of tokens to be streamed
         params.token = asset; // The streaming asset
         params.cancelable = true; // Whether the stream will be cancelable or not
         params.transferable = false; // Whether the stream will be transferable or not
         params.timestamps = Lockup.Timestamps({ start: startTime, end: tranches[tranches.length - 1].timestamp });
-
-        // Optional parameter for charging a fee
-        params.broker = Broker({ account: $.broker.account, fee: $.broker.fee });
 
         // Create the LockupTranched stream
         streamId = $.SABLIER_LOCKUP.createWithTimestampsLT(params, tranches);
@@ -320,19 +288,22 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
     }
 
     /// @dev See the documentation in {ISablierV2Lockup-withdrawMax}
-    ///
-    /// Notes:
-    /// - `streamType` parameter has been added to withdraw from the according {ISablierV2Lockup} contract
-    function _withdrawStream(uint256 streamId, address to) internal returns (uint128 withdrawnAmount) {
+    function _withdrawMaxStream(uint256 streamId, address to) internal returns (uint128 withdrawnAmount) {
         // Withdraw the maximum withdrawable amount
-        return SABLIER_LOCKUP().withdrawMax(streamId, to);
+        return SABLIER_LOCKUP().withdrawMax{ value: msg.value }(streamId, to);
+    }
+
+    /// @dev See the documentation in {ISablierV2Lockup-withdraw}
+    function _withdrawStream(uint256 streamId, address to, uint128 amount) internal {
+        // Withdraw `amount` from the stream
+        SABLIER_LOCKUP().withdraw{ value: msg.value }(streamId, to, amount);
     }
 
     /// @dev See the documentation in {ISablierV2Lockup-cancel}
     ///
     /// Notes:
     /// - `msg.sender` must be the initial stream creator
-    function _cancelStream(uint256 streamId) internal {
+    function _cancelStream(uint256 streamId) internal returns (uint128 refundedAmount) {
         // Retrieve the storage of the {StreamManager} contract
         StreamManagerStorage storage $ = _getStreamManagerStorage();
 
@@ -341,7 +312,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         if (msg.sender != initialSender) revert Errors.OnlyInitialStreamSender(initialSender);
 
         // Checks, Effect, Interactions: cancel the stream
-        SABLIER_LOCKUP().cancel(streamId);
+        refundedAmount = SABLIER_LOCKUP().cancel(streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

@@ -5,11 +5,14 @@ import { IWerkSubdomainRegistry } from "./interfaces/IWerkSubdomainRegistry.sol"
 import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Ownable } from "./../../abstracts/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title WerkSubdomainRegistrar
 /// @notice This is a fork implementation of the L2Registrar contract created by NameStone
 /// @dev See the initial implementation here: https://github.com/namestonehq/durin/blob/main/src/L2Registrar.sol
 contract WerkSubdomainRegistrar is Ownable {
+    using SafeERC20 for IERC20;
+
     /// @notice Emitted when a new name is registered
     /// @param label The registered label (e.g. "name" in "name.werk.eth")
     /// @param owner The owner of the newly registered name
@@ -76,14 +79,7 @@ contract WerkSubdomainRegistrar is Ownable {
 
     /// @dev Allow only calls from contracts implementing the {ISpace} interface
     modifier onlySpace() {
-        // Checks: the sender is a valid non-zero code size contract
-        if (msg.sender.code.length == 0) {
-            revert SpaceZeroCodeSize();
-        }
-
-        // Checks: the sender implements the ERC-165 interface required by {ISpace}
-        bytes4 interfaceId = type(ISpace).interfaceId;
-        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert SpaceUnsupportedInterface();
+        _onlySpace();
         _;
     }
 
@@ -211,7 +207,7 @@ contract WerkSubdomainRegistrar is Ownable {
     /// @param amount The amount of tokens to withdraw
     function withdrawERC20(IERC20 asset, uint256 amount) public onlyOwner {
         // Withdraw by transferring the `amount` to the owner
-        asset.transfer(owner, amount);
+        asset.safeTransfer(owner, amount);
     }
 
     /// @notice Withdraws native tokens (ETH) from the Registrar
@@ -221,5 +217,18 @@ contract WerkSubdomainRegistrar is Ownable {
         (bool success,) = owner.call{ value: amount }("");
         // Revert if the call failed
         if (!success) revert();
+    }
+
+    /// @dev A private function is used instead of inlining this logic in a modifier because Solidity copies modifiers
+    /// into every function that uses them
+    function _onlySpace() internal view {
+        // Checks: the sender is a valid non-zero code size contract
+        if (msg.sender.code.length == 0) {
+            revert SpaceZeroCodeSize();
+        }
+
+        // Checks: the sender implements the ERC-165 interface required by {ISpace}
+        bytes4 interfaceId = type(ISpace).interfaceId;
+        if (!ISpace(msg.sender).supportsInterface(interfaceId)) revert SpaceUnsupportedInterface();
     }
 }

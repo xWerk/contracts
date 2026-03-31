@@ -45,4 +45,8 @@ abstract contract PayRequest_Integration_Shared_Test is Integration_Test, Create
     modifier whenNativeTokenPaymentSucceeds() {
         _;
     }
+
+    modifier whenEnoughMsgValue() {
+        _;
+    }
 }

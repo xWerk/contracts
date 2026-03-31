@@ -7,8 +7,6 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Lockup } from "@sablier/lockup/src/types/DataTypes.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
-import { UD60x18 } from "@prb/math/src/ud60x18/ValueType.sol";
-
 import { StreamManager } from "./sablier-lockup/StreamManager.sol";
 import { Types } from "./libraries/Types.sol";
 import { Errors } from "./libraries/Errors.sol";
@@ -61,16 +59,8 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     }
 
     /// @dev Initializes the proxy and the {Ownable} contract
-    function initialize(
-        ISablierLockup _sablierLinear,
-        address _initialOwner,
-        address _brokerAccount,
-        UD60x18 _brokerFee
-    )
-        public
-        initializer
-    {
-        __StreamManager_init(_sablierLinear, _initialOwner, _brokerAccount, _brokerFee);
+    function initialize(ISablierLockup _sablierLinear, address _initializeAdmin) public initializer {
+        __StreamManager_init(_sablierLinear, _initializeAdmin);
         __UUPSUpgradeable_init();
 
         // Retrieve the contract storage
@@ -170,9 +160,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
                     && request.config.recurrence != Types.Recurrence.OneOff
             ) {
                 numberOfPayments = _checkIntervalPayments({
-                    recurrence: request.config.recurrence,
-                    startTime: request.startTime,
-                    endTime: request.endTime
+                    recurrence: request.config.recurrence, startTime: request.startTime, endTime: request.endTime
                 });
             }
 
@@ -263,14 +251,9 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         }
 
         // Effects: decrease the number of payments left
-        // Using unchecked because the number of payments left cannot underflow:
-        // - For transfer-based requests, the status will be updated to `Paid` when `paymentsLeft` reaches zero;
-        // - For stream-based requests, `paymentsLeft` is validated before decrementing;
         uint40 paymentsLeft;
-        unchecked {
-            paymentsLeft = request.config.paymentsLeft - 1;
-            $.requests[requestId].config.paymentsLeft = paymentsLeft;
-        }
+        paymentsLeft = request.config.paymentsLeft - 1;
+        $.requests[requestId].config.paymentsLeft = paymentsLeft;
 
         // Effects: mark the payment request as accepted
         $.requests[requestId].wasAccepted = true;
@@ -298,7 +281,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     }
 
     /// @inheritdoc IPaymentModule
-    function cancelRequest(uint256 requestId) external {
+    function cancelRequest(uint256 requestId) external returns (uint128 refundedAmount) {
         // Retrieve the contract storage
         PaymentModuleStorage storage $ = _getPaymentModuleStorage();
 
@@ -337,29 +320,61 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         // - A linear or tranched stream MUST be canceled by calling the `cancel` method on the according
         // {ISablierV2Lockup} contract
         else {
-            _cancelStream({ streamId: request.config.streamId });
+            refundedAmount = _cancelStream({ streamId: request.config.streamId });
+
+            // Transfer the entire refundeable amount to the initial stream sender
+            if (refundedAmount > 0) {
+                IERC20(request.config.asset).safeTransfer(msg.sender, refundedAmount);
+            }
         }
 
         // Effects: mark the payment request as canceled
         $.requests[requestId].wasCanceled = true;
 
         // Log the payment request cancelation
-        emit RequestCanceled(requestId);
+        emit RequestCanceled(requestId, refundedAmount);
     }
 
     /// @inheritdoc IPaymentModule
-    function withdrawRequestStream(uint256 requestId) public returns (uint128 withdrawnAmount) {
+    function withdrawRequestStream(uint256 requestId, uint128 amount) external payable {
         // Retrieve the contract storage
         PaymentModuleStorage storage $ = _getPaymentModuleStorage();
 
         // Load the payment request state from storage
         Types.PaymentRequest memory request = $.requests[requestId];
 
+        // Checks: withdrawal is valid and the fee is sufficient
+        uint256 minFee = _checkIfValidWithdraw(request);
+
+        // Checks: `amount` is not zero
+        if (amount == 0) revert Errors.ZeroWithdrawAmount();
+
+        // Checks: `amount` does not exceed the withdrawable amount
+        if (amount > withdrawableAmountOf(request.config.streamId)) revert Errors.Overdraw();
+
         // Check, Effects, Interactions: withdraw from the stream
-        withdrawnAmount = _withdrawStream({ streamId: request.config.streamId, to: request.recipient });
+        _withdrawStream({ streamId: request.config.streamId, to: request.recipient, amount: amount });
 
         // Log the stream withdrawal
-        emit RequestStreamWithdrawn(requestId, withdrawnAmount);
+        emit RequestStreamWithdrawn(requestId, amount, minFee);
+    }
+
+    /// @inheritdoc IPaymentModule
+    function withdrawMaxRequestStream(uint256 requestId) public payable returns (uint128 withdrawnAmount) {
+        // Retrieve the contract storage
+        PaymentModuleStorage storage $ = _getPaymentModuleStorage();
+
+        // Load the payment request state from storage
+        Types.PaymentRequest memory request = $.requests[requestId];
+
+        // Checks: withdrawal is valid and the fee is sufficient
+        uint256 minFee = _checkIfValidWithdraw(request);
+
+        // Check, Effects, Interactions: withdraw the maximum amount from the stream
+        withdrawnAmount = _withdrawMaxStream({ streamId: request.config.streamId, to: request.recipient });
+
+        // Log the stream withdrawal
+        emit RequestStreamWithdrawn(requestId, withdrawnAmount, minFee);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -380,11 +395,8 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
             if (!success) revert Errors.NativeTokenPaymentFailed();
         } else {
             // Interactions: pay the recipient with the ERC-20 token
-            IERC20(request.config.asset).safeTransferFrom({
-                from: msg.sender,
-                to: request.recipient,
-                value: request.config.amount
-            });
+            IERC20(request.config.asset)
+                .safeTransferFrom({ from: msg.sender, to: request.recipient, value: request.config.amount });
         }
     }
 
@@ -392,7 +404,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
     function _payByLinearStream(Types.PaymentRequest memory request) internal returns (uint256 streamId) {
         streamId = _createLinearStream({
             asset: IERC20(request.config.asset),
-            totalAmount: request.config.amount,
+            amount: request.config.amount,
             startTime: request.startTime,
             endTime: request.endTime,
             recipient: request.recipient
@@ -406,7 +418,7 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
 
         streamId = _createTranchedStream({
             asset: IERC20(request.config.asset),
-            totalAmount: request.config.amount,
+            amount: request.config.amount,
             startTime: request.startTime,
             recipient: request.recipient,
             numberOfTranches: numberOfTranches,
@@ -488,5 +500,23 @@ contract PaymentModule is IPaymentModule, StreamManager, UUPSUpgradeable {
         }
 
         return Types.Status.Ongoing;
+    }
+
+    /// @dev Preliminary checks used for withdraw methods
+    function _checkIfValidWithdraw(Types.PaymentRequest memory request) internal view returns (uint256 minFee) {
+        // Checks: the payment request exists
+        if (request.recipient == address(0)) revert Errors.NullRequest();
+
+        // Checks: the payment method is not transfer
+        if (request.config.method == Types.Method.Transfer) revert Errors.OnlyForStreamPaymentMethods();
+
+        // Checks: `msg.sender` is the stream recipient
+        if (msg.sender != request.recipient) revert Errors.OnlyStreamRecipient();
+
+        // Retrieve the minimum fee amount required to withdraw from the stream
+        minFee = calculateMinFeeWei(request.config.streamId);
+
+        // Checks: the caller sent a sufficient amount of ETH
+        if (msg.value < minFee) revert Errors.InsufficientFee(msg.value, minFee);
     }
 }

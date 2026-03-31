@@ -23,8 +23,8 @@ tests-coverage :; ./script/coverage.sh
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-invoice-collection: 
 					forge script script/DeployInvoiceCollection.s.sol:DeployInvoiceCollection \
-					$(RELAYER) $(NAME) $(SYMBOL) \
-					--sig "run(address,string,string)" --rpc-url $(RPC_URL) --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) 
+					--sig "run(address,string,string)" $(RELAYER) $(NAME) $(SYMBOL) 
+					--rpc-url $(RPC_URL) --account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify
 
 # Deploys the {ModuleKeeper} contract deterministically 
@@ -33,9 +33,9 @@ deploy-invoice-collection:
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-deterministic-module-keeper:
 					forge script script/DeployDeterministicModuleKeeper.s.sol:DeployDeterministicModuleKeeper \
-					$(CREATE2SALT) \
-					--sig "run(string)" --rpc-url $(RPC_URL) \
-					--account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
+					--sig "run(string)" $(CREATE3SALT) \
+					--rpc-url $(RPC_URL) \
+					--account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify
 
 # Deploys the {StationRegistry} contract deterministically 
@@ -45,9 +45,9 @@ deploy-deterministic-module-keeper:
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-deterministic-station-registry:
 					forge script script/DeployDeterministicStationRegistry.s.sol:DeployDeterministicStationRegistry \
-					$(CREATE2SALT) $(MODULE_KEEPER) \
-					--sig "run(string,address)" --rpc-url $(RPC_URL) \
-					--account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
+					--sig "run(string,address)" $(CREATE3SALT) $(MODULE_KEEPER) \
+					--rpc-url $(RPC_URL) \
+					--account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 
 # Deploys the {PaymentModule} contract deterministically 
@@ -56,14 +56,17 @@ deploy-deterministic-station-registry:
 #	- {RPC_URL} with the network RPC used for deployment
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-payment-module: 
-					forge script script/DeployPaymentModule.s.sol:DeployPaymentModule \
-					--rpc-url $(RPC_URL) --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
-					--broadcast --verify --ffi
+					FOUNDRY_PROFILE=optimized  forge script script/DeployPaymentModule.s.sol:DeployPaymentModule \
+					--sig "run(string)" $(CREATE3SALT) \
+					--rpc-url $(RPC_URL) \
+					--account werk-deployer --verify --etherscan-api-key $(ETHERSCAN_API_KEY) \
+					--broadcast --ffi
 
 # Deploys the {CompensationModule} contract deterministically 
 deploy-compensation-module:
-					forge script script/DeployCompensationModule.s.sol:DeployCompensationModule \
-					--rpc-url $(RPC_URL) --account dev --etherscan-api-key $(ETHERSCAN_API_KEY) \
+					FOUNDRY_PROFILE=optimized  forge script script/DeployCompensationModule.s.sol:DeployCompensationModule \
+					--sig "run(string)" $(CREATE3SALT) \
+					--rpc-url $(RPC_URL) --account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 
 # Deploys the core contracts deterministically 
@@ -73,8 +76,8 @@ deploy-compensation-module:
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-core: 
 					forge script script/DeployDeterministicCore.s.sol:DeployDeterministicCore \
-					$(CREATE2SALT) \
-					--sig "run(string)" --rpc-url $(RPC_URL) --account dev \
+					--sig "run(string)" $(CREATE3SALT) \
+					--rpc-url $(RPC_URL) --account werk-deployer \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
 
 # Deploys the {WerkSubdomainCore} contract deterministically 
@@ -87,9 +90,9 @@ deploy-core:
 deploy-ens-subdomain-core:
 					forge script script/ens-domains/DeployDeterministicWerkSubdomainCore.s.sol:DeployDeterministicWerkSubdomainCore \
 					$(CREATE2SALT) "werk.eth" $(WERK_SUBDOMAIN_BASE_URI) \
-					--sig "run(string,string,string)" --rpc-url $(RPC_URL) --account dev \
+					--sig "run(string,string,string)" --rpc-url $(RPC_URL) --account werk-deployer \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
-					
+
 # Deploys the {L2SubdomainRegistrar} contract deterministically 
 #
 # Update the following configs before running the script:
@@ -98,13 +101,13 @@ deploy-ens-subdomain-core:
 #   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-ens-subdomain-registrar:
 					forge script script/ens-domains/DeployDeterministicWerkSubdomainRegistrar.s.sol:DeployDeterministicWerkSubdomainRegistrar \
-                    $(CREATE2SALT) $(WERK_SUBDOMAIN_REGISTRY) \
-                    --sig "run(string,address)" --rpc-url $(RPC_URL) --account dev \
-                    --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
+					$(CREATE2SALT) $(WERK_SUBDOMAIN_REGISTRY) \
+					--sig "run(string,address)" --rpc-url $(RPC_URL) --account werk-deployer \
+					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
 
 # Configure the {WerkSubdomainRegistry} to allow the {WerkSubdomainRegistrar} to register subdomains
 configure-ens-subdomain-registry:
-                    cast send $(WERK_SUBDOMAIN_REGISTRY) "addRegistrar(address)" $(WERK_SUBDOMAIN_REGISTRAR) --rpc-url $(RPC_URL) --acount dev 
+					cast send $(WERK_SUBDOMAIN_REGISTRY) "addRegistrar(address)" $(WERK_SUBDOMAIN_REGISTRAR) --rpc-url $(RPC_URL) --account werk-deployer 
 
 # Upgrades the {PaymentModule} contract
 #
@@ -113,9 +116,9 @@ configure-ens-subdomain-registry:
 #   - {RPC_URL} with the network RPC used for deployment
 #   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 upgrade-payment-module:
-					forge script script/upgrade/UpgradePaymentModule.s.sol:UpgradePaymentModule \
+					FOUNDRY_PROFILE=optimized forge script script/upgrade/UpgradePaymentModule.s.sol:UpgradePaymentModule \
 					$(PAYMENT_MODULE_PROXY) \
-					--sig "run(address)" --rpc-url $(RPC_URL) --account dev \
+					--sig "run(address)" --rpc-url $(RPC_URL) --account werk-deployer \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
 
 # Upgrades the {CompensationModule} contract
@@ -125,7 +128,7 @@ upgrade-payment-module:
 #   - {RPC_URL} with the network RPC used for deployment
 #   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 upgrade-compensation-module:
-					forge script script/upgrade/UpgradeCompensationModule.s.sol:UpgradeCompensationModule \
+					FOUNDRY_PROFILE=optimized forge script script/upgrade/UpgradeCompensationModule.s.sol:UpgradeCompensationModule \
 					$(COMPENSATION_MODULE_PROXY) \
-					--sig "run(address)" --rpc-url $(RPC_URL) --account dev \
+					--sig "run(address)" --rpc-url $(RPC_URL) --account werk-deployer \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi

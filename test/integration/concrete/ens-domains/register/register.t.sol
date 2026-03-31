@@ -109,7 +109,7 @@ contract Register_Integration_Concret_Test is Integration_Test {
         vm.stopPrank();
 
         // Create a new space with Bob as the owner and enable the {WerkSubdomainRegistrar} module
-        space = deploySpace({ _owner: users.bob, _stationId: 0 });
+        space = deploySpace({ admin: users.bob });
 
         // Make Bob the caller for the next calls to simulate a different Space trying to
         // register an already reserved subdomain

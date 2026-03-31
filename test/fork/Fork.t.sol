@@ -8,10 +8,7 @@ abstract contract Fork_Test is Base_Test {
     function setUp() public virtual override {
         // Create test users
         users = Users({
-            admin: createUser("admin"),
-            eve: createUser("eve"),
-            bob: createUser("bob"),
-            alice: createUser("alice")
+            admin: createUser("admin"), eve: createUser("eve"), bob: createUser("bob"), alice: createUser("alice")
         });
     }
 

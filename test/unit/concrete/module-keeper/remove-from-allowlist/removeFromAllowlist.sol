@@ -4,7 +4,6 @@ pragma solidity ^0.8.26;
 import { ModuleKeeper_Unit_Concrete_Test } from "../ModuleKeeper.t.sol";
 import { Errors } from "src/libraries/Errors.sol";
 import { IModuleKeeper } from "src/interfaces/IModuleKeeper.sol";
-import { MockModule } from "test/mocks/MockModule.sol";
 
 contract RemoveFromAllowlist_Unit_Concrete_Test is ModuleKeeper_Unit_Concrete_Test {
     function setUp() public virtual override {

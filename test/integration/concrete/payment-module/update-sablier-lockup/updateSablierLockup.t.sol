@@ -36,14 +36,13 @@ contract UpdateSablierLockup_Integration_Concret_Test is Integration_Test {
         // Expect the {SablierLockupAddressUpdated} to be emitted
         vm.expectEmit();
         emit IStreamManager.SablierLockupAddressUpdated({
-            oldAddress: ISablierLockup(address(sablierLockup)),
-            newAddress: ISablierLockup(address(0x123))
+            oldAddress: ISablierLockup(address(sablierLockup)), newAddress: ISablierLockup(address(0x123))
         });
 
         // Run the test
         paymentModule.updateSablierLockup(newSablierLockup);
 
-        // Assert the actual and expected broker fee
+        // Assert the actual and expected Sablier Lockup address
         ISablierLockup actualSablierLockup = paymentModule.SABLIER_LOCKUP();
         assertEq(address(actualSablierLockup), address(newSablierLockup));
     }

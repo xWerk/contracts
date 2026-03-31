@@ -16,10 +16,10 @@ import { AccountCore } from "@thirdweb/contracts/prebuilts/account/utils/Account
 import { AccountCoreStorage } from "@thirdweb/contracts/prebuilts/account/utils/AccountCoreStorage.sol";
 import { EnumerableSet } from "@thirdweb/contracts/external-deps/openzeppelin/utils/structs/EnumerableSet.sol";
 
-import { ISpace } from "./../../src/interfaces/ISpace.sol";
-import { Errors } from "./../../src/libraries/Errors.sol";
-import { ModuleKeeper } from "./../../src/ModuleKeeper.sol";
-import { StationRegistry } from "./../../src/StationRegistry.sol";
+import { ISpace } from "src/interfaces/ISpace.sol";
+import { IModuleKeeper } from "src/interfaces/IModuleKeeper.sol";
+import { Errors } from "src/libraries/Errors.sol";
+import { StationRegistry } from "src/StationRegistry.sol";
 
 /// @title MockBadSpace
 /// @notice Space that reverts when receiving native tokens (ETH)
@@ -30,8 +30,31 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
 
     bytes32 private constant MSG_TYPEHASH = keccak256("AccountMessage(bytes message)");
 
+    /// @dev Version identifier for the current implementation of the contract
+    string public constant VERSION = "1.0.0";
+
     /// @dev The address of the native token (ETH) this contract is deployed on following the ERC-7528 standard
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                  STORAGE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @custom:storage-location erc7201:werk.storage.Space
+    struct SpaceStorage {
+        bytes creationData;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("werk.storage.Space")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SPACE_STORAGE_LOCATION =
+        0x72f72cb8947b73fbb502a80bbd90a9f82e470925fc2b9fa28d33634322fabe00;
+
+    /// @dev Retrieves the storage of the {SpaceStorage} contract
+    function _getSpaceStorage() internal pure returns (SpaceStorage storage $) {
+        assembly {
+            $.slot := SPACE_STORAGE_LOCATION
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                     CONSTRUCTOR
@@ -60,7 +83,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Checks whether the caller is the {EntryPoint}, the admin or the contract itself (redirected through `execute()`)
-    modifier onlyAdminOrEntrypoint() virtual {
+    modifier onlyAdminOrEntrypoint() {
         if (!(msg.sender == address(entryPoint()) || isAdmin(msg.sender) || msg.sender == address(this))) {
             revert Errors.CallerNotEntryPointOrAdmin();
         }
@@ -114,7 +137,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     }
 
     /// @inheritdoc ISpace
-    function withdrawERC20(address to, IERC20 asset, uint256 amount) public onlyAdminOrEntrypoint {
+    function withdrawERC20(address to, IERC20 asset, uint256 amount) external onlyAdminOrEntrypoint {
         // Checks: the available ERC20 balance of the space is greater enough to support the withdrawal
         if (amount > asset.balanceOf(address(this))) revert Errors.InsufficientERC20ToWithdraw();
 
@@ -126,7 +149,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     }
 
     /// @inheritdoc ISpace
-    function withdrawERC721(address to, IERC721 collection, uint256 tokenId) public onlyAdminOrEntrypoint {
+    function withdrawERC721(address to, IERC721 collection, uint256 tokenId) external onlyAdminOrEntrypoint {
         // Checks, Effects, Interactions: withdraw by transferring the `tokenId` token to the `to` address
         // Notes:
         // - we're using `safeTransferFrom` as the owner can be a smart contract
@@ -141,10 +164,10 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     function withdrawERC1155(
         address to,
         IERC1155 collection,
-        uint256[] memory ids,
-        uint256[] memory amounts
+        uint256[] calldata ids,
+        uint256[] calldata amounts
     )
-        public
+        external
         onlyAdminOrEntrypoint
     {
         // Checks, Effects, Interactions: withdraw by transferring the tokens to the `to` address
@@ -153,9 +176,13 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
         // therefore the `onERC1155Received` hook must be implemented
         // - depending on the length of the `ids` array, we're using `safeBatchTransferFrom` or `safeTransferFrom`
         if (ids.length > 1) {
-            collection.safeBatchTransferFrom({ from: address(this), to: msg.sender, ids: ids, values: amounts, data: "" });
+            collection.safeBatchTransferFrom({
+                from: address(this), to: msg.sender, ids: ids, values: amounts, data: ""
+            });
         } else {
-            collection.safeTransferFrom({ from: address(this), to: msg.sender, id: ids[0], value: amounts[0], data: "" });
+            collection.safeTransferFrom({
+                from: address(this), to: msg.sender, id: ids[0], value: amounts[0], data: ""
+            });
         }
 
         // Log the successful ERC-1155 token withdrawal
@@ -163,7 +190,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     }
 
     /// @inheritdoc ISpace
-    function withdrawNative(address to, uint256 amount) public onlyAdminOrEntrypoint {
+    function withdrawNative(address to, uint256 amount) external onlyAdminOrEntrypoint {
         // Checks: the native balance of the space is greater enough to support the withdrawal
         if (amount > address(this).balance) revert Errors.InsufficientNativeToWithdraw();
 
@@ -179,7 +206,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     /// @dev Checks if the module is allowlisted
     function _checkIfModuleAllowlisted(address module) internal view {
         // Retrieve the address of the {ModuleKeeper}
-        ModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
+        IModuleKeeper moduleKeeper = StationRegistry(factory).moduleKeeper();
 
         // Checks: module is in the allowlist
         if (!moduleKeeper.isAllowlisted(module)) {
@@ -190,6 +217,12 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ISpace
+    function getCreationData() external view returns (bytes memory) {
+        SpaceStorage storage $ = _getSpaceStorage();
+        return $.creationData;
+    }
 
     /// @inheritdoc ERC1271
     function isValidSignature(
@@ -310,7 +343,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
         // Check if this smart account is registered in the factory contract
         if (!factoryContract.isRegistered(address(this))) {
             // Otherwise register it
-            factoryContract.onRegister(AccountCoreStorage.data().creationSalt);
+            factoryContract.onRegister();
         }
     }
 

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.26;
 
 import { BaseScript } from "../Base.s.sol";
-import { CompensationModule } from "src/modules/compensation-module/CompensationModule.sol";
 import { Upgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
 import { Options } from "@openzeppelin/foundry-upgrades/src/Options.sol";
 

@@ -48,8 +48,7 @@ library Helpers {
             }
 
             numberOfPayments = PaymentHelpers.computeNumberOfPayments({
-                recurrence: Types.Recurrence(recurrence),
-                interval: endTime - startTime
+                recurrence: Types.Recurrence(recurrence), interval: endTime - startTime
             });
 
             // Check if the interval is too short for the fuzzed recurrence

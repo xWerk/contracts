@@ -2,9 +2,7 @@
 pragma solidity ^0.8.26;
 
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
-import { Broker, Flow } from "@sablier/flow/src/types/DataTypes.sol";
-import { UD60x18 } from "@prb/math/src/UD60x18.sol";
-import { Types } from "../../libraries/Types.sol";
+import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
 
 /// @title IFlowStreamManager
 /// @notice Contract used to create and manage Sablier Flow compatible streams through a set of internal functions
@@ -14,11 +12,6 @@ interface IFlowStreamManager {
                                        EVENTS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when the broker fee is updated
-    /// @param oldFee The old broker fee
-    /// @param newFee The new broker fee
-    event BrokerFeeUpdated(UD60x18 oldFee, UD60x18 newFee);
-
     /// @notice Emitted when the address of the {SablierFlow} contract is updated
     /// @param oldAddress The old address of the {SablierFlow} contract
     /// @param newAddress The new address of the {SablierFlow} contract
@@ -27,9 +20,6 @@ interface IFlowStreamManager {
     /*//////////////////////////////////////////////////////////////////////////
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
-
-    /// @notice The broker account and fee charged to deposit on Sablier Flow streams
-    function broker() external view returns (Broker memory brokerConfig);
 
     /// @notice The address of the {SablierFlow} contract used to create compensation streams
     /// @dev This is initialized at construction time and it might be different depending on the deployment chain
@@ -42,18 +32,27 @@ interface IFlowStreamManager {
     /// @return status The status of the compensation component stream
     function statusOf(uint256 streamId) external view returns (Flow.Status status);
 
+    /// @notice Returns the withdrawable amount of a stream
+    /// @dev See the documentation in {ISablierFlow-withdrawableAmountOf}
+    /// @param streamId The ID of the compensation component stream
+    /// @return withdrawableAmount The amount withdrawable by the recipient
+    function withdrawableAmountOf(uint256 streamId) external view returns (uint128 withdrawableAmount);
+
+    /// @notice Returns the refundable amount of a stream
+    /// @dev See the documentation in {ISablierFlow-refundableAmountOf}
+    /// @param streamId The ID of the compensation component stream
+    /// @return refundableAmount The amount that the sender can be refunded from the stream
+    function refundableAmountOf(uint256 streamId) external view returns (uint128 refundableAmount);
+
+    /// @notice Returns the minimum fee required to withdraw from the stream
+    /// @dev See the documentation in {ISablierFlow-calculateMinFeeWei}
+    /// @param streamId The ID of the component stream
+    /// @return minFee the minimum fee required to withdraw from the stream
+    function calculateMinFeeWei(uint256 streamId) external view returns (uint256 minFee);
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
-
-    /// @notice Updates the fee charged by the broker
-    ///
-    /// Notes:
-    /// - `msg.sender` must be the owner
-    /// - The new fee will be applied only to the new streams hence it can't be retrospectively updated
-    ///
-    /// @param newBrokerFee The new broker fee
-    function updateStreamBrokerFee(UD60x18 newBrokerFee) external;
 
     /// @notice Updates the address of the {SablierFlow} contract used to create and manage compensation streams
     ///

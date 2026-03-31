@@ -18,27 +18,21 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
     function createMockPaymentRequests() internal {
         // Create a mock payment request with a one-off USDT transfer
         Types.PaymentRequest memory paymentRequest = createPaymentRequestWithOneOffTransfer({
-            asset: address(usdt),
-            sender: users.bob,
-            recipient: address(space)
+            asset: address(usdt), sender: users.bob, recipient: address(space)
         });
         paymentRequests[1] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
         // Create a mock payment request with a one-off ETH transfer
         paymentRequest = createPaymentRequestWithOneOffTransfer({
-            asset: Constants.NATIVE_TOKEN,
-            sender: users.bob,
-            recipient: address(space)
+            asset: Constants.NATIVE_TOKEN, sender: users.bob, recipient: address(space)
         });
         paymentRequests[2] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
         // Create a mock payment request with a recurring USDT transfer
         paymentRequest = createPaymentWithRecurringTransfer({
-            recurrence: Types.Recurrence.Weekly,
-            sender: users.bob,
-            recipient: address(space)
+            recurrence: Types.Recurrence.Weekly, sender: users.bob, recipient: address(space)
         });
         paymentRequests[3] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
@@ -50,24 +44,21 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
 
         // Create a mock payment request with a tranched stream payment
         paymentRequest = createPaymentRequestWithTranchedStream({
-            recurrence: Types.Recurrence.Weekly,
-            sender: users.bob,
-            recipient: address(space)
+            recurrence: Types.Recurrence.Weekly, sender: users.bob, recipient: address(space)
         });
         paymentRequests[5] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
         // Create a mock payment request with an unlimited USDT transfer
-        paymentRequest =
-            createPaymentWithCustomNoOfTransfers({ asset: address(usdt), recipient: address(space), sender: users.bob });
+        paymentRequest = createPaymentWithCustomNoOfTransfers({
+            asset: address(usdt), recipient: address(space), sender: users.bob
+        });
         paymentRequests[6] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
 
         // Create a mock payment request with a one-off ETH transfer and sender not initialized (address(0))
         paymentRequest = createPaymentRequestWithOneOffTransfer({
-            asset: Constants.NATIVE_TOKEN,
-            sender: address(0),
-            recipient: address(space)
+            asset: Constants.NATIVE_TOKEN, sender: address(0), recipient: address(space)
         });
         paymentRequests[7] = paymentRequest;
         executeCreatePaymentRequest({ paymentRequest: paymentRequest, user: users.eve });
@@ -76,6 +67,10 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
     }
 
     modifier whenNotZeroAddress() {
+        _;
+    }
+
+    modifier whenNotZeroAmount() {
         _;
     }
 
@@ -128,6 +123,10 @@ abstract contract CreateRequest_Integration_Shared_Test is Integration_Test {
     }
 
     modifier givenPaymentMethodLinearStream() {
+        _;
+    }
+
+    modifier givenValidAmount() {
         _;
     }
 

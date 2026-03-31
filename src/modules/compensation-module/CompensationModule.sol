@@ -4,10 +4,8 @@ pragma solidity ^0.8.26;
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
-import { UD60x18 } from "@prb/math/src/UD60x18.sol";
 import { UD21x18 } from "@prb/math/src/UD21x18.sol";
 import { Flow } from "@sablier/flow/src/types/DataTypes.sol";
-
 import { FlowStreamManager } from "./sablier-flow/FlowStreamManager.sol";
 import { ICompensationModule } from "./interfaces/ICompensationModule.sol";
 import { Types } from "./libraries/Types.sol";
@@ -18,6 +16,7 @@ import { Errors } from "./libraries/Errors.sol";
 contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgradeable {
     /// @dev Version identifier for the current implementation of the contract
     string public constant VERSION = "1.0.0";
+
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
@@ -52,16 +51,8 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @dev Initializes the proxy and the {Ownable} contract
-    function initialize(
-        ISablierFlow _sablierFlow,
-        address _initialOwner,
-        address _brokerAccount,
-        UD60x18 _brokerFee
-    )
-        public
-        initializer
-    {
-        __FlowStreamManager_init(_sablierFlow, _initialOwner, _brokerAccount, _brokerFee);
+    function initialize(ISablierFlow _sablierFlow, address _initialAdmin) public initializer {
+        __FlowStreamManager_init(_sablierFlow, _initialAdmin);
         __UUPSUpgradeable_init();
 
         // Retrieve the contract storage
@@ -101,6 +92,19 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         if (componentSender != msg.sender) revert Errors.OnlyComponentSender();
     }
 
+    /// @dev Checks that `msg.sender` is the compensation component recipient
+    /// and that `msg.value` sent is enough to pay for the withdrawal fee
+    function _checkIfValidWithdraw(address recipient, uint256 streamId) internal returns (uint256 minFee) {
+        // Checks: `msg.sender` is the compensation recipient
+        if (recipient != msg.sender) revert Errors.OnlyComponentRecipient();
+
+        // Retrieve the minimum fee amount required to withdraw from the stream
+        minFee = calculateMinFeeWei(streamId);
+
+        // Checks: the caller sent a sufficient amount of ETH
+        if (msg.value < minFee) revert Errors.InsufficientFee(msg.value, minFee);
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                                 CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -126,6 +130,14 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
         // Return the status of the compensation component stream
         return statusOf($.components[componentId].streamId);
+    }
+
+    /// @inheritdoc ICompensationModule
+    function withdrawableAmountOfComponent(uint256 componentId) external view returns (uint128 withdrawableAmount) {
+        // Checks: the compensation component is not null then cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(componentId);
+
+        return withdrawableAmountOf($.components[componentId].streamId);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -192,10 +204,7 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
 
         // Checks, Effects, Interactions: deposit the amount to the compensation component stream
         _depositToStream({
-            streamId: component.streamId,
-            asset: component.asset,
-            amount: amount,
-            recipient: component.recipient
+            streamId: component.streamId, asset: component.asset, amount: amount, recipient: component.recipient
         });
 
         // Log the compensation component deposit
@@ -203,21 +212,45 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
     }
 
     /// @inheritdoc ICompensationModule
-    function withdrawFromComponent(uint256 componentId) external returns (uint128 withdrawnAmount) {
+    function withdrawComponent(uint256 componentId, uint128 amount) external payable {
         // Checks: if the compensation component is not null, cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(componentId);
 
         // Load the component in memory
         Types.CompensationComponent memory component = $.components[componentId];
 
-        // Checks: `msg.sender` is the compensation recipient
-        if (component.recipient != msg.sender) revert Errors.OnlyComponentRecipient();
+        // Checks: `msg.sender` is the compensation component recipient and `msg.value` is enough to cover the fee
+        uint256 minFee = _checkIfValidWithdraw(component.recipient, component.streamId);
+
+        // Checks: `amount` is not zero
+        if (amount == 0) revert Errors.InvalidZeroWithdrawAmount();
+
+        // Checks: `amount` does not exceed the withdrawable amount
+        if (amount > withdrawableAmountOf(component.streamId)) revert Errors.Overdraw();
+
+        // Checks, Effects, Interactions: withdraw the amount from the compensation component stream
+        _withdrawFromStream({ streamId: component.streamId, to: msg.sender, amount: amount });
+
+        // Log the compensation component stream withdrawal
+        emit ComponentWithdrawn(componentId, amount, minFee);
+    }
+
+    /// @inheritdoc ICompensationModule
+    function withdrawMaxComponent(uint256 componentId) external payable returns (uint128 withdrawnAmount) {
+        // Checks: if the compensation component is not null, cache the storage pointer
+        CompensationModuleStorage storage $ = _notNullComponent(componentId);
+
+        // Load the component in memory
+        Types.CompensationComponent memory component = $.components[componentId];
+
+        // Checks: `msg.sender` is the compensation component recipient and `msg.value` is enough to cover the fee
+        uint256 minFee = _checkIfValidWithdraw(component.recipient, component.streamId);
 
         // Checks, Effects, Interactions: withdraw the amount from the compensation component stream
         withdrawnAmount = _withdrawMaxFromStream({ streamId: component.streamId, to: msg.sender });
 
         // Log the compensation component stream withdrawal
-        emit ComponentWithdrawn(componentId, withdrawnAmount);
+        emit ComponentWithdrawn(componentId, withdrawnAmount, minFee);
     }
 
     /// @inheritdoc ICompensationModule
@@ -243,14 +276,17 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: if the compensation component is not null, cache the storage pointer
         CompensationModuleStorage storage $ = _notNullComponent(componentId);
 
-        // Load the component in memory
-        Types.CompensationComponent memory component = $.components[componentId];
+        // Load the component in storage
+        Types.CompensationComponent storage component = $.components[componentId];
 
         // Checks: `msg.sender` is the component sender
         _onlyComponentSender(component.sender);
 
         // Checks: the new rate per second is not zero
         if (newRatePerSecond.unwrap() == 0) revert Errors.InvalidZeroRatePerSecond();
+
+        // Effects: update the compensation component rate per second
+        component.ratePerSecond = newRatePerSecond;
 
         // Checks, Effects, Interactions: restart the compensation component stream with a new rate per second
         _restartStream(component.streamId, newRatePerSecond);
@@ -270,11 +306,20 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         // Checks: `msg.sender` is the component sender
         _onlyComponentSender(component.sender);
 
+        // Retrieve the refundable amount of the stream's sender
+        uint128 refundableAmount = refundableAmountOf(component.streamId);
+
+        // Refund if refundable amount is greater than zero
+        if (refundableAmount > 0) {
+            // Checks, Effects, Interactions: refund the entire refundable amount to sender's address
+            _refundStream(component.streamId, component.asset, component.sender);
+        }
+
         // Checks, Effects, Interactions: cancel the compensation component stream
         _cancelStream(component.streamId);
 
         // Log the compensation component stream cancellation
-        emit ComponentCancelled(componentId);
+        emit ComponentCanceled(componentId, refundableAmount);
     }
 
     /// @inheritdoc ICompensationModule
@@ -289,10 +334,10 @@ contract CompensationModule is ICompensationModule, FlowStreamManager, UUPSUpgra
         _onlyComponentSender(component.sender);
 
         // Checks, Effects, Interactions: refund the compensation component stream
-        _refundStream(component.streamId);
+        uint128 refundedAmount = _refundStream(component.streamId, component.asset, component.sender);
 
         // Log the compensation component stream refund
-        emit ComponentRefunded(componentId);
+        emit ComponentRefunded(componentId, refundedAmount);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

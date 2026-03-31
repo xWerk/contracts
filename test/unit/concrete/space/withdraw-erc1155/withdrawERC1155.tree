@@ -5,5 +5,5 @@ withdrawERC1155.t.sol
     ├── when there the ERC-1155 balance IS NOT sufficient
     │   └── it should revert with the {ERC1155InsufficientBalance} error
     └── when there the ERC-1155 balance IS sufficient
-        ├── it should transfer the token(s) to the caller
+        ├── it should transfer the token(s) to the `to` recipient 
         └── it should emit an {ERC1155Withdrawn} event

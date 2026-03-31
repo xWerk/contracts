@@ -14,8 +14,6 @@ import { FlowNFTDescriptor } from "@sablier/flow/src/FlowNFTDescriptor.sol";
 import { LockupNFTDescriptor } from "@sablier/lockup/src/LockupNFTDescriptor.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockBadSpace } from "../mocks/MockBadSpace.sol";
-import { ud } from "@prb/math/src/UD60x18.sol";
-import { Space } from "src/Space.sol";
 
 abstract contract Integration_Test is Base_Test {
     /*//////////////////////////////////////////////////////////////////////////
@@ -27,7 +25,7 @@ abstract contract Integration_Test is Base_Test {
     CompensationModule internal compensationModule;
     InvoiceCollection internal invoiceCollection;
     // Sablier Lockup & Flow related test contracts
-    LockupNFTDescriptor internal loclupNFTDescriptor;
+    LockupNFTDescriptor internal lockupNFTDescriptor;
     FlowNFTDescriptor internal flowNFTDescriptor;
     SablierLockup internal sablierLockup;
     SablierFlow internal sablierFlow;
@@ -59,10 +57,10 @@ abstract contract Integration_Test is Base_Test {
         allowlistModules(modules);
 
         // Deploy the {Space} contract with the {PaymentModule} enabled by default
-        space = deploySpace({ _owner: users.eve, _stationId: 0 });
+        space = deploySpace({ admin: users.eve });
 
         // Deploy a "bad" {Space} with the `mockBadReceiver` as the owner
-        badSpace = deployBadSpace({ _owner: address(mockBadReceiver), _stationId: 0 });
+        badSpace = deployBadSpace({ admin: address(mockBadReceiver) });
 
         // Label the test contracts so we can easily track them
         vm.label({ account: address(paymentModule), newLabel: "PaymentModule" });
@@ -90,16 +88,14 @@ abstract contract Integration_Test is Base_Test {
     /// @dev Deploys the {PaymentModule} module
     function deployPaymentModule() internal {
         address implementation = address(new PaymentModule());
-        bytes memory data =
-            abi.encodeWithSelector(PaymentModule.initialize.selector, sablierLockup, users.admin, users.admin, ud(0));
+        bytes memory data = abi.encodeWithSelector(PaymentModule.initialize.selector, sablierLockup, users.admin);
         paymentModule = PaymentModule(address(new ERC1967Proxy(implementation, data)));
     }
 
     /// @dev Deploys the {CompensationModule} module
     function deployCompensationModule() internal {
         address implementation = address(new CompensationModule());
-        bytes memory data =
-            abi.encodeWithSelector(CompensationModule.initialize.selector, sablierFlow, users.admin, users.admin, ud(0));
+        bytes memory data = abi.encodeWithSelector(CompensationModule.initialize.selector, sablierFlow, users.admin);
         compensationModule = CompensationModule(address(new ERC1967Proxy(implementation, data)));
     }
 
@@ -112,16 +108,16 @@ abstract contract Integration_Test is Base_Test {
     /// @dev Deploys the Sablier Lockup-required contracts
     function deploySablierContracts() internal {
         // Deploy the Sablier Lockup contracts
-        loclupNFTDescriptor = new LockupNFTDescriptor();
+        lockupNFTDescriptor = new LockupNFTDescriptor();
         sablierLockup = new SablierLockup({
-            initialAdmin: users.admin,
-            initialNFTDescriptor: loclupNFTDescriptor,
-            maxCount: 10_000
+            initialComptroller: address(mockAdmin), initialNFTDescriptor: address(lockupNFTDescriptor)
         });
 
         // Deploy the Sablier Flow contracts
         flowNFTDescriptor = new FlowNFTDescriptor();
-        sablierFlow = new SablierFlow({ initialAdmin: users.admin, initialNFTDescriptor: flowNFTDescriptor });
+        sablierFlow = new SablierFlow({
+            initialComptroller: address(mockAdmin), initialNFTDescriptor: address(flowNFTDescriptor)
+        });
     }
 
     /// @dev Deploys the {WerkSubdomainRegistrar} L2 ENS registrar
@@ -134,8 +130,7 @@ abstract contract Integration_Test is Base_Test {
 
         // Deploy the {WerkSubdomainRegistrar} registrar
         werkSubdomainRegistrar = new WerkSubdomainRegistrar({
-            _registry: IWerkSubdomainRegistry(address(werkSubdomainRegistry)),
-            _owner: users.admin
+            _registry: IWerkSubdomainRegistry(address(werkSubdomainRegistry)), _owner: users.admin
         });
 
         // Add the {WerkSubdomainRegistrar} as a registrar to the {WerkSubdomainRegistry}

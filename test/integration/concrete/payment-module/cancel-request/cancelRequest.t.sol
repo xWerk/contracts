@@ -130,7 +130,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId, refundedAmount: 0 });
 
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
@@ -178,7 +178,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId, refundedAmount: 0 });
 
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
@@ -233,21 +233,25 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Set the current payment request as a linear stream-based one
         uint256 paymentRequestId = 5;
 
+        // Retrieve the amount used for testing the flow
+        uint128 amount = paymentRequests[paymentRequestId].config.amount;
+
         // The payment request must be paid for its status to be updated to `Ongoing`
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
         // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
-        usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
+        usdt.approve({ spender: address(paymentModule), amount: amount });
 
         // Pay the payment request first (status will be updated to `Ongoing`)
-        paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
-            requestId: paymentRequestId
-        });
+        paymentModule.payRequest{ value: amount }({ requestId: paymentRequestId });
+
+        // Store Bob's balance before cancellation
+        uint256 bobBalanceBefore = usdt.balanceOf(users.bob);
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId, refundedAmount: amount });
 
         // Make Bob the caller who is the sender of the payment request stream
         vm.startPrank({ msgSender: users.bob });
@@ -258,6 +262,10 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Assert the actual and expected payment request status
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
         assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Canceled));
+
+        // Assert the refunded amount was transferred back to Bob
+        uint256 bobBalanceAfter = usdt.balanceOf(users.bob);
+        assertEq(bobBalanceAfter - bobBalanceBefore, amount);
     }
 
     function test_RevertWhen_PaymentMethodTranchedStream_StatusPending_NotPaymentSenderOrRecipient()
@@ -298,7 +306,7 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId, refundedAmount: 0 });
 
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
@@ -353,21 +361,25 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Set the current payment request as a tranched stream-based one
         uint256 paymentRequestId = 5;
 
+        // Retrieve the amount used for testing the flow
+        uint128 amount = paymentRequests[paymentRequestId].config.amount;
+
         // The payment request must be paid for its status to be updated to `Ongoing`
         // Make Bob the payer of the payment request (also Bob will be the initial stream sender)
         vm.startPrank({ msgSender: users.bob });
 
         // Approve the {PaymentModule} to transfer the USDT tokens on Bob's behalf
-        usdt.approve({ spender: address(paymentModule), amount: paymentRequests[paymentRequestId].config.amount });
+        usdt.approve({ spender: address(paymentModule), amount: amount });
 
         // Pay the payment request first (status will be updated to `Ongoing`)
-        paymentModule.payRequest{ value: paymentRequests[paymentRequestId].config.amount }({
-            requestId: paymentRequestId
-        });
+        paymentModule.payRequest{ value: amount }({ requestId: paymentRequestId });
+
+        // Store Bob's balance before cancellation
+        uint256 bobBalanceBefore = usdt.balanceOf(users.bob);
 
         // Expect the {RequestCanceled} event to be emitted
         vm.expectEmit();
-        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId });
+        emit IPaymentModule.RequestCanceled({ requestId: paymentRequestId, refundedAmount: amount });
 
         // Run the test
         paymentModule.cancelRequest({ requestId: paymentRequestId });
@@ -375,5 +387,9 @@ contract CancelRequest_Integration_Concret_Test is CancelRequest_Integration_Sha
         // Assert the actual and expected payment request status
         Types.Status paymentRequestStatus = paymentModule.statusOf({ requestId: paymentRequestId });
         assertEq(uint8(paymentRequestStatus), uint8(Types.Status.Canceled));
+
+        // Assert the refunded amount was transferred back to Bob
+        uint256 bobBalanceAfter = usdt.balanceOf(users.bob);
+        assertEq(bobBalanceAfter - bobBalanceBefore, amount);
     }
 }
