@@ -80,7 +80,22 @@ deploy-core:
 					--rpc-url $(RPC_URL) --account werk-deployer \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
 
-# Deploys the {WerkSubdomainCore} contract deterministically 
+# Deploys the Werk ENSv2 infrastructure: {WerkRegistry} and {WerkRegistrar}
+# and grants the necessary roles to the registrar on both the registry and resolver
+#
+# Update the following configs before running the script:
+#   - {HCA_FACTORY} with the address of the ENSv2 HCA factory
+#   - {METADATA_PROVIDER} with the address of the ENSv2 registry metadata provider
+#   - {RESOLVER} with the address of the PermissionedResolver for werk.eth
+#   - {RPC_URL} with the network RPC used for deployment
+#   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
+deploy-ensv2-core:
+					forge script script/ensv2/DeployWerkENSv2Core.s.sol:DeployWerkENSv2Core \
+					--sig "run(address,address,address)" $(HCA_FACTORY) $(METADATA_PROVIDER) $(RESOLVER) \
+					--rpc-url $(RPC_URL) --account werk-deployer \
+					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
+
+# Deploys the {WerkSubdomainCore} contract deterministically
 #
 # Update the following configs before running the script:
 #   - {WERK_SUBDOMAIN_ENS_DOMAIN} with the ENS domain name of the {WerkSubdomainRegistry}
