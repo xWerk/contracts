@@ -10,3 +10,5 @@ solidity-stringutils/=node_modules/@openzeppelin/foundry-upgrades/lib/solidity-s
 forge-std/=node_modules/forge-std/src/
 solady/=node_modules/solady/
 @sablier/evm-utils=node_modules/@sablier/evm-utils/
+@ensv2/=node_modules/contracts-v2/contracts/src/
+@ens/contracts/=node_modules/@ensdomains/ens-contracts/contracts/

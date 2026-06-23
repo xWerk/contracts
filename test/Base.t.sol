@@ -31,6 +31,7 @@ abstract contract Base_Test is Test {
     address internal entrypoint;
     StationRegistry internal stationRegistry;
     Space internal space;
+    Space internal space2;
     ModuleKeeper internal moduleKeeper;
     MockERC20NoReturn internal usdt;
     MockModule internal mockModule;
