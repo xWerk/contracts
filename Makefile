@@ -62,10 +62,22 @@ deploy-payment-module:
 					--account werk-deployer --verify --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --ffi
 
-# Deploys the {CompensationModule} contract deterministically 
+# Deploys the {CompensationModule} contract deterministically
 deploy-compensation-module:
 					FOUNDRY_PROFILE=optimized  forge script script/DeployCompensationModule.s.sol:DeployCompensationModule \
 					--sig "run(string)" $(CREATE3SALT) \
+					--rpc-url $(RPC_URL) --account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
+					--broadcast --verify --ffi
+
+# Deploys the {SubscriptionModule} contract deterministically
+#
+# Update the following configs before running the script:
+#	- {TREASURY} with the address that receives all subscription charges
+#	- {RPC_URL} with the network RPC used for deployment
+#	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
+deploy-deterministic-subscription-module:
+					FOUNDRY_PROFILE=optimized  forge script script/DeployDeterministicSubscriptionModule.s.sol:DeployDeterministicSubscriptionModule \
+					--sig "run(string,address)" $(CREATE3SALT) $(TREASURY) \
 					--rpc-url $(RPC_URL) --account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 
@@ -130,5 +142,17 @@ upgrade-payment-module:
 upgrade-compensation-module:
 					FOUNDRY_PROFILE=optimized forge script script/upgrade/UpgradeCompensationModule.s.sol:UpgradeCompensationModule \
 					$(COMPENSATION_MODULE_PROXY) \
+					--sig "run(address)" --rpc-url $(RPC_URL) --account werk-deployer \
+					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
+
+# Upgrades the {SubscriptionModule} contract
+#
+# Update the following configs before running the script:
+#   - {SUBSCRIPTION_MODULE_PROXY} with the address of the {SubscriptionModule} proxy on the target chain
+#   - {RPC_URL} with the network RPC used for deployment
+#   - {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
+upgrade-subscription-module:
+					FOUNDRY_PROFILE=optimized forge script script/upgrade/UpgradeSubscriptionModule.s.sol:UpgradeSubscriptionModule \
+					$(SUBSCRIPTION_MODULE_PROXY) \
 					--sig "run(address)" --rpc-url $(RPC_URL) --account werk-deployer \
 					--broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --ffi
