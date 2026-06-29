@@ -28,6 +28,9 @@ contract BaseScript is Script {
     /// @dev Werk ENS Subdomain Registrar deployments mapped by the chain ID
     mapping(uint256 chainId => address registrar) internal ensSubdomainRegistrarMap;
 
+    /// @dev Subscription treasury (receives all {SubscriptionModule} charges) mapped by the chain ID
+    mapping(uint256 chainId => address treasury) internal subscriptionTreasuryMap;
+
     constructor() {
         // Populate the Sablier Lockup deployments map
         populateSablierLockupMap();
@@ -43,6 +46,9 @@ contract BaseScript is Script {
 
         // Populate the Across {SpokePool} deployments map
         populateAcrossMap();
+
+        // Populate the subscription treasury map
+        populateSubscriptionTreasuryMap();
 
         // Populate the Werk ENS Subdomain Registrar deployments map
         // Note: ENS subdomains are issued only on either Base or Base Sepolia
@@ -169,6 +175,31 @@ contract BaseScript is Script {
 
         // Base Sepolia deployment
         acrossSpokePoolMap[84_532] = 0x82B564983aE7274c86695917BBf8C99ECb6F0F8F;
+    }
+
+    /// @dev Populates the subscription treasury map
+    /// @dev TODO: replace these placeholders with the real per-chain subscription-revenue treasury
+    /// addresses before any production deployment. They currently default to {DEFAULT_PROTOCOL_ADMIN}
+    /// so deployments do not revert on the {SubscriptionModule} zero-address treasury guard.
+    function populateSubscriptionTreasuryMap() internal {
+        // Mainnets
+
+        // Ethereum Mainnet
+        subscriptionTreasuryMap[1] = DEFAULT_PROTOCOL_ADMIN;
+
+        // Base
+        subscriptionTreasuryMap[8453] = DEFAULT_PROTOCOL_ADMIN;
+
+        // HyperEVM
+        subscriptionTreasuryMap[999] = DEFAULT_PROTOCOL_ADMIN;
+
+        // Testnets
+
+        // Ethereum Sepolia
+        subscriptionTreasuryMap[11_155_111] = DEFAULT_PROTOCOL_ADMIN;
+
+        // Base Sepolia
+        subscriptionTreasuryMap[84_532] = DEFAULT_PROTOCOL_ADMIN;
     }
 
     /// @notice Generates a salt used for deterministic deployments based on the contract name and a given input salt
