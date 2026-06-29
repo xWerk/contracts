@@ -8,14 +8,26 @@ library Errors {
                                     SUBSCRIPTION-MODULE
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when the caller is not the {Space} declared in the subscription terms
-    error OnlySubscriptionSpace();
+    /// @notice Thrown when a {Space} subscribes while it already holds an active subscription
+    error SubscriptionAlreadyActive();
 
-    /// @notice Thrown when subscribing with a `subscriptionId` that already exists
-    error SubscriptionAlreadyExists();
+    /// @notice Thrown when subscribing to a tier that has no pricing configuration set
+    error InvalidTier();
 
-    /// @notice Thrown when charging a `subscriptionId` that does not exist
+    /// @notice Thrown when configuring a tier with a zero `amount`
+    error InvalidTierAmount();
+
+    /// @notice Thrown when configuring a tier with a zero `interval`
+    error InvalidTierInterval();
+
+    /// @notice Thrown when subscribing with a `periods` value outside the supported `[1, 256]` range
+    error InvalidPeriods();
+
+    /// @notice Thrown when charging or canceling a {Space} that has no subscription
     error SubscriptionNotFound();
+
+    /// @notice Thrown when charging or canceling a subscription that has been canceled
+    error SubscriptionCanceled();
 
     /// @notice Thrown when a subscription was already charged for this `cycle`
     error CycleAlreadyCharged();
@@ -26,9 +38,12 @@ library Errors {
     /// @notice Thrown when charging a `cycle` greater than or equal to the total number of `periods`
     error CycleOutOfBounds();
 
-    /// @notice Thrown when charging a subscription that has been canceled
-    error SubscriptionCanceled();
-
     /// @notice Thrown when the treasury address is set to the zero address
     error InvalidZeroAddressTreasury();
+
+    /// @notice Thrown when allowlisting the zero address as an asset
+    error InvalidZeroAddressAsset();
+
+    /// @notice Thrown when subscribing with an asset that is not on the allowlist
+    error AssetNotAllowed();
 }

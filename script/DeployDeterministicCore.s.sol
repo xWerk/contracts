@@ -147,8 +147,12 @@ contract DeployDeterministicCore is BaseScript {
         bytes32 salt = constructCreate3Salt("SubscriptionModule", inputSalt);
 
         address subscriptionModuleImplementation = address(new SubscriptionModule());
+        // Note: USDC (per chain) is allowlisted as the initial accepted asset
         bytes memory subscriptionModuleInitData = abi.encodeWithSelector(
-            SubscriptionModule.initialize.selector, DEFAULT_PROTOCOL_ADMIN, subscriptionTreasuryMap[block.chainid]
+            SubscriptionModule.initialize.selector,
+            DEFAULT_PROTOCOL_ADMIN,
+            subscriptionTreasuryMap[block.chainid],
+            usdcMap[block.chainid]
         );
         bytes memory subscriptionModuleProxyBytecode = abi.encodePacked(
             type(ERC1967Proxy).creationCode, abi.encode(subscriptionModuleImplementation, subscriptionModuleInitData)

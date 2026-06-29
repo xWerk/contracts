@@ -25,8 +25,10 @@ contract DeployDeterministicSubscriptionModule is BaseScript {
         address subscriptionModuleImplementation = address(new SubscriptionModule());
 
         // Encode initialization data for the proxy constructor
-        bytes memory initData =
-            abi.encodeWithSelector(SubscriptionModule.initialize.selector, DEFAULT_PROTOCOL_ADMIN, treasury);
+        // Note: USDC (per chain) is allowlisted as the initial accepted asset
+        bytes memory initData = abi.encodeWithSelector(
+            SubscriptionModule.initialize.selector, DEFAULT_PROTOCOL_ADMIN, treasury, usdcMap[block.chainid]
+        );
 
         // Construct the ERC1967Proxy bytecode with implementation and initData
         bytes memory proxyBytecode =

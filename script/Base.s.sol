@@ -204,14 +204,7 @@ contract BaseScript is Script {
 
     /// @notice Generates a salt used for deterministic deployments based on the contract name and a given input salt
     /// @dev ABI encodes the given `contractName` and `inputSalt` strings into a `bytes32` value
-    function constructCreate3Salt(
-        string memory contractName,
-        string memory inputSalt
-    )
-        internal
-        pure
-        returns (bytes32)
-    {
+    function constructCreate3Salt(string memory contractName, string memory inputSalt) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(contractName, inputSalt));
     }
 }
