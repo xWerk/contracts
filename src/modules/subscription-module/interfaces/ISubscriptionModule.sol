@@ -7,7 +7,7 @@ import { Types } from "./../libraries/Types.sol";
 /// @notice Contract module that provides on-chain recurring subscription billing using a
 /// "subscribe-by-Space" consent model: a {Space} records its consent on-chain by calling
 /// {subscribe} (admin-gated through `Space.execute`), and a permissionless relayer subsequently
-/// pulls each due cycle's fixed charge to a hardcoded treasury via {charge}
+/// pulls each due cycle's amount to a hardcoded treasury via {charge}
 /// @dev The {Space} must grant this module an ERC-20 allowance over `asset` before any cycle can be
 /// charged: each {charge} pulls `amount` via `safeTransferFrom`, so the {Space} is expected to approve
 /// the module for the full exposure (`amount * periods`) at subscribe time. A {charge} reverts if the
@@ -38,7 +38,6 @@ interface ISubscriptionModule {
     );
 
     /// @notice Emitted when a cycle is successfully charged
-    /// @dev Carries enough data to key a DB row (`subscriptionId`, `space`, `cycle`) for off-chain indexing
     /// @param space The payer {Space} smart account that was charged
     /// @param subscriptionId The unique identifier of the subscription
     /// @param cycle The zero-based index of the charged cycle
