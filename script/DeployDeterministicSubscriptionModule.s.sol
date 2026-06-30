@@ -9,8 +9,13 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 /// @notice Deterministically deploys an instance of {SubscriptionModule}
 /// @dev Reverts if any contract has already been deployed
 contract DeployDeterministicSubscriptionModule is BaseScript {
+    /// @dev Post-deploy steps the protocol owner MUST perform:
+    /// 1. add this module to the {ModuleKeeper} allowlist (`addToAllowlist`) so {Space}s can call it;
+    /// 2. set the trusted backend signer (the KMS-held EOA) via `setSignerAddress` if it differs from `signer`;
+    /// 3. confirm the treasury via `setTreasury` if it differs from `treasury`.
     function run(
         string memory inputSalt,
+        address signer,
         address treasury
     )
         public
@@ -26,7 +31,7 @@ contract DeployDeterministicSubscriptionModule is BaseScript {
 
         // Encode initialization data for the proxy constructor
         bytes memory initData =
-            abi.encodeWithSelector(SubscriptionModule.initialize.selector, DEFAULT_PROTOCOL_ADMIN, treasury);
+            abi.encodeWithSelector(SubscriptionModule.initialize.selector, DEFAULT_PROTOCOL_ADMIN, signer, treasury);
 
         // Construct the ERC1967Proxy bytecode with implementation and initData
         bytes memory proxyBytecode =
