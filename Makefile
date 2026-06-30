@@ -72,12 +72,13 @@ deploy-compensation-module:
 # Deploys the {SubscriptionModule} contract deterministically
 #
 # Update the following configs before running the script:
+#	- {SIGNER} with the trusted backend signer
 #	- {TREASURY} with the address that receives all subscription charges
 #	- {RPC_URL} with the network RPC used for deployment
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
 deploy-deterministic-subscription-module:
 					FOUNDRY_PROFILE=optimized  forge script script/DeployDeterministicSubscriptionModule.s.sol:DeployDeterministicSubscriptionModule \
-					--sig "run(string,address)" $(CREATE3SALT) $(TREASURY) \
+					--sig "run(string,address,address)" $(CREATE3SALT) $(SIGNER) $(TREASURY) \
 					--rpc-url $(RPC_URL) --account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 

@@ -148,7 +148,10 @@ contract DeployDeterministicCore is BaseScript {
 
         address subscriptionModuleImplementation = address(new SubscriptionModule());
         bytes memory subscriptionModuleInitData = abi.encodeWithSelector(
-            SubscriptionModule.initialize.selector, DEFAULT_PROTOCOL_ADMIN, subscriptionTreasuryMap[block.chainid]
+            SubscriptionModule.initialize.selector,
+            DEFAULT_PROTOCOL_ADMIN,
+            DEFAULT_SUBSCRIPTION_SIGNER,
+            DEFAULT_SUBSCRIPTION_TREASURY
         );
         bytes memory subscriptionModuleProxyBytecode = abi.encodePacked(
             type(ERC1967Proxy).creationCode, abi.encode(subscriptionModuleImplementation, subscriptionModuleInitData)

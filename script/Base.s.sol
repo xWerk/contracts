@@ -7,6 +7,16 @@ contract BaseScript is Script {
     /// @dev The address of the default protocol admin
     address internal constant DEFAULT_PROTOCOL_ADMIN = 0xcaE83b7162d64022f7Da3D011fc96761cB14116a;
 
+    /// @dev The treasury that receives all {SubscriptionModule} charges
+    /// @dev TODO: replace this placeholder with the real subscription-revenue treasury before any production
+    /// deployment.
+    address internal constant DEFAULT_SUBSCRIPTION_TREASURY = DEFAULT_PROTOCOL_ADMIN;
+
+    /// @dev The backend signer (price-integrity root) for the {SubscriptionModule} (same address across all chains)
+    /// @dev TODO: replace this placeholder with the real backend signer EOA before any production
+    /// deployment.
+    address internal constant DEFAULT_SUBSCRIPTION_SIGNER = DEFAULT_PROTOCOL_ADMIN;
+
     /// @dev The address of the Entrypoint v6 deployment
     address internal constant ENTRYPOINT_V6 = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
 
@@ -28,9 +38,6 @@ contract BaseScript is Script {
     /// @dev Werk ENS Subdomain Registrar deployments mapped by the chain ID
     mapping(uint256 chainId => address registrar) internal ensSubdomainRegistrarMap;
 
-    /// @dev Subscription treasury (receives all {SubscriptionModule} charges) mapped by the chain ID
-    mapping(uint256 chainId => address treasury) internal subscriptionTreasuryMap;
-
     constructor() {
         // Populate the Sablier Lockup deployments map
         populateSablierLockupMap();
@@ -46,9 +53,6 @@ contract BaseScript is Script {
 
         // Populate the Across {SpokePool} deployments map
         populateAcrossMap();
-
-        // Populate the subscription treasury map
-        populateSubscriptionTreasuryMap();
 
         // Populate the Werk ENS Subdomain Registrar deployments map
         // Note: ENS subdomains are issued only on either Base or Base Sepolia
@@ -177,41 +181,9 @@ contract BaseScript is Script {
         acrossSpokePoolMap[84_532] = 0x82B564983aE7274c86695917BBf8C99ECb6F0F8F;
     }
 
-    /// @dev Populates the subscription treasury map
-    /// @dev TODO: replace these placeholders with the real per-chain subscription-revenue treasury
-    /// addresses before any production deployment. They currently default to {DEFAULT_PROTOCOL_ADMIN}
-    /// so deployments do not revert on the {SubscriptionModule} zero-address treasury guard.
-    function populateSubscriptionTreasuryMap() internal {
-        // Mainnets
-
-        // Ethereum Mainnet
-        subscriptionTreasuryMap[1] = DEFAULT_PROTOCOL_ADMIN;
-
-        // Base
-        subscriptionTreasuryMap[8453] = DEFAULT_PROTOCOL_ADMIN;
-
-        // HyperEVM
-        subscriptionTreasuryMap[999] = DEFAULT_PROTOCOL_ADMIN;
-
-        // Testnets
-
-        // Ethereum Sepolia
-        subscriptionTreasuryMap[11_155_111] = DEFAULT_PROTOCOL_ADMIN;
-
-        // Base Sepolia
-        subscriptionTreasuryMap[84_532] = DEFAULT_PROTOCOL_ADMIN;
-    }
-
     /// @notice Generates a salt used for deterministic deployments based on the contract name and a given input salt
     /// @dev ABI encodes the given `contractName` and `inputSalt` strings into a `bytes32` value
-    function constructCreate3Salt(
-        string memory contractName,
-        string memory inputSalt
-    )
-        internal
-        pure
-        returns (bytes32)
-    {
+    function constructCreate3Salt(string memory contractName, string memory inputSalt) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(contractName, inputSalt));
     }
 }
