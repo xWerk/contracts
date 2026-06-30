@@ -125,7 +125,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         _verifyBackendSignature(input, signature, $.signer);
 
         // Checks: the subscription does not already exist
-        // Note: the backend-generated `subscriptionId` acts as replay guard; because it is part of
         if ($.subscriptions[input.subscriptionId].status != Types.Status.NotRegistered) {
             revert Errors.SubscriptionAlreadyExists();
         }
@@ -165,8 +164,8 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         SubscriptionModuleStorage storage $ = _getSubscriptionModuleStorage();
 
         // Load the full subscription details
-        // Note: `amount` is read from storage . Any later backend price
-        // change cannot affect the already-registered subscription
+        // Note: `amount` is read from storage. Any later backend price change cannot affect the
+        // already-registered subscription
         Types.Subscription memory subscription = $.subscriptions[subscriptionId];
 
         // Checks: the subscription is registered (i.e. not in the default `NotRegistered` state)

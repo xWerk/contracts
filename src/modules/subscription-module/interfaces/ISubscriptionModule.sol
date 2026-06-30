@@ -15,8 +15,7 @@ import { Types } from "./../libraries/Types.sol";
 /// cycle can be charged; each {charge} pulls `amount` via `safeTransferFrom`
 ///
 /// The backend generates a unique `subscriptionId` per subscription (the mapping key and same-chain replay
-/// guard); `block.chainid` in the signed payload guards cross-chain replay. Same trust model as the existing
-/// {SwappingContract}: the backend signer key is the price-integrity root, rotatable via {setSignerAddress}
+/// guard); `block.chainid` in the signed payload guards cross-chain replay.
 interface ISubscriptionModule {
     /*//////////////////////////////////////////////////////////////////////////
                                        EVENTS
@@ -121,9 +120,9 @@ interface ISubscriptionModule {
     ///
     /// Notes:
     /// - permissionless: any caller (typically the backend relayer) can trigger an already-consented charge.
-    /// Funds ALWAYS go to the stored treasury and the amount is the pinned per-cycle `amount`, so a random
+    /// Funds always go to the stored treasury and the amount is the pinned per-cycle `amount`, so a random
     /// caller can only trigger a legitimate charge
-    /// - NO signature and NO admin check here: billing depends only on the stored consent, so it survives
+    /// - No signature or admin check needed: billing depends only on the stored consent, so it survives
     /// {Space} admin rotation
     ///
     /// @param subscriptionId The unique identifier of the subscription
