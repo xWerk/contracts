@@ -10,9 +10,9 @@ contract statusOf_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         SubscriptionModule_Unit_Concrete_Test.setUp();
     }
 
-    function test_StatusOf_NotRegistered() external view {
-        // A never-registered subscription is {NotRegistered}
-        assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.NotRegistered));
+    function test_StatusOf_Null() external view {
+        // A never-registered subscription is {Null}
+        assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.Null));
     }
 
     function test_StatusOf_Revoked() external givenSubscribed {

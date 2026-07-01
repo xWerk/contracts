@@ -13,9 +13,9 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         SubscriptionModule_Unit_Concrete_Test.setUp();
     }
 
-    function test_RevertWhen_SubscriptionNotRegistered() external {
-        // Expect the next call to revert with the {SubscriptionNotActive} error
-        vm.expectRevert(Errors.SubscriptionNotActive.selector);
+    function test_RevertWhen_SubscriptionNull() external {
+        // Expect the next call to revert with the {SubscriptionNull} error
+        vm.expectRevert(Errors.SubscriptionNull.selector);
 
         // Run the test: charge a `subscriptionId` that was never registered
         subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 0 });

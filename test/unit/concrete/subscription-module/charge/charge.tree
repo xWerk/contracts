@@ -1,6 +1,6 @@
 charge.t.sol
 ├── given the subscription is not registered
-│   └── it should revert with the {SubscriptionNotActive} error
+│   └── it should revert with the {SubscriptionNull} error
 └── given the subscription is registered
     ├── given the subscription is revoked
     │   └── it should revert with the {SubscriptionRevoked} error

@@ -112,10 +112,10 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         // Load the subscription details
         Types.Subscription memory subscription = _getSubscriptionModuleStorage().subscriptions[subscriptionId];
 
-        // If the subscription was never registered, return `NotRegistered`
+        // If the subscription was never registered, return `Null`
         // Note: a registered subscription always has a non-zero `space`
         if (subscription.space == address(0)) {
-            return Types.Status.NotRegistered;
+            return Types.Status.Null;
         }
 
         // If the subscription was revoked, return `Revoked`
@@ -212,7 +212,7 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         Types.Subscription memory subscription = $.subscriptions[subscriptionId];
 
         // Checks: the subscription exists
-        if (subscription.space == address(0)) revert Errors.SubscriptionNotActive();
+        if (subscription.space == address(0)) revert Errors.SubscriptionNull();
 
         // Checks: the subscription is not revoked
         if (subscription.isRevoked) revert Errors.SubscriptionRevoked();
@@ -261,7 +261,7 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         Types.Subscription storage subscription = $.subscriptions[subscriptionId];
 
         // Checks: the subscription is registered (a zero `space` is the never-registered sentinel)
-        if (subscription.space == address(0)) revert Errors.SubscriptionNotActive();
+        if (subscription.space == address(0)) revert Errors.SubscriptionNull();
 
         // Checks: the subscription is not already revoked
         if (subscription.isRevoked) revert Errors.SubscriptionRevoked();

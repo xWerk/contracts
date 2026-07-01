@@ -11,12 +11,12 @@ contract revoke_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         SubscriptionModule_Unit_Concrete_Test.setUp();
     }
 
-    function test_RevertWhen_SubscriptionNotRegistered() external {
+    function test_RevertWhen_SubscriptionNull() external {
         // Make Eve the caller
         vm.prank({ msgSender: users.eve });
 
-        // Expect the next call to revert with the {SubscriptionNotActive} error
-        vm.expectRevert(Errors.SubscriptionNotActive.selector);
+        // Expect the next call to revert with the {SubscriptionNull} error
+        vm.expectRevert(Errors.SubscriptionNull.selector);
 
         // Run the test: revoke a `subscriptionId` that was never registered
         space.execute({

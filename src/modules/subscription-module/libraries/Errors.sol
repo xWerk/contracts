@@ -17,8 +17,8 @@ library Errors {
     /// @notice Thrown when subscribing with a `subscriptionId` that already exists
     error SubscriptionAlreadyExists();
 
-    /// @notice Thrown when charging or revoking a `subscriptionId` that is not currently active
-    error SubscriptionNotActive();
+    /// @notice Thrown when charging or revoking a `subscriptionId` that has never been registered
+    error SubscriptionNull();
 
     /// @notice Thrown when a subscription was already charged for this `cycle`
     error CycleAlreadyCharged();

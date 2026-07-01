@@ -89,7 +89,7 @@ interface ISubscriptionModule {
     /// @notice Derives the current status of the `subscriptionId` subscription
     ///
     /// The status is never stored; it is computed on demand from the stored fields and `block.timestamp`:
-    /// - `NotRegistered` if the subscription was never registered
+    /// - `Null` if the subscription was never registered
     /// - `Revoked` if the {Space} revoked it (charging permanently disabled)
     /// - `Expired` if all `periods` cycles have been charged (natural end)
     /// - `PastDue` if more cycles have started than have been charged (a payment is overdue)

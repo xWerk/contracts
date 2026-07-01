@@ -7,13 +7,13 @@ library Types {
     /// @dev This value is never stored. It is computed on demand by {SubscriptionModule.statusOf} from the
     /// stored fields (`space`, `isRevoked`, `start`, `interval`, `periods`, `chargedCount`) and
     /// `block.timestamp`, following the same dynamic-status pattern as Sablier's `statusOf`
-    /// @custom:value NotRegistered The `subscriptionId` has never been registered (default)
+    /// @custom:value Null The `subscriptionId` has never been registered (default)
     /// @custom:value Active The subscription is registered and paid up to (or within) the current cycle
     /// @custom:value PastDue At least one elapsed cycle has not been charged yet (a payment is overdue)
     /// @custom:value Revoked The subscription has been revoked; charging is permanently disabled
     /// @custom:value Expired All `periods` cycles have been charged; the subscription reached its natural end
     enum Status {
-        NotRegistered,
+        Null,
         Active,
         PastDue,
         Revoked,

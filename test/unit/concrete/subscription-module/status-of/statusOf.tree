@@ -1,6 +1,6 @@
 statusOf.t.sol
 ├── given the subscription is not registered
-│   └── it should return {NotRegistered}
+│   └── it should return {Null}
 └── given the subscription is registered
     ├── given the subscription is revoked
     │   └── it should return {Revoked}
