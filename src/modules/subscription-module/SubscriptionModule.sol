@@ -107,6 +107,47 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         return _getSubscriptionModuleStorage().subscriptions[subscriptionId];
     }
 
+    /// @inheritdoc ISubscriptionModule
+    function statusOf(bytes32 subscriptionId) external view returns (Types.Status status) {
+        // Load the subscription details
+        Types.Subscription memory subscription = _getSubscriptionModuleStorage().subscriptions[subscriptionId];
+
+        // If the subscription was never registered, return `NotRegistered`
+        // Note: a registered subscription always has a non-zero `space`
+        if (subscription.space == address(0)) {
+            return Types.Status.NotRegistered;
+        }
+
+        // If the subscription was revoked, return `Revoked`
+        if (subscription.isRevoked) {
+            return Types.Status.Revoked;
+        }
+
+        // If every cycle has been charged, the subscription reached its natural end; return `Expired`
+        if (subscription.chargedCount == subscription.periods) {
+            return Types.Status.Expired;
+        }
+
+        // Compute how many cycles have started as of now, capped at `periods`
+        // Note: cycle `i` starts at `start + i * interval`, so by `block.timestamp` the number of started
+        // cycles is `(block.timestamp - start) / interval + 1`; it is `0` while still before `start`
+        uint256 elapsedCycles;
+        if (block.timestamp >= subscription.start) {
+            elapsedCycles = (block.timestamp - subscription.start) / subscription.interval + 1;
+            if (elapsedCycles > subscription.periods) {
+                elapsedCycles = subscription.periods;
+            }
+        }
+
+        // If more cycles have started than have been charged, a payment is overdue; return `PastDue`
+        if (elapsedCycles > subscription.chargedCount) {
+            return Types.Status.PastDue;
+        }
+
+        // Otherwise the subscription is paid up to (or within) the current cycle
+        return Types.Status.Active;
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -125,14 +166,15 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         _verifySubscriptionSignature(input, signature, $.signer);
 
         // Checks: the subscription does not already exist
-        if ($.subscriptions[input.subscriptionId].status != Types.Status.NotRegistered) {
+        // Note: a registered subscription always has a non-zero `space`
+        if ($.subscriptions[input.subscriptionId].space != address(0)) {
             revert Errors.SubscriptionAlreadyExists();
         }
 
         // Pin the start to the current timestamp
         uint40 start = uint40(block.timestamp);
 
-        // Effects: pin the full subscription details and mark it as active
+        // Effects: pin the full subscription details
         // Note: `amount` is snapshotted here so a future pricing change will not affect ongoing subscriptions
         $.subscriptions[input.subscriptionId] = Types.Subscription({
             space: input.space,
@@ -141,7 +183,8 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
             start: start,
             asset: input.asset,
             tier: input.tier,
-            status: Types.Status.Active,
+            isRevoked: false,
+            chargedCount: 0,
             amount: input.amount
         });
 
@@ -168,11 +211,11 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         // already-registered subscription
         Types.Subscription memory subscription = $.subscriptions[subscriptionId];
 
-        // Checks: the subscription is registered (i.e. not in the default `NotRegistered` state)
-        if (subscription.status == Types.Status.NotRegistered) revert Errors.SubscriptionNotActive();
+        // Checks: the subscription exists
+        if (subscription.space == address(0)) revert Errors.SubscriptionNotActive();
 
         // Checks: the subscription is not revoked
-        if (subscription.status == Types.Status.Revoked) revert Errors.SubscriptionRevoked();
+        if (subscription.isRevoked) revert Errors.SubscriptionRevoked();
 
         // Checks: the `(subscriptionId, cycle)` pair has not already been charged
         // Note: a per-cycle replay flag (not a single nonce) is used so the relayer can retry or submit
@@ -190,6 +233,9 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
 
         // Effects: mark the cycle as charged BEFORE the interaction
         $.charged[subscriptionId][cycle] = true;
+
+        // Effects: bump the charged-cycle counter
+        $.subscriptions[subscriptionId].chargedCount = subscription.chargedCount + 1;
 
         // Interactions: pull the pinned cycle amount from the {Space} to the treasury
         // Notes:
@@ -214,15 +260,18 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         // Load the subscription details
         Types.Subscription storage subscription = $.subscriptions[subscriptionId];
 
-        // Checks: the subscription is currently active
-        if (subscription.status != Types.Status.Active) revert Errors.SubscriptionNotActive();
+        // Checks: the subscription is registered (a zero `space` is the never-registered sentinel)
+        if (subscription.space == address(0)) revert Errors.SubscriptionNotActive();
+
+        // Checks: the subscription is not already revoked
+        if (subscription.isRevoked) revert Errors.SubscriptionRevoked();
 
         // Checks: the caller is the {Space} that subscribed
         // Note: the {Space} calls this via `Space.execute`, which is admin-gated
         if (msg.sender != subscription.space) revert Errors.OnlySubscriptionSpace();
 
         // Effects: mark the subscription as revoked
-        subscription.status = Types.Status.Revoked;
+        subscription.isRevoked = true;
 
         // Log the subscription revocation
         emit Revoked(msg.sender, subscriptionId);

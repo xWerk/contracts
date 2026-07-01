@@ -81,10 +81,23 @@ interface ISubscriptionModule {
     /// @param cycle The zero-based index of the cycle
     function isCharged(bytes32 subscriptionId, uint256 cycle) external view returns (bool);
 
-    /// @notice Retrieves the full pinned details (including lifecycle status) of the `subscriptionId` subscription
+    /// @notice Retrieves the full pinned details of the `subscriptionId` subscription
     /// @param subscriptionId The unique identifier of the subscription
     /// @return subscription The pinned subscription details
     function getSubscription(bytes32 subscriptionId) external view returns (Types.Subscription memory subscription);
+
+    /// @notice Derives the current status of the `subscriptionId` subscription
+    ///
+    /// The status is never stored; it is computed on demand from the stored fields and `block.timestamp`:
+    /// - `NotRegistered` if the subscription was never registered
+    /// - `Revoked` if the {Space} revoked it (charging permanently disabled)
+    /// - `Expired` if all `periods` cycles have been charged (natural end)
+    /// - `PastDue` if more cycles have started than have been charged (a payment is overdue)
+    /// - `Active` otherwise (paid up to, or still within, the current cycle)
+    ///
+    /// @param subscriptionId The unique identifier of the subscription
+    /// @return status The derived lifecycle state
+    function statusOf(bytes32 subscriptionId) external view returns (Types.Status status);
 
     /*//////////////////////////////////////////////////////////////////////////
                                 NON-CONSTANT FUNCTIONS
@@ -124,6 +137,8 @@ interface ISubscriptionModule {
     /// caller can only trigger a legitimate charge
     /// - No signature or admin check needed: billing depends only on the stored consent, so it survives
     /// {Space} admin rotation
+    /// - each successful charge increments the stored charged-cycle count; once it reaches `periods`,
+    /// {statusOf} derives `Expired`
     ///
     /// @param subscriptionId The unique identifier of the subscription
     /// @param cycle The zero-based index of the cycle to charge

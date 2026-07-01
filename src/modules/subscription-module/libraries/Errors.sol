@@ -29,7 +29,7 @@ library Errors {
     /// @notice Thrown when charging a `cycle` greater than or equal to the total number of `periods`
     error CycleOutOfBounds();
 
-    /// @notice Thrown when charging a subscription that has been revoked
+    /// @notice Thrown when charging or revoking a subscription that has been revoked
     error SubscriptionRevoked();
 
     /// @notice Thrown when the signer address is set to the zero address
