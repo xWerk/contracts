@@ -1,0 +1,9 @@
+setSignerAddress.t.sol
+├── when the caller is not the owner
+│   └── it should revert with the {OwnableUnauthorizedAccount} error
+└── when the caller is the owner
+    ├── when the new signer is the zero address
+    │   └── it should revert with the {InvalidZeroAddressSigner} error
+    └── when the new signer is not the zero address
+        ├── it should update the signer address
+        └── it should emit the {SignerUpdated} event
