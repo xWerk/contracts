@@ -122,7 +122,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         // Warp into cycle 2's window so both cycle 0 and cycle 2 are due
         vm.warp({ newTimestamp: uint256(block.timestamp) + 2 * uint256(Constants.SUBSCRIPTION_INTERVAL) });
 
-        // Charge cycle 2 BEFORE cycle 0 to exercise out-of-order charging
+        // Charge cycle 2 before cycle 0 to exetestrcise out-of-order charging
         subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 2 });
 
         // Assert only cycle 2 is flagged, the counter reflects one charge, and status is still {PastDue}

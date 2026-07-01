@@ -1,0 +1,16 @@
+statusOf.t.sol
+├── given the subscription is not registered
+│   └── it should return {NotRegistered}
+└── given the subscription is registered
+    ├── given the subscription is revoked
+    │   └── it should return {Revoked}
+    └── given the subscription is not revoked
+        ├── given all cycles have been charged
+        │   ├── it should return {Expired}
+        │   └── given the cycles were charged out of order
+        │       └── it should still return {Expired}
+        └── given not all cycles have been charged
+            ├── given more cycles have started than have been charged
+            │   └── it should return {PastDue}
+            └── given the charged count keeps pace with the started cycles
+                └── it should return {Active}
