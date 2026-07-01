@@ -122,7 +122,7 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
 
         // Checks: the backend signed these exact inputs for this chain (input integrity)
         // Note: `block.chainid` is included to prevent cross-chain replay
-        _verifyBackendSignature(input, signature, $.signer);
+        _verifySubscriptionSignature(input, signature, $.signer);
 
         // Checks: the subscription does not already exist
         if ($.subscriptions[input.subscriptionId].status != Types.Status.NotRegistered) {
@@ -269,7 +269,7 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Verifies that the trusted backend signed the subscription inputs for this chain
-    function _verifyBackendSignature(
+    function _verifySubscriptionSignature(
         Types.SubscribeInput calldata input,
         bytes calldata signature,
         address signer
