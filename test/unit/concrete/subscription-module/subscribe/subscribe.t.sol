@@ -80,7 +80,7 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         // Run the test
         space.execute({ module: address(subscriptionModule), value: 0, data: _subscribeData(input, signature) });
 
-        // Assert the subscription was pinned on-chain with an Active status
+        // Assert the subscription details were pinned on-chain
         Types.Subscription memory subscription = subscriptionModule.getSubscription(input.subscriptionId);
         assertEq(subscription.space, address(space));
         assertEq(subscription.interval, input.interval);
