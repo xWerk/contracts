@@ -1,0 +1,13 @@
+revoke.t.sol
+├── given the subscription is not registered
+│   └── it should revert with the {SubscriptionNotActive} error
+└── given the subscription is registered
+    ├── given the subscription is already revoked
+    │   └── it should revert with the {SubscriptionRevoked} error
+    └── given the subscription is not revoked
+        ├── when the caller is not the subscription {Space}
+        │   └── it should revert with the {OnlySubscriptionSpace} error
+        └── when the caller is the subscription {Space}
+            ├── it should mark the subscription as revoked
+            ├── it should emit the {Revoked} event
+            └── it should prevent any further charge

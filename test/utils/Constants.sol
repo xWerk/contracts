@@ -12,4 +12,20 @@ library Constants {
 
     /// @dev The rate per second of a compensation component
     UD21x18 public constant RATE_PER_SECOND = UD21x18.wrap(0.001e18); // 86.4 daily
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                SUBSCRIPTION-MODULE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev The default per-cycle charge of a mock subscription (10 USDT, 6 decimals)
+    uint128 public constant SUBSCRIPTION_AMOUNT = 10e6;
+
+    /// @dev The default number of seconds between two consecutive subscription cycles (30 days)
+    uint40 public constant SUBSCRIPTION_INTERVAL = 30 days;
+
+    /// @dev The default total number of cycles of a mock subscription
+    uint16 public constant SUBSCRIPTION_PERIODS = 12;
+
+    /// @dev The default plan identifier of a mock subscription
+    uint8 public constant SUBSCRIPTION_TIER = 1;
 }
