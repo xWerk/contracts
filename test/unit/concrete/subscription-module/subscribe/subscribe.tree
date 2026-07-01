@@ -1,0 +1,12 @@
+subscribe.t.sol
+├── when caller is not the {Space} declared in the inputs
+│   └── it should revert with the {OnlySubscriptionSpace} error
+└── when caller is the {Space} declared in the inputs
+    ├── when the backend signature does not recover to the stored signer
+    │   └── it should revert with the {InvalidBackendSignature} error
+    └── when the backend signature is valid
+        ├── when the subscription already exists
+        │   └── it should revert with the {SubscriptionAlreadyExists} error
+        └── when the subscription does not already exist
+            ├── it should save the subscription details
+            └── it should emit the {Subscribed} event
