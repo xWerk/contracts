@@ -5,21 +5,17 @@ charge.t.sol
     ├── given the subscription is revoked
     │   └── it should revert with the {SubscriptionRevoked} error
     └── given the subscription is not revoked
-        ├── given the cycle has already been charged
-        │   └── it should revert with the {CycleAlreadyCharged} error
-        └── given the cycle has not already been charged
-            ├── when the cycle is out of bounds
-            │   └── it should revert with the {CycleOutOfBounds} error
-            └── when the cycle is within bounds
-                ├── when the cycle is not due
-                │   └── it should revert with the {CycleNotDue} error
-                └── when the cycle is due
-                    ├── given the {Space} has not approved the module for the cycle amount
-                    │   └── it should revert
-                    └── given the {Space} has approved the module for the cycle amount
-                        ├── it should mark the cycle as charged
-                        ├── it should bump the charged-cycle counter
-                        ├── it should transfer the pinned amount from the {Space} to the treasury
-                        ├── it should emit the {SubscriptionCharged} event
-                        └── when cycles are charged out of order
-                            └── it should count each charge without marking earlier cycles as charged
+        ├── given all cycles have been charged
+        │   └── it should revert with the {SubscriptionEnded} error
+        └── given cycles remain to be charged
+            ├── when the next cycle is not due
+            │   └── it should revert with the {CycleNotDue} error (this is also the double-charge guard)
+            └── when the next cycle is due
+                ├── given the {Space} has not approved the module for the cycle amount
+                │   └── it should revert
+                └── given the {Space} has approved the module for the cycle amount
+                    ├── it should bump the charged-cycle counter (the next cycle cursor)
+                    ├── it should transfer the pinned amount from the {Space} to the treasury
+                    ├── it should emit the {SubscriptionCharged} event
+                    └── when the subscription is in arrears
+                        └── it should allow consecutive charges to catch up, strictly in order

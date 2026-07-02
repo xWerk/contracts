@@ -18,7 +18,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         vm.expectRevert(Errors.SubscriptionNull.selector);
 
         // Run the test: charge a `subscriptionId` that was never registered
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 0 });
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
     }
 
     function test_RevertWhen_SubscriptionRevoked() external givenSubscribed {
@@ -34,39 +34,36 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         vm.expectRevert(Errors.SubscriptionRevoked.selector);
 
         // Run the test
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 0 });
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
     }
 
-    function test_RevertWhen_CycleAlreadyCharged() external givenSubscribed {
-        // Charge cycle 0 successfully (it is due at `start`)
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 0 });
+    function test_RevertWhen_SubscriptionEnded() external givenSubscribed {
+        // Charge every cycle: warp to each cycle's start and charge it
+        for (uint256 cycle = 0; cycle < Constants.SUBSCRIPTION_CYCLES; ++cycle) {
+            vm.warp({ newTimestamp: _cycleStart(cycle) });
+            subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        }
 
-        // Expect the next call to revert with the {CycleAlreadyCharged} error
-        vm.expectRevert(Errors.CycleAlreadyCharged.selector);
+        // Warp far beyond the whole billing window so time is not the limiting factor
+        vm.warp({ newTimestamp: block.timestamp + uint256(Constants.SUBSCRIPTION_INTERVAL) });
 
-        // Run the test: attempt to charge the same cycle again
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 0 });
-    }
+        // Expect the next call to revert with the {SubscriptionEnded} error
+        vm.expectRevert(Errors.SubscriptionEnded.selector);
 
-    function test_RevertWhen_CycleOutOfBounds() external givenSubscribed {
-        // Warp far enough into the future so the out-of-bounds cycle would otherwise be due
-        vm.warp({
-            newTimestamp: block.timestamp + uint256(Constants.SUBSCRIPTION_PERIODS) * Constants.SUBSCRIPTION_INTERVAL
-        });
-
-        // Expect the next call to revert with the {CycleOutOfBounds} error
-        vm.expectRevert(Errors.CycleOutOfBounds.selector);
-
-        // Run the test
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: Constants.SUBSCRIPTION_PERIODS });
+        // Run the test: all `cycles` cycles have been charged
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
     }
 
     function test_RevertWhen_CycleNotDue() external givenSubscribed {
+        // Charge cycle 0 successfully (it is due at `start`)
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+
         // Expect the next call to revert with the {CycleNotDue} error
         vm.expectRevert(Errors.CycleNotDue.selector);
 
-        // Run the test: cycle 1 only becomes due one interval after `start`, but no time has passed
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 1 });
+        // Run the test: this is the double-charge guard — the counter moved to cycle 1, which only becomes
+        // due one interval after `start`, so an immediate repeated charge must revert
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
     }
 
     function test_RevertWhen_SpaceHasNotApprovedModule() external {
@@ -82,7 +79,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         vm.expectRevert();
 
         // Run the test
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 0 });
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
     }
 
     function test_Charge() external givenSubscribed {
@@ -105,35 +102,49 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
 
         // Run the test as the relayer (Bob) to prove the charge is permissionless
         vm.prank({ msgSender: users.bob });
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 0 });
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
 
         // Assert the cycle was marked as charged
         assertTrue(subscriptionModule.isCharged(MOCK_SUBSCRIPTION_ID, 0));
 
         // Assert the charged-cycle counter was bumped
-        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).chargedCount, 1);
+        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).cyclesCharged, 1);
 
         // Assert the pinned amount moved from the {Space} to the treasury
         assertEq(IERC20(address(usdt)).balanceOf(address(space)), spaceBalanceBefore - Constants.SUBSCRIPTION_AMOUNT);
         assertEq(IERC20(address(usdt)).balanceOf(werkTreasury), treasuryBalanceBefore + Constants.SUBSCRIPTION_AMOUNT);
     }
 
-    function test_Charge_OutOfOrder() external givenSubscribed {
-        // Warp into cycle 2's window so both cycle 0 and cycle 2 are due
+    function test_Charge_CatchUp() external givenSubscribed {
+        // Warp into cycle 2's window so three cycles (0, 1 and 2) are due and unpaid
         vm.warp({ newTimestamp: uint256(block.timestamp) + 2 * uint256(Constants.SUBSCRIPTION_INTERVAL) });
 
-        // Charge cycle 2 before cycle 0 to exetestrcise out-of-order charging
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 2 });
+        // Snapshot the treasury balance before catching up
+        uint256 treasuryBalanceBefore = IERC20(address(usdt)).balanceOf(werkTreasury);
 
-        // Assert only cycle 2 is flagged, the counter reflects one charge, and status is still {PastDue}
-        // (cycles 0 and 1 remain due and uncharged), NOT {Expired}
+        // Charge the arrears: consecutive calls succeed while cycles remain overdue, in strict order
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+
+        // Assert cycles 0-2 are charged, the counter kept pace and exactly three payments were pulled
         assertTrue(subscriptionModule.isCharged(MOCK_SUBSCRIPTION_ID, 2));
-        assertFalse(subscriptionModule.isCharged(MOCK_SUBSCRIPTION_ID, 0));
-        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).chargedCount, 1);
-        assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.PastDue));
+        assertFalse(subscriptionModule.isCharged(MOCK_SUBSCRIPTION_ID, 3));
+        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).cyclesCharged, 3);
+        assertEq(
+            IERC20(address(usdt)).balanceOf(werkTreasury),
+            treasuryBalanceBefore + 3 * uint256(Constants.SUBSCRIPTION_AMOUNT)
+        );
 
-        // Charge the skipped earlier cycle and assert the counter keeps counting regardless of order
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 0 });
-        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).chargedCount, 2);
+        // Assert the subscription is paid up ({Active}) and a fourth charge reverts: cycle 3 is not due yet
+        assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.Active));
+        vm.expectRevert(Errors.CycleNotDue.selector);
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+    }
+
+    /// @dev Returns the timestamp at which `cycle` becomes chargeable for the default mock subscription
+    function _cycleStart(uint256 cycle) internal view returns (uint256) {
+        Types.Subscription memory subscription = subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID);
+        return uint256(subscription.start) + cycle * uint256(subscription.interval);
     }
 }

@@ -27,6 +27,19 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         subscriptionModule.subscribe(input, signature);
     }
 
+    function test_RevertWhen_SignatureExpired() external whenCallerSpace {
+        // Build a valid signed input, then warp past its `validUntil` expiry
+        Types.SubscribeInput memory input = _defaultInput();
+        bytes memory signature = _signInput(input);
+        vm.warp(input.validUntil + 1);
+
+        // Expect the next call to revert with the {SignatureExpired} error
+        vm.expectRevert(Errors.SignatureExpired.selector);
+
+        // Run the test
+        space.execute({ module: address(subscriptionModule), value: 0, data: _subscribeData(input, signature) });
+    }
+
     function test_RevertWhen_InvalidBackendSignature() external whenCallerSpace {
         Types.SubscribeInput memory input = _defaultInput();
 
@@ -73,7 +86,7 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
             asset: input.asset,
             amount: input.amount,
             interval: input.interval,
-            periods: input.periods,
+            cycles: input.cycles,
             start: expectedStart
         });
 
@@ -84,12 +97,12 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         Types.Subscription memory subscription = subscriptionModule.getSubscription(input.subscriptionId);
         assertEq(subscription.space, address(space));
         assertEq(subscription.interval, input.interval);
-        assertEq(subscription.periods, input.periods);
+        assertEq(subscription.cycles, input.cycles);
         assertEq(subscription.start, expectedStart);
         assertEq(subscription.asset, input.asset);
         assertEq(subscription.tier, input.tier);
         assertFalse(subscription.isRevoked);
-        assertEq(subscription.chargedCount, 0);
+        assertEq(subscription.cyclesCharged, 0);
         assertEq(subscription.amount, input.amount);
 
         // Assert the derived status is PastDue right after subscribing: cycle 0 is due at `start` and has

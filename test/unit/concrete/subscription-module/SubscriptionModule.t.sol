@@ -88,9 +88,9 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
         _;
     }
 
-    /// @dev Approves the {SubscriptionModule} for the full exposure (`amount * periods`) from Eve's Space
+    /// @dev Approves the {SubscriptionModule} for the full exposure (`amount * cycles`) from Eve's Space
     modifier whenSpaceApprovedModule() {
-        uint256 fullExposure = uint256(Constants.SUBSCRIPTION_AMOUNT) * Constants.SUBSCRIPTION_PERIODS;
+        uint256 fullExposure = uint256(Constants.SUBSCRIPTION_AMOUNT) * Constants.SUBSCRIPTION_CYCLES;
 
         bytes memory data =
             abi.encodeWithSignature("approve(address,uint256)", address(subscriptionModule), fullExposure);
@@ -116,7 +116,8 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
             subscriptionId: MOCK_SUBSCRIPTION_ID,
             space: address(space),
             interval: Constants.SUBSCRIPTION_INTERVAL,
-            periods: Constants.SUBSCRIPTION_PERIODS,
+            cycles: Constants.SUBSCRIPTION_CYCLES,
+            validUntil: uint40(block.timestamp + Constants.SUBSCRIPTION_QUOTE_TTL),
             asset: address(usdt),
             tier: Constants.SUBSCRIPTION_TIER,
             amount: Constants.SUBSCRIPTION_AMOUNT
@@ -134,7 +135,8 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
                 input.asset,
                 input.amount,
                 input.interval,
-                input.periods,
+                input.cycles,
+                input.validUntil,
                 block.chainid
             )
         );
@@ -155,7 +157,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
         returns (bytes memory)
     {
         return abi.encodeWithSignature(
-            "subscribe((bytes32,address,uint40,uint16,address,uint8,uint128),bytes)", input, signature
+            "subscribe((bytes32,address,uint40,uint16,uint40,address,uint8,uint128),bytes)", input, signature
         );
     }
 
@@ -163,7 +165,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
     /// batch, matching how a real subscription is created (approve + subscribe)
     function _subscribe(Types.SubscribeInput memory input) internal {
         bytes memory signature = _signInput(input);
-        uint256 fullExposure = uint256(input.amount) * input.periods;
+        uint256 fullExposure = uint256(input.amount) * input.cycles;
 
         address[] memory targets = new address[](2);
         targets[0] = address(usdt);

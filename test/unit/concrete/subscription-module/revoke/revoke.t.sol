@@ -82,6 +82,6 @@ contract revoke_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
 
         // Assert any further charge is now prevented
         vm.expectRevert(Errors.SubscriptionRevoked.selector);
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, cycle: 0 });
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
     }
 }

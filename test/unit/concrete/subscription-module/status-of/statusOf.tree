@@ -7,7 +7,7 @@ statusOf.t.sol
     └── given the subscription is not revoked
         ├── given all cycles have been charged
         │   ├── it should return {Expired}
-        │   └── given the cycles were charged out of order
+        │   └── given the cycles were charged as a catch-up
         │       └── it should still return {Expired}
         └── given not all cycles have been charged
             ├── given more cycles have started than have been charged
