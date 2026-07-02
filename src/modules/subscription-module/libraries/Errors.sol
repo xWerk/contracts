@@ -23,7 +23,7 @@ library Errors {
     /// @notice Thrown when charging or revoking a `subscriptionId` that has never been registered
     error SubscriptionNull();
 
-    /// @notice Thrown when charging the next cycle before its due time (`start + chargedCount * interval`);
+    /// @notice Thrown when charging the next cycle before its due time (`start + cyclesCharged * interval`);
     /// also the double-charge guard, since each successful charge pushes the next due time one interval ahead
     error CycleNotDue();
 

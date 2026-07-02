@@ -86,7 +86,7 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
             asset: input.asset,
             amount: input.amount,
             interval: input.interval,
-            periods: input.periods,
+            cycles: input.cycles,
             start: expectedStart
         });
 
@@ -97,12 +97,12 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         Types.Subscription memory subscription = subscriptionModule.getSubscription(input.subscriptionId);
         assertEq(subscription.space, address(space));
         assertEq(subscription.interval, input.interval);
-        assertEq(subscription.periods, input.periods);
+        assertEq(subscription.cycles, input.cycles);
         assertEq(subscription.start, expectedStart);
         assertEq(subscription.asset, input.asset);
         assertEq(subscription.tier, input.tier);
         assertFalse(subscription.isRevoked);
-        assertEq(subscription.chargedCount, 0);
+        assertEq(subscription.cyclesCharged, 0);
         assertEq(subscription.amount, input.amount);
 
         // Assert the derived status is PastDue right after subscribing: cycle 0 is due at `start` and has

@@ -97,8 +97,8 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
 
     /// @inheritdoc ISubscriptionModule
     function isCharged(bytes32 subscriptionId, uint256 cycle) external view returns (bool) {
-        // Cycles are charged strictly in order, so a cycle is charged iff it is below the charged-cycle count
-        return cycle < _getSubscriptionModuleStorage().subscriptions[subscriptionId].chargedCount;
+        // Cycles are charged strictly in order, so a cycle is charged if it is below the charged-cycle count
+        return cycle < _getSubscriptionModuleStorage().subscriptions[subscriptionId].cyclesCharged;
     }
 
     /// @inheritdoc ISubscriptionModule
@@ -123,23 +123,23 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         }
 
         // If every cycle has been charged, the subscription reached its natural end; return `Expired`
-        if (subscription.chargedCount == subscription.periods) {
+        if (subscription.cyclesCharged == subscription.cycles) {
             return Types.Status.Expired;
         }
 
-        // Compute how many cycles have started as of now, capped at `periods`
+        // Compute how many cycles have started as of now, capped at `cycles`
         // Note: cycle `i` starts at `start + i * interval`, so by `block.timestamp` the number of started
         // cycles is `(block.timestamp - start) / interval + 1`; it is `0` while still before `start`
         uint256 elapsedCycles;
         if (block.timestamp >= subscription.start) {
             elapsedCycles = (block.timestamp - subscription.start) / subscription.interval + 1;
-            if (elapsedCycles > subscription.periods) {
-                elapsedCycles = subscription.periods;
+            if (elapsedCycles > subscription.cycles) {
+                elapsedCycles = subscription.cycles;
             }
         }
 
         // If more cycles have started than have been charged, a payment is overdue; return `PastDue`
-        if (elapsedCycles > subscription.chargedCount) {
+        if (elapsedCycles > subscription.cyclesCharged) {
             return Types.Status.PastDue;
         }
 
@@ -181,12 +181,12 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         $.subscriptions[input.subscriptionId] = Types.Subscription({
             space: input.space,
             interval: input.interval,
-            periods: input.periods,
+            cycles: input.cycles,
             start: start,
             asset: input.asset,
             tier: input.tier,
             isRevoked: false,
-            chargedCount: 0,
+            cyclesCharged: 0,
             amount: input.amount
         });
 
@@ -198,7 +198,7 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
             asset: input.asset,
             amount: input.amount,
             interval: input.interval,
-            periods: input.periods,
+            cycles: input.cycles,
             start: start
         });
     }
@@ -220,28 +220,28 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         if (subscription.isRevoked) revert Errors.SubscriptionRevoked();
 
         // Cycles are charged strictly in order: the next chargeable cycle is always the charged-cycle count
-        uint256 cycle = subscription.chargedCount;
+        uint256 cycle = subscription.cyclesCharged;
 
         // Checks: the subscription did not reach its natural end (all cycles charged)
-        if (cycle >= subscription.periods) revert Errors.SubscriptionEnded();
+        if (cycle >= subscription.cycles) revert Errors.SubscriptionEnded();
 
         // Checks: the cycle is due (cannot be charged early)
         // Notes:
         // - `start` (uint40) + cycle (uint256) * `interval` (uint40) is computed in 256-bit space,
         // so it cannot overflow for any realistic cycle count
-        // - this is also the double-charge guard: each successful charge bumps `chargedCount`, pushing the
+        // - this is also the double-charge guard: each successful charge bumps `cyclesCharged`, pushing the
         // next due time one `interval` into the future, so a repeated call reverts until that cycle starts
         uint256 cycleStart = uint256(subscription.start) + cycle * uint256(subscription.interval);
         if (block.timestamp < cycleStart) revert Errors.CycleNotDue();
 
         // Effects: bump the charged-cycle counter before the interaction
-        $.subscriptions[subscriptionId].chargedCount = subscription.chargedCount + 1;
+        $.subscriptions[subscriptionId].cyclesCharged = subscription.cyclesCharged + 1;
 
         // Interactions: pull the pinned cycle amount from the {Space} to the treasury
         // Notes:
         // - the destination is always the stored treasury and the amount is pinned in the terms,
         // which is what makes the permissionless `charge` safe
-        // - the {Space} is expected to have approved this module for `amount` * `periods`
+        // - the {Space} is expected to have approved this module for `amount` * `cycles`
         IERC20(subscription.asset)
             .safeTransferFrom({ from: subscription.space, to: $.treasury, value: subscription.amount });
 
@@ -335,7 +335,7 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
                 input.asset,
                 input.amount,
                 input.interval,
-                input.periods,
+                input.cycles,
                 input.validUntil,
                 block.chainid
             )

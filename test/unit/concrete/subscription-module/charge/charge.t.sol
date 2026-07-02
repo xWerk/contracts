@@ -39,7 +39,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
 
     function test_RevertWhen_SubscriptionEnded() external givenSubscribed {
         // Charge every cycle: warp to each cycle's start and charge it
-        for (uint256 cycle = 0; cycle < Constants.SUBSCRIPTION_PERIODS; ++cycle) {
+        for (uint256 cycle = 0; cycle < Constants.SUBSCRIPTION_CYCLES; ++cycle) {
             vm.warp({ newTimestamp: _cycleStart(cycle) });
             subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
         }
@@ -50,7 +50,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         // Expect the next call to revert with the {SubscriptionEnded} error
         vm.expectRevert(Errors.SubscriptionEnded.selector);
 
-        // Run the test: all `periods` cycles have been charged
+        // Run the test: all `cycles` cycles have been charged
         subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
     }
 
@@ -108,7 +108,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         assertTrue(subscriptionModule.isCharged(MOCK_SUBSCRIPTION_ID, 0));
 
         // Assert the charged-cycle counter was bumped
-        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).chargedCount, 1);
+        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).cyclesCharged, 1);
 
         // Assert the pinned amount moved from the {Space} to the treasury
         assertEq(IERC20(address(usdt)).balanceOf(address(space)), spaceBalanceBefore - Constants.SUBSCRIPTION_AMOUNT);
@@ -130,7 +130,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         // Assert cycles 0-2 are charged, the counter kept pace and exactly three payments were pulled
         assertTrue(subscriptionModule.isCharged(MOCK_SUBSCRIPTION_ID, 2));
         assertFalse(subscriptionModule.isCharged(MOCK_SUBSCRIPTION_ID, 3));
-        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).chargedCount, 3);
+        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).cyclesCharged, 3);
         assertEq(
             IERC20(address(usdt)).balanceOf(werkTreasury),
             treasuryBalanceBefore + 3 * uint256(Constants.SUBSCRIPTION_AMOUNT)

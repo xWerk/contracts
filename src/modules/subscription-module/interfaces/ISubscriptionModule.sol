@@ -11,7 +11,7 @@ import { Types } from "./../libraries/Types.sol";
 /// - Input integrity: the backend EOA signs the terms and the module verifies thesignature once at {subscribe},
 ///  pinning `amount` for the life of the subscription (later price changes affect  only new subscriptions)
 ///
-/// @dev The {Space} must approve this module for the full exposure (`amount * periods`) of `asset` before any
+/// @dev The {Space} must approve this module for the full exposure (`amount * cycles`) of `asset` before any
 /// cycle can be charged; each {charge} pulls `amount` via `safeTransferFrom`.
 ///
 /// The backend generates a unique `subscriptionId` per subscription (the mapping key and same-chain replay
@@ -28,7 +28,7 @@ interface ISubscriptionModule {
     /// @param asset The ERC-20 asset used to pay each cycle
     /// @param amount The fixed charge pulled per cycle (pinned at subscribe time)
     /// @param interval The number of seconds between two consecutive cycles
-    /// @param periods The total number of cycles
+    /// @param cycles The total number of cycles
     /// @param start The timestamp at which cycle 0 becomes chargeable
     event Subscribed(
         address indexed space,
@@ -37,7 +37,7 @@ interface ISubscriptionModule {
         address asset,
         uint128 amount,
         uint40 interval,
-        uint16 periods,
+        uint16 cycles,
         uint40 start
     );
 
@@ -77,7 +77,7 @@ interface ISubscriptionModule {
     function getTreasury() external view returns (address);
 
     /// @notice Returns whether the `cycle` of the `subscriptionId` subscription has already been charged
-    /// @dev Cycles are charged strictly in order, so this is equivalent to `cycle < chargedCount`
+    /// @dev Cycles are charged strictly in order, so this is equivalent to `cycle < cyclesCharged`
     /// @param subscriptionId The unique identifier of the subscription
     /// @param cycle The zero-based index of the cycle
     function isCharged(bytes32 subscriptionId, uint256 cycle) external view returns (bool);
@@ -92,7 +92,7 @@ interface ISubscriptionModule {
     /// The status is never stored; it is computed on demand from the stored fields and `block.timestamp`:
     /// - `Null` if the subscription was never registered
     /// - `Revoked` if the {Space} revoked it (charging permanently disabled)
-    /// - `Expired` if all `periods` cycles have been charged (natural end)
+    /// - `Expired` if all `cycles` have been charged (natural end)
     /// - `PastDue` if more cycles have started than have been charged (a payment is overdue)
     /// - `Active` otherwise (paid up to, or still within, the current cycle)
     ///
@@ -110,12 +110,12 @@ interface ISubscriptionModule {
     /// - `msg.sender` must equal `input.space` (consent is proven by `Space.executeBatch`'s `onlyAdminOrEntrypoint` gate)
     /// - the signed terms must not have expired (`block.timestamp <= input.validUntil`)
     /// - the backend signature must recover to the stored signer over
-    ///   `keccak256(abi.encode(subscriptionId, space, tier, asset, amount, interval, periods, validUntil, block.chainid))`
+    ///   `keccak256(abi.encode(subscriptionId, space, tier, asset, amount, interval, cycles, validUntil, block.chainid))`
     ///   wrapped with the EIP-191 prefix (input integrity)
     /// - `input.subscriptionId` must not already be registered
     ///
     /// Notes:
-    /// - the {Space} is expected to approve this module for `amount * periods` of `input.asset` at subscribe time
+    /// - the {Space} is expected to approve this module for `amount * cycles` of `input.asset` at subscribe time
     /// - the stored `start` is set to `block.timestamp`
     /// - the stored `amount` is pinned: {charge} reads it for the life of the subscription and a later backend
     /// price change does NOT affect this subscription
@@ -126,12 +126,12 @@ interface ISubscriptionModule {
 
     /// @notice Pulls the next cycle's pinned charge from the payer {Space} to the treasury
     ///
-    /// Cycles are charged strictly in order: the next chargeable cycle is always `chargedCount`
+    /// Cycles are charged strictly in order: the next chargeable cycle is always `cyclesCharged`
     ///
     /// Requirements:
     /// - the `subscriptionId` subscription must be registered and not revoked
-    /// - the subscription must not have reached its natural end (`chargedCount < periods`)
-    /// - the next cycle must be due (`block.timestamp >= start + chargedCount * interval`)
+    /// - the subscription must not have reached its natural end (`cyclesCharged < cycles`)
+    /// - the next cycle must be due (`block.timestamp >= start + cyclesCharged * interval`)
     /// - the {Space} must have approved this module for at least `amount` of the asset
     ///
     /// Notes:
@@ -140,10 +140,10 @@ interface ISubscriptionModule {
     /// caller can only trigger a legitimate charge
     /// - No signature or admin check needed: billing depends only on the stored consent, so it survives
     /// {Space} admin rotation
-    /// - Prevent double charge: each successful charge increments `chargedCount`, pushing the next due time one
+    /// - Prevent double charge: each successful charge increments `cyclesCharged`, pushing the next due time one
     /// `interval` ahead, so a repeated call reverts with {CycleNotDue} until the next cycle actually starts.
     /// Consecutive calls only succeed while the subscription is catching up, never twice per cycle
-    /// - once `chargedCount` reaches `periods`, {statusOf} derives `Expired`
+    /// - once `cyclesCharged` reaches `cycles`, {statusOf} derives `Expired`
     ///
     /// @param subscriptionId The unique identifier of the subscription
     function charge(bytes32 subscriptionId) external;

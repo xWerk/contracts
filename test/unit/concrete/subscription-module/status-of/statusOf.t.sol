@@ -30,24 +30,24 @@ contract statusOf_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
 
     function test_StatusOf_Expired() external givenSubscribed {
         // Charge every cycle: warp to each cycle's start and charge it
-        for (uint256 cycle = 0; cycle < Constants.SUBSCRIPTION_PERIODS; ++cycle) {
+        for (uint256 cycle = 0; cycle < Constants.SUBSCRIPTION_CYCLES; ++cycle) {
             vm.warp({ newTimestamp: _cycleStart(cycle) });
             subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
         }
 
-        // Once all `periods` cycles have been charged, the subscription is {Expired}
+        // Once all `cycles` cycles have been charged, the subscription is {Expired}
         assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.Expired));
     }
 
     function test_StatusOf_Expired_CatchUp() external givenSubscribed {
         // Warp past the whole billing window so every cycle is due, then charge them all back-to-back
-        vm.warp({ newTimestamp: _cycleStart(Constants.SUBSCRIPTION_PERIODS - 1) });
-        for (uint256 i = 0; i < Constants.SUBSCRIPTION_PERIODS; ++i) {
+        vm.warp({ newTimestamp: _cycleStart(Constants.SUBSCRIPTION_CYCLES - 1) });
+        for (uint256 i = 0; i < Constants.SUBSCRIPTION_CYCLES; ++i) {
             subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
         }
 
-        // Expiry is driven by the charged count reaching `periods`, even when charged as a catch-up
-        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).chargedCount, Constants.SUBSCRIPTION_PERIODS);
+        // Expiry is driven by the charged count reaching `cycles`, even when charged as a catch-up
+        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).cyclesCharged, Constants.SUBSCRIPTION_CYCLES);
         assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.Expired));
     }
 
@@ -60,10 +60,10 @@ contract statusOf_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         vm.warp({ newTimestamp: _cycleStart(1) });
         assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.PastDue));
 
-        // Warp beyond the whole billing window: the started-cycle count would exceed `periods` and is
-        // capped at `periods`. With cycles still uncharged it must remain {PastDue}
+        // Warp beyond the whole billing window: the started-cycle count would exceed `cycles` and is
+        // capped at `cycles`. With cycles still uncharged it must remain {PastDue}
         vm.warp({
-            newTimestamp: _cycleStart(Constants.SUBSCRIPTION_PERIODS) + uint256(Constants.SUBSCRIPTION_INTERVAL)
+            newTimestamp: _cycleStart(Constants.SUBSCRIPTION_CYCLES) + uint256(Constants.SUBSCRIPTION_INTERVAL)
         });
         assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.PastDue));
     }
