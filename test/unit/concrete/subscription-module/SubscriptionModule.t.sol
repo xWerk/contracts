@@ -117,6 +117,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
             space: address(space),
             interval: Constants.SUBSCRIPTION_INTERVAL,
             periods: Constants.SUBSCRIPTION_PERIODS,
+            validUntil: uint40(block.timestamp + Constants.SUBSCRIPTION_QUOTE_TTL),
             asset: address(usdt),
             tier: Constants.SUBSCRIPTION_TIER,
             amount: Constants.SUBSCRIPTION_AMOUNT
@@ -135,6 +136,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
                 input.amount,
                 input.interval,
                 input.periods,
+                input.validUntil,
                 block.chainid
             )
         );
@@ -155,7 +157,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
         returns (bytes memory)
     {
         return abi.encodeWithSignature(
-            "subscribe((bytes32,address,uint40,uint16,address,uint8,uint128),bytes)", input, signature
+            "subscribe((bytes32,address,uint40,uint16,uint40,address,uint8,uint128),bytes)", input, signature
         );
     }
 

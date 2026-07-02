@@ -28,4 +28,7 @@ library Constants {
 
     /// @dev The default plan identifier of a mock subscription
     uint8 public constant SUBSCRIPTION_TIER = 1;
+
+    /// @dev The default lifetime of backend-signed subscription terms (quote expiry window)
+    uint40 public constant SUBSCRIPTION_QUOTE_TTL = 1 hours;
 }
