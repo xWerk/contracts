@@ -8,14 +8,18 @@ import { Types } from "./../libraries/Types.sol";
 /// - Consent: the {Space} itself calls {subscribe} via `Space.executeBatch`, which is gated by the {Space}'s
 /// `onlyAdminOrEntrypoint` modifier — so the call is already proven to be admin-authorized. The module only
 /// binds it to the right payer via `msg.sender == input.space`
-/// - Input integrity: the backend EOA signs the terms and the module verifies thesignature once at {subscribe},
-///  pinning `amount` for the life of the subscription (later price changes affect  only new subscriptions)
+/// - Input integrity: the trusted relayer (an EOA held by the backend) signs the terms and the module verifies
+/// the signature once at {subscribe}. The per-cycle price is NOT part of the terms: it is supplied by the
+/// relayer at {charge} time, so Werk can change the price over the life of a subscription (after notifying the
+/// payer off-chain) without re-consenting on-chain
 ///
-/// @dev The {Space} must approve this module for the full exposure (`amount * cycles`) of `asset` before any
-/// cycle can be charged; each {charge} pulls `amount` via `safeTransferFrom`.
+/// @dev The {Space} must approve this module for the buffered exposure of `asset` before any cycle can be
+/// charged; each {charge} pulls a relayer-supplied `amount` via `safeTransferFrom`. Approving a buffer above
+/// the current price lets a moderate price increase be charged without a new approval.
 ///
 /// The backend generates a unique `subscriptionId` per subscription (the mapping key and same-chain replay
-/// guard); `block.chainid` in the signed payload guards cross-chain replay.
+/// guard); `block.chainid` in the signed payload guards cross-chain replay. Relayer is the only
+/// address allowed to call {charge}.
 interface ISubscriptionModule {
     /*//////////////////////////////////////////////////////////////////////////
                                        EVENTS
@@ -26,7 +30,6 @@ interface ISubscriptionModule {
     /// @param subscriptionId The backend-generated unique identifier of the subscription
     /// @param tier The plan identifier
     /// @param asset The ERC-20 asset used to pay each cycle
-    /// @param amount The fixed charge pulled per cycle (pinned at subscribe time)
     /// @param interval The number of seconds between two consecutive cycles
     /// @param cycles The total number of cycles
     /// @param start The timestamp at which cycle 0 becomes chargeable
@@ -35,7 +38,6 @@ interface ISubscriptionModule {
         bytes32 indexed subscriptionId,
         uint8 tier,
         address asset,
-        uint128 amount,
         uint40 interval,
         uint16 cycles,
         uint40 start
@@ -45,7 +47,7 @@ interface ISubscriptionModule {
     /// @param space The payer {Space} smart account that was charged
     /// @param subscriptionId The unique identifier of the subscription
     /// @param cycle The zero-based index of the charged cycle
-    /// @param amount The amount pulled from the {Space} to the treasury
+    /// @param amount The relayer-supplied amount pulled from the {Space} to the treasury for this cycle
     /// @param paidUntil The timestamp until which the subscription is paid (`start + (cycle + 1) * interval`)
     event SubscriptionCharged(
         address indexed space, bytes32 indexed subscriptionId, uint256 indexed cycle, uint128 amount, uint40 paidUntil
@@ -56,10 +58,10 @@ interface ISubscriptionModule {
     /// @param subscriptionId The unique identifier of the revoked subscription
     event Revoked(address indexed space, bytes32 indexed subscriptionId);
 
-    /// @notice Emitted when the owner updates the trusted backend signer address
-    /// @param oldSigner The previous signer address
-    /// @param newSigner The new signer address
-    event SignerUpdated(address indexed oldSigner, address indexed newSigner);
+    /// @notice Emitted when the owner updates the trusted relayer address
+    /// @param oldRelayer The previous relayer address
+    /// @param newRelayer The new relayer address
+    event RelayerUpdated(address indexed oldRelayer, address indexed newRelayer);
 
     /// @notice Emitted when the owner updates the treasury address
     /// @param oldTreasury The previous treasury address
@@ -70,8 +72,9 @@ interface ISubscriptionModule {
                                  CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Retrieves the trusted backend signer whose signature authorizes the inputs at {subscribe}
-    function getSigner() external view returns (address);
+    /// @notice Retrieves the trusted relayer: the address whose signature authorizes the inputs at {subscribe}
+    /// and the only address allowed to call {charge}
+    function getRelayer() external view returns (address);
 
     /// @notice Retrieves the treasury address that receives all subscription charges
     function getTreasury() external view returns (address);
@@ -104,49 +107,49 @@ interface ISubscriptionModule {
                                 NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Records a {Space}'s consent to a backend-signed recurring subscription on-chain
+    /// @notice Records a {Space}'s consent to a relayer-signed recurring subscription on-chain
     ///
     /// Requirements:
     /// - `msg.sender` must equal `input.space` (consent is proven by `Space.executeBatch`'s `onlyAdminOrEntrypoint` gate)
     /// - the signed terms must not have expired (`block.timestamp <= input.validUntil`)
-    /// - the backend signature must recover to the stored signer over
-    ///   `keccak256(abi.encode(subscriptionId, space, tier, asset, amount, interval, cycles, validUntil, block.chainid))`
+    /// - the relayer signature must recover to the stored relayer over
+    ///   `keccak256(abi.encode(subscriptionId, space, tier, asset, interval, cycles, validUntil, block.chainid))`
     ///   wrapped with the EIP-191 prefix (input integrity)
     /// - `input.subscriptionId` must not already be registered
     ///
     /// Notes:
-    /// - the {Space} is expected to approve this module for `amount * cycles` of `input.asset` at subscribe time
+    /// - the {Space} is expected to approve this module for the buffered exposure of `input.asset` at subscribe time
     /// - the stored `start` is set to `block.timestamp`
-    /// - the stored `amount` is pinned: {charge} reads it for the life of the subscription and a later backend
-    /// price change does NOT affect this subscription
+    /// - no price is stored: {charge} pulls a relayer-supplied `amount`, so a later price change does not require
+    /// re-subscribing; the `asset` is pinned so every charge is bound to the token the {Space} approved
     ///
-    /// @param input The backend-signed subscription inputs following the {SubscribeInput} struct format
-    /// @param signature The backend EIP-191 signature over the signed payload
+    /// @param input The relayer-signed subscription inputs following the {SubscribeInput} struct format
+    /// @param signature The relayer EIP-191 signature over the signed payload
     function subscribe(Types.SubscribeInput calldata input, bytes calldata signature) external;
 
-    /// @notice Pulls the next cycle's pinned charge from the payer {Space} to the treasury
+    /// @notice Pulls the next cycle's charge from the payer {Space} to the treasury
     ///
     /// Cycles are charged strictly in order: the next chargeable cycle is always `cyclesCharged`
     ///
     /// Requirements:
+    /// - `msg.sender` must be the trusted relayer
     /// - the `subscriptionId` subscription must be registered and not revoked
     /// - the subscription must not have reached its natural end (`cyclesCharged < cycles`)
     /// - the next cycle must be due (`block.timestamp >= start + cyclesCharged * interval`)
-    /// - the {Space} must have approved this module for at least `amount` of the asset
+    /// - the {Space} must have approved this module for at least `amount` of the pinned asset
     ///
     /// Notes:
-    /// - permissionless: any caller (typically the backend relayer) can trigger an already-consented charge.
-    /// Funds always go to the stored treasury and the amount is the pinned per-cycle `amount`, so a random
-    /// caller can only trigger a legitimate charge
-    /// - No signature or admin check needed: billing depends only on the stored consent, so it survives
-    /// {Space} admin rotation
+    /// - relayer-only: the caller supplies the per-cycle `amount`, so it must be the trusted relayer. Funds always
+    /// go to the stored treasury and the token is the pinned `asset`; only the `amount` varies per cycle, which is
+    /// how Werk applies a price change (charge a different amount on the next cycle)
     /// - Prevent double charge: each successful charge increments `cyclesCharged`, pushing the next due time one
     /// `interval` ahead, so a repeated call reverts with {CycleNotDue} until the next cycle actually starts.
     /// Consecutive calls only succeed while the subscription is catching up, never twice per cycle
     /// - once `cyclesCharged` reaches `cycles`, {statusOf} derives `Expired`
     ///
     /// @param subscriptionId The unique identifier of the subscription
-    function charge(bytes32 subscriptionId) external;
+    /// @param amount The amount to pull from the {Space} for this cycle (relayer-supplied)
+    function charge(bytes32 subscriptionId, uint128 amount) external;
 
     /// @notice Revokes a subscription, preventing any further charges
     ///
@@ -157,13 +160,13 @@ interface ISubscriptionModule {
     /// @param subscriptionId The unique identifier of the subscription to revoke
     function revoke(bytes32 subscriptionId) external;
 
-    /// @notice Rotates the trusted backend signer address
+    /// @notice Rotates the trusted relayer address
     ///
     /// Requirements:
     /// - `msg.sender` must be the owner
     ///
-    /// @param newSigner The new signer address
-    function setSignerAddress(address newSigner) external;
+    /// @param newRelayer The new relayer address
+    function setRelayer(address newRelayer) external;
 
     /// @notice Updates the treasury address that receives all subscription charges
     ///

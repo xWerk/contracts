@@ -246,11 +246,7 @@ abstract contract BaseAccountFactory is IAccountFactory, Multicall, Initializabl
     }
 
     /// @dev Predicts the address of an ERC1967Proxy deployed via CREATE2
-    function _predictProxyAddress(
-        address _impl,
-        bytes memory _initData,
-        bytes32 _salt
-    )
+    function _predictProxyAddress(address _impl, bytes memory _initData, bytes32 _salt)
         internal
         view
         returns (address)

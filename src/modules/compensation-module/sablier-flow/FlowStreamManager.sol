@@ -52,13 +52,7 @@ contract FlowStreamManager is IFlowStreamManager, Initializable, OwnableUpgradea
     }
 
     /// @dev Initializes the {FlowStreamManager} contract
-    function __FlowStreamManager_init(
-        ISablierFlow _sablierFlow,
-        address _initialAdmin
-    )
-        internal
-        onlyInitializing
-    {
+    function __FlowStreamManager_init(ISablierFlow _sablierFlow, address _initialAdmin) internal onlyInitializing {
         __Ownable_init(_initialAdmin);
 
         // Retrieve the storage of the {FlowStreamManager} contract

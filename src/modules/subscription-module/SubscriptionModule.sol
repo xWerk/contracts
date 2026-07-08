@@ -27,8 +27,9 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
 
     /// @custom:storage-location erc7201:werk.storage.SubscriptionModule
     struct SubscriptionModuleStorage {
-        /// @notice The trusted backend signer whose signature authorizes the inputs at {subscribe}
-        address signer;
+        /// @notice The trusted relayer: the backend address whose signature authorizes the inputs at {subscribe}
+        /// and the only address allowed to call {charge}
+        address relayer;
         /// @notice The treasury address that receives all subscription charges
         address treasury;
         /// @notice Subscription details mapped by their `subscriptionId`
@@ -57,15 +58,16 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
     }
 
     /// @dev Initializes the proxy and the {Ownable} contract
-    /// @param _initialAdmin The initial owner of the module (manages the signer, the treasury and upgrades)
-    /// @param _signer The initial trusted backend signer whose signature authorizes the inputs at {subscribe}
+    /// @param _initialAdmin The initial owner of the module (manages the relayer, the treasury and upgrades)
+    /// @param _relayer The initial trusted relayer whose signature authorizes the inputs at {subscribe} and who
+    /// is the only address allowed to call {charge}
     /// @param _treasury The initial treasury address that receives all subscription charges
-    function initialize(address _initialAdmin, address _signer, address _treasury) public initializer {
+    function initialize(address _initialAdmin, address _relayer, address _treasury) public initializer {
         __Ownable_init(_initialAdmin);
         __UUPSUpgradeable_init();
 
-        // Checks: the signer is not the zero address
-        if (_signer == address(0)) revert Errors.InvalidZeroAddressSigner();
+        // Checks: the relayer is not the zero address
+        if (_relayer == address(0)) revert Errors.InvalidZeroAddressRelayer();
 
         // Checks: the treasury is not the zero address
         if (_treasury == address(0)) revert Errors.InvalidZeroAddressTreasury();
@@ -73,8 +75,8 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         // Retrieve the contract storage
         SubscriptionModuleStorage storage $ = _getSubscriptionModuleStorage();
 
-        // Effects: set the initial signer and treasury addresses
-        $.signer = _signer;
+        // Effects: set the initial relayer and treasury addresses
+        $.relayer = _relayer;
         $.treasury = _treasury;
     }
 
@@ -86,8 +88,8 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISubscriptionModule
-    function getSigner() external view returns (address) {
-        return _getSubscriptionModuleStorage().signer;
+    function getRelayer() external view returns (address) {
+        return _getSubscriptionModuleStorage().relayer;
     }
 
     /// @inheritdoc ISubscriptionModule
@@ -157,15 +159,15 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         // Note: admin's consent is already proven by `Space.executeBatch`'s `onlyAdminOrEntrypoint` modifier
         if (msg.sender != input.space) revert Errors.OnlySubscriptionSpace();
 
-        // Checks: the signed terms have not expired (a stale price cannot be redeemed later)
+        // Checks: the signed terms have not expired (a stale quote cannot be redeemed later)
         if (block.timestamp > input.validUntil) revert Errors.SignatureExpired();
 
         // Retrieve the contract storage
         SubscriptionModuleStorage storage $ = _getSubscriptionModuleStorage();
 
-        // Checks: the backend signed these exact inputs for this chain (input integrity)
+        // Checks: the relayer signed these exact inputs for this chain (input integrity)
         // Note: `block.chainid` is included to prevent cross-chain replay
-        _verifySubscriptionSignature(input, signature, $.signer);
+        _verifySubscriptionSignature(input, signature, $.relayer);
 
         // Checks: the subscription does not already exist
         // Note: a registered subscription always has a non-zero `space`
@@ -177,7 +179,9 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         uint40 start = uint40(block.timestamp);
 
         // Effects: pin the full subscription details
-        // Note: `amount` is snapshotted here so a future pricing change will not affect ongoing subscriptions
+        // Note: no price is stored; each cycle's amount is supplied by the relayer at {charge} time, so Werk can
+        // change the price over the life of a subscription. The `asset` is pinned so every charge is bound to the
+        // token the {Space} approved.
         $.subscriptions[input.subscriptionId] = Types.Subscription({
             space: input.space,
             interval: input.interval,
@@ -186,8 +190,7 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
             asset: input.asset,
             tier: input.tier,
             isRevoked: false,
-            cyclesCharged: 0,
-            amount: input.amount
+            cyclesCharged: 0
         });
 
         // Log the subscription creation
@@ -196,7 +199,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
             subscriptionId: input.subscriptionId,
             tier: input.tier,
             asset: input.asset,
-            amount: input.amount,
             interval: input.interval,
             cycles: input.cycles,
             start: start
@@ -204,13 +206,16 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
     }
 
     /// @inheritdoc ISubscriptionModule
-    function charge(bytes32 subscriptionId) external {
+    function charge(bytes32 subscriptionId, uint128 amount) external {
         // Retrieve the contract storage
         SubscriptionModuleStorage storage $ = _getSubscriptionModuleStorage();
 
+        // Checks: the caller is the trusted relayer
+        // Note: `charge` supplies the per-cycle `amount`, so it must be restricted to the trusted relayer;
+        // the amount is not signed and the caller controls it, which is safe only because the caller is trusted
+        if (msg.sender != $.relayer) revert Errors.OnlyRelayer();
+
         // Load the full subscription details
-        // Note: `amount` is read from storage. Any later backend price change cannot affect the
-        // already-registered subscription
         Types.Subscription memory subscription = $.subscriptions[subscriptionId];
 
         // Checks: the subscription exists
@@ -237,19 +242,19 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         // Effects: bump the charged-cycle counter before the interaction
         $.subscriptions[subscriptionId].cyclesCharged = subscription.cyclesCharged + 1;
 
-        // Interactions: pull the pinned cycle amount from the {Space} to the treasury
+        // Interactions: pull the relayer-supplied cycle amount from the {Space} to the treasury
         // Notes:
-        // - the destination is always the stored treasury and the amount is pinned in the terms,
-        // which is what makes the permissionless `charge` safe
-        // - the {Space} is expected to have approved this module for `amount` * `cycles`
-        IERC20(subscription.asset)
-            .safeTransferFrom({ from: subscription.space, to: $.treasury, value: subscription.amount });
+        // - the destination is always the stored treasury and the `asset` is pinned in the terms; only the
+        // relayer-supplied `amount` varies per cycle
+        // - the {Space} is expected to have approved this module for the buffered exposure so a price change
+        // within the buffer does not require a new approval
+        IERC20(subscription.asset).safeTransferFrom({ from: subscription.space, to: $.treasury, value: amount });
 
         // Compute the timestamp until which the subscription is now paid (start of the next cycle)
         uint40 paidUntil = uint40(cycleStart + subscription.interval);
 
         // Log the successful charge
-        emit SubscriptionCharged(subscription.space, subscriptionId, cycle, subscription.amount, paidUntil);
+        emit SubscriptionCharged(subscription.space, subscriptionId, cycle, amount, paidUntil);
     }
 
     /// @inheritdoc ISubscriptionModule
@@ -278,21 +283,21 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
     }
 
     /// @inheritdoc ISubscriptionModule
-    function setSignerAddress(address newSigner) external onlyOwner {
-        // Checks: the new signer is not the zero address
-        if (newSigner == address(0)) revert Errors.InvalidZeroAddressSigner();
+    function setRelayer(address newRelayer) external onlyOwner {
+        // Checks: the new relayer is not the zero address
+        if (newRelayer == address(0)) revert Errors.InvalidZeroAddressRelayer();
 
         // Retrieve the contract storage
         SubscriptionModuleStorage storage $ = _getSubscriptionModuleStorage();
 
-        // Cache the old signer for the event
-        address oldSigner = $.signer;
+        // Cache the old relayer for the event
+        address oldRelayer = $.relayer;
 
-        // Effects: update the signer address
-        $.signer = newSigner;
+        // Effects: update the relayer address
+        $.relayer = newRelayer;
 
-        // Log the signer update
-        emit SignerUpdated(oldSigner, newSigner);
+        // Log the relayer update
+        emit RelayerUpdated(oldRelayer, newRelayer);
     }
 
     /// @inheritdoc ISubscriptionModule
@@ -317,23 +322,23 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
                                 INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Verifies that the trusted backend signed the subscription inputs for this chain
+    /// @dev Verifies that the trusted relayer signed the subscription inputs for this chain
     function _verifySubscriptionSignature(
         Types.SubscribeInput calldata input,
         bytes calldata signature,
-        address signer
+        address relayer
     )
         internal
         view
     {
-        // Rebuild the message hash the backend produced off-chain over the signed inputs and this chain id
+        // Rebuild the message hash the relayer produced off-chain over the signed inputs and this chain id
+        // Note: the per-cycle price is NOT part of the signed terms; it is supplied by the relayer at charge time
         bytes32 rawHash = keccak256(
             abi.encode(
                 input.subscriptionId,
                 input.space,
                 input.tier,
                 input.asset,
-                input.amount,
                 input.interval,
                 input.cycles,
                 input.validUntil,
@@ -344,7 +349,7 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         // Apply the EIP-191 prefix
         bytes32 signedHash = rawHash.toEthSignedMessageHash();
 
-        // Recover the signer and check it matches the trusted backend signer
-        if (signedHash.recover(signature) != signer) revert Errors.InvalidBackendSignature();
+        // Recover the signer and check it matches the trusted relayer
+        if (signedHash.recover(signature) != relayer) revert Errors.InvalidRelayerSignature();
     }
 }

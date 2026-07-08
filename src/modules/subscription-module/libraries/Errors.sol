@@ -11,8 +11,11 @@ library Errors {
     /// @notice Thrown when the caller is not the {Space} declared in the subscription inputs (on {subscribe} or {revoke})
     error OnlySubscriptionSpace();
 
-    /// @notice Thrown when the backend signature does not recover to the stored signer (tampered terms or wrong signer)
-    error InvalidBackendSignature();
+    /// @notice Thrown when the caller of {charge} is not the trusted relayer
+    error OnlyRelayer();
+
+    /// @notice Thrown when the backend signature does not recover to the stored relayer (tampered terms or wrong signer)
+    error InvalidRelayerSignature();
 
     /// @notice Thrown when subscribing with signed terms past their `validUntil` expiry (stale quote)
     error SignatureExpired();
@@ -33,8 +36,8 @@ library Errors {
     /// @notice Thrown when charging or revoking a subscription that has been revoked
     error SubscriptionRevoked();
 
-    /// @notice Thrown when the signer address is set to the zero address
-    error InvalidZeroAddressSigner();
+    /// @notice Thrown when the relayer address is set to the zero address
+    error InvalidZeroAddressRelayer();
 
     /// @notice Thrown when the treasury address is set to the zero address
     error InvalidZeroAddressTreasury();
