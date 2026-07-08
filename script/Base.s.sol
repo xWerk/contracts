@@ -12,10 +12,10 @@ contract BaseScript is Script {
     /// deployment.
     address internal constant DEFAULT_SUBSCRIPTION_TREASURY = DEFAULT_PROTOCOL_ADMIN;
 
-    /// @dev The backend signer (price-integrity root) for the {SubscriptionModule} (same address across all chains)
-    /// @dev TODO: replace this placeholder with the real backend signer EOA before any production
-    /// deployment.
-    address internal constant DEFAULT_SUBSCRIPTION_SIGNER = DEFAULT_PROTOCOL_ADMIN;
+    /// @dev The trusted relayer for the {SubscriptionModule}: the backend EOA that signs subscribe terms and is
+    /// the only address allowed to call `charge` (same address across all chains)
+    /// @dev TODO: replace this placeholder with the real relayer EOA before any production deployment.
+    address internal constant DEFAULT_SUBSCRIPTION_RELAYER = DEFAULT_PROTOCOL_ADMIN;
 
     /// @dev The address of the Entrypoint v6 deployment
     address internal constant ENTRYPOINT_V6 = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;

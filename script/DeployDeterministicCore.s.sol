@@ -150,7 +150,7 @@ contract DeployDeterministicCore is BaseScript {
         bytes memory subscriptionModuleInitData = abi.encodeWithSelector(
             SubscriptionModule.initialize.selector,
             DEFAULT_PROTOCOL_ADMIN,
-            DEFAULT_SUBSCRIPTION_SIGNER,
+            DEFAULT_SUBSCRIPTION_RELAYER,
             DEFAULT_SUBSCRIPTION_TREASURY
         );
         bytes memory subscriptionModuleProxyBytecode = abi.encodePacked(

@@ -72,17 +72,31 @@ deploy-compensation-module:
 # Deploys the {SubscriptionModule} contract deterministically
 #
 # Update the following configs before running the script:
-#	- {SIGNER} with the trusted backend signer
+#	- {RELAYER} with the trusted relayer 
 #	- {TREASURY} with the address that receives all subscription charges
 #	- {RPC_URL} with the network RPC used for deployment
 #	- {ETHERSCAN_API_KEY} with the Etherscan API key on the target chain
-deploy-deterministic-subscription-module:
+deploy-subscription-module:
 					FOUNDRY_PROFILE=optimized  forge script script/DeployDeterministicSubscriptionModule.s.sol:DeployDeterministicSubscriptionModule \
-					--sig "run(string,address,address)" $(CREATE3SALT) $(SIGNER) $(TREASURY) \
+					--sig "run(string,address,address)" $(CREATE3SALT) $(RELAYER) $(TREASURY) \
 					--rpc-url $(RPC_URL) --account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 
-# Deploys the core contracts deterministically 
+# Adds a deployed {SubscriptionModule} to the {ModuleKeeper} allowlist
+#
+# NOTE: the {werk-deployer} account MUST be the {ModuleKeeper} owner
+#
+# Update the following configs before running the script:
+#	- {MODULE_KEEPER} with the address of the {ModuleKeeper} on the target chain
+#	- {SUBSCRIPTION_MODULE_PROXY} with the address of the deployed {SubscriptionModule} proxy
+#	- {RPC_URL} with the network RPC used for the transaction
+allowlist-subscription-module:
+					forge script script/AllowlistSubscriptionModule.s.sol:AllowlistSubscriptionModule \
+					--sig "run(address,address)" $(MODULE_KEEPER) $(SUBSCRIPTION_MODULE_PROXY) \
+					--rpc-url $(RPC_URL) --account werk-deployer \
+					--broadcast
+
+# Deploys the core contracts deterministically
 #
 # Update the following configs before running the script:
 #	- {RPC_URL} with the network RPC used for deployment
