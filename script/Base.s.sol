@@ -14,7 +14,6 @@ contract BaseScript is Script {
 
     /// @dev The trusted relayer for the {SubscriptionModule}: the backend EOA that signs subscribe terms and is
     /// the only address allowed to call `charge` (same address across all chains)
-    /// @dev TODO: replace this placeholder with the real relayer EOA before any production deployment.
     address internal constant DEFAULT_SUBSCRIPTION_RELAYER = DEFAULT_PROTOCOL_ADMIN;
 
     /// @dev The address of the Entrypoint v6 deployment

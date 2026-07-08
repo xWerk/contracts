@@ -179,9 +179,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         uint40 start = uint40(block.timestamp);
 
         // Effects: pin the full subscription details
-        // Note: no price is stored; each cycle's amount is supplied by the relayer at {charge} time, so Werk can
-        // change the price over the life of a subscription. The `asset` is pinned so every charge is bound to the
-        // token the {Space} approved.
         $.subscriptions[input.subscriptionId] = Types.Subscription({
             space: input.space,
             interval: input.interval,
@@ -211,8 +208,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         SubscriptionModuleStorage storage $ = _getSubscriptionModuleStorage();
 
         // Checks: the caller is the trusted relayer
-        // Note: `charge` supplies the per-cycle `amount`, so it must be restricted to the trusted relayer;
-        // the amount is not signed and the caller controls it, which is safe only because the caller is trusted
         if (msg.sender != $.relayer) revert Errors.OnlyRelayer();
 
         // Load the full subscription details
@@ -231,11 +226,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         if (cycle >= subscription.cycles) revert Errors.SubscriptionEnded();
 
         // Checks: the cycle is due (cannot be charged early)
-        // Notes:
-        // - `start` (uint40) + cycle (uint256) * `interval` (uint40) is computed in 256-bit space,
-        // so it cannot overflow for any realistic cycle count
-        // - this is also the double-charge guard: each successful charge bumps `cyclesCharged`, pushing the
-        // next due time one `interval` into the future, so a repeated call reverts until that cycle starts
         uint256 cycleStart = uint256(subscription.start) + cycle * uint256(subscription.interval);
         if (block.timestamp < cycleStart) revert Errors.CycleNotDue();
 
@@ -243,11 +233,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         $.subscriptions[subscriptionId].cyclesCharged = subscription.cyclesCharged + 1;
 
         // Interactions: pull the relayer-supplied cycle amount from the {Space} to the treasury
-        // Notes:
-        // - the destination is always the stored treasury and the `asset` is pinned in the terms; only the
-        // relayer-supplied `amount` varies per cycle
-        // - the {Space} is expected to have approved this module for the buffered exposure so a price change
-        // within the buffer does not require a new approval
         IERC20(subscription.asset).safeTransferFrom({ from: subscription.space, to: $.treasury, value: amount });
 
         // Compute the timestamp until which the subscription is now paid (start of the next cycle)
@@ -332,7 +317,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         view
     {
         // Rebuild the message hash the relayer produced off-chain over the signed inputs and this chain id
-        // Note: the per-cycle price is NOT part of the signed terms; it is supplied by the relayer at charge time
         bytes32 rawHash = keccak256(
             abi.encode(
                 input.subscriptionId,

@@ -11,8 +11,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 contract DeployDeterministicSubscriptionModule is BaseScript {
     /// @dev Post-deploy steps the protocol owner MUST perform:
     /// 1. add this module to the {ModuleKeeper} allowlist (`addToAllowlist`) so {Space}s can call it;
-    /// 2. set the trusted relayer (signs terms and calls `charge`) via `setRelayer` if it
-    /// differs from `relayer`;
+    /// 2. set the trusted relayer (signs terms and calls `charge`)
     /// 3. confirm the treasury via `setTreasury` if it differs from `treasury`.
     function run(
         string memory inputSalt,
