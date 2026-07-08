@@ -1,21 +1,26 @@
 charge.t.sol
-├── given the subscription is not registered
-│   └── it should revert with the {SubscriptionNull} error
-└── given the subscription is registered
-    ├── given the subscription is revoked
-    │   └── it should revert with the {SubscriptionRevoked} error
-    └── given the subscription is not revoked
-        ├── given all cycles have been charged
-        │   └── it should revert with the {SubscriptionEnded} error
-        └── given cycles remain to be charged
-            ├── when the next cycle is not due
-            │   └── it should revert with the {CycleNotDue} error (this is also the double-charge guard)
-            └── when the next cycle is due
-                ├── given the {Space} has not approved the module for the cycle amount
-                │   └── it should revert
-                └── given the {Space} has approved the module for the cycle amount
-                    ├── it should bump the charged-cycle counter (the next cycle cursor)
-                    ├── it should transfer the pinned amount from the {Space} to the treasury
-                    ├── it should emit the {SubscriptionCharged} event
-                    └── when the subscription is in arrears
-                        └── it should allow consecutive charges to catch up, strictly in order
+├── when the caller is not the relayer
+│   └── it should revert with the {OnlyRelayer} error
+└── when the caller is the relayer
+    ├── given the subscription is not registered
+    │   └── it should revert with the {SubscriptionNull} error
+    └── given the subscription is registered
+        ├── given the subscription is revoked
+        │   └── it should revert with the {SubscriptionRevoked} error
+        └── given the subscription is not revoked
+            ├── given all cycles have been charged
+            │   └── it should revert with the {SubscriptionEnded} error
+            └── given cycles remain to be charged
+                ├── when the next cycle is not due
+                │   └── it should revert with the {CycleNotDue} error (this is also the double-charge guard)
+                └── when the next cycle is due
+                    ├── given the {Space} has not approved the module for the cycle amount
+                    │   └── it should revert
+                    └── given the {Space} has approved the module for the cycle amount
+                        ├── it should bump the charged-cycle counter (the next cycle cursor)
+                        ├── it should transfer the relayer-supplied amount from the {Space} to the treasury
+                        ├── it should emit the {SubscriptionCharged} event
+                        ├── when the price changes between cycles
+                        │   └── it should charge each cycle at the relayer-supplied amount
+                        └── when the subscription is in arrears
+                            └── it should allow consecutive charges to catch up, strictly in order

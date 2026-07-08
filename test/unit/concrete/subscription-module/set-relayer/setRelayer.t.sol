@@ -6,7 +6,7 @@ import { Errors } from "src/modules/subscription-module/libraries/Errors.sol";
 import { ISubscriptionModule } from "src/modules/subscription-module/interfaces/ISubscriptionModule.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract setSignerAddress_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
+contract setRelayer_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
     function setUp() public override {
         SubscriptionModule_Unit_Concrete_Test.setUp();
     }
@@ -19,35 +19,35 @@ contract setSignerAddress_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, users.bob));
 
         // Run the test
-        subscriptionModule.setSignerAddress(users.bob);
+        subscriptionModule.setRelayer(users.bob);
     }
 
-    function test_RevertWhen_NewSignerZeroAddress() external {
+    function test_RevertWhen_NewRelayerZeroAddress() external {
         // Make the admin the caller as it is the module owner
         vm.prank({ msgSender: users.admin });
 
-        // Expect the next call to revert with the {InvalidZeroAddressSigner} error
-        vm.expectRevert(Errors.InvalidZeroAddressSigner.selector);
+        // Expect the next call to revert with the {InvalidZeroAddressRelayer} error
+        vm.expectRevert(Errors.InvalidZeroAddressRelayer.selector);
 
         // Run the test
-        subscriptionModule.setSignerAddress(address(0));
+        subscriptionModule.setRelayer(address(0));
     }
 
-    function test_SetSignerAddress() external {
-        // The new signer to be set
-        address newSigner = makeAddr("newSigner");
+    function test_SetRelayer() external {
+        // The new relayer to be set
+        address newRelayer = makeAddr("newRelayer");
 
         // Make the admin the caller as it is the module owner
         vm.prank({ msgSender: users.admin });
 
-        // Expect the {SignerUpdated} event to be emitted with the old and new signer
+        // Expect the {RelayerUpdated} event to be emitted with the old and new relayer
         vm.expectEmit(address(subscriptionModule));
-        emit ISubscriptionModule.SignerUpdated({ oldSigner: subscriptionSigner, newSigner: newSigner });
+        emit ISubscriptionModule.RelayerUpdated({ oldRelayer: subscriptionRelayer, newRelayer: newRelayer });
 
         // Run the test
-        subscriptionModule.setSignerAddress(newSigner);
+        subscriptionModule.setRelayer(newRelayer);
 
-        // Assert the signer address was updated
-        assertEq(subscriptionModule.getSigner(), newSigner);
+        // Assert the relayer address was updated
+        assertEq(subscriptionModule.getRelayer(), newRelayer);
     }
 }

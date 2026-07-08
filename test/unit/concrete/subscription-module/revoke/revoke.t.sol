@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import { SubscriptionModule_Unit_Concrete_Test } from "../SubscriptionModule.t.sol";
+import { Constants } from "test/utils/Constants.sol";
 import { Errors } from "src/modules/subscription-module/libraries/Errors.sol";
 import { ISubscriptionModule } from "src/modules/subscription-module/interfaces/ISubscriptionModule.sol";
 import { Types } from "src/modules/subscription-module/libraries/Types.sol";
@@ -82,6 +83,6 @@ contract revoke_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
 
         // Assert any further charge is now prevented
         vm.expectRevert(Errors.SubscriptionRevoked.selector);
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
     }
 }

@@ -22,9 +22,9 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
                                    TEST STORAGE
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev The trusted backend signer
-    address internal subscriptionSigner;
-    uint256 internal subscriptionSignerKey;
+    /// @dev The trusted relayer: signs subscribe terms and is the only address allowed to call `charge`
+    address internal subscriptionRelayer;
+    uint256 internal subscriptionRelayerKey;
     /// @dev The treasury that receives all subscription charges
     address internal werkTreasury;
 
@@ -38,8 +38,8 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
     function setUp() public virtual override {
         Base_Test.setUp();
 
-        // Create the trusted backend signer (address + private key) and the treasury
-        (subscriptionSigner, subscriptionSignerKey) = makeAddrAndKey("subscriptionSigner");
+        // Create the trusted relayer (address + private key) and the treasury
+        (subscriptionRelayer, subscriptionRelayerKey) = makeAddrAndKey("subscriptionRelayer");
         werkTreasury = makeAddr("werkTreasury");
 
         // Deploy the {SubscriptionModule} behind an ERC1967 proxy
@@ -56,7 +56,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
 
         // Label the test contracts
         vm.label({ account: address(subscriptionModule), newLabel: "SubscriptionModule" });
-        vm.label({ account: subscriptionSigner, newLabel: "SubscriptionSigner" });
+        vm.label({ account: subscriptionRelayer, newLabel: "SubscriptionRelayer" });
         vm.label({ account: werkTreasury, newLabel: "WerkTreasury" });
         vm.label({ account: address(space), newLabel: "Eve's Space" });
     }
@@ -65,7 +65,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
     function deploySubscriptionModule() internal {
         address implementation = address(new SubscriptionModule());
         bytes memory data = abi.encodeWithSelector(
-            SubscriptionModule.initialize.selector, users.admin, subscriptionSigner, werkTreasury
+            SubscriptionModule.initialize.selector, users.admin, subscriptionRelayer, werkTreasury
         );
         subscriptionModule = SubscriptionModule(address(new ERC1967Proxy(implementation, data)));
     }
@@ -88,12 +88,10 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
         _;
     }
 
-    /// @dev Approves the {SubscriptionModule} for the full exposure (`amount * cycles`) from Eve's Space
+    /// @dev Approves the {SubscriptionModule} for the buffered exposure from Eve's Space
     modifier whenSpaceApprovedModule() {
-        uint256 fullExposure = uint256(Constants.SUBSCRIPTION_AMOUNT) * Constants.SUBSCRIPTION_CYCLES;
-
         bytes memory data =
-            abi.encodeWithSignature("approve(address,uint256)", address(subscriptionModule), fullExposure);
+            abi.encodeWithSignature("approve(address,uint256)", address(subscriptionModule), _bufferedExposure());
 
         vm.prank({ msgSender: users.eve });
         space.execute({ module: address(usdt), value: 0, data: data });
@@ -119,13 +117,19 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
             cycles: Constants.SUBSCRIPTION_CYCLES,
             validUntil: uint40(block.timestamp + Constants.SUBSCRIPTION_QUOTE_TTL),
             asset: address(usdt),
-            tier: Constants.SUBSCRIPTION_TIER,
-            amount: Constants.SUBSCRIPTION_AMOUNT
+            tier: Constants.SUBSCRIPTION_TIER
         });
     }
 
+    /// @dev The buffered ERC-20 allowance a {Space} grants at subscribe time (`amount * cycles * buffer`), so a
+    /// moderate price increase can be charged without a new approval
+    function _bufferedExposure() internal pure returns (uint256) {
+        return uint256(Constants.SUBSCRIPTION_AMOUNT) * Constants.SUBSCRIPTION_CYCLES
+            * Constants.SUBSCRIPTION_BUFFER_MULTIPLIER;
+    }
+
     /// @dev Reproduces the exact digest the module rebuilds in `_verifySubscriptionSignature` and signs it with
-    /// the trusted backend signer key, returning the EIP-191 signature the module expects
+    /// the trusted relayer key, returning the EIP-191 signature the module expects
     function _signInput(Types.SubscribeInput memory input) internal view returns (bytes memory signature) {
         bytes32 rawHash = keccak256(
             abi.encode(
@@ -133,7 +137,6 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
                 input.space,
                 input.tier,
                 input.asset,
-                input.amount,
                 input.interval,
                 input.cycles,
                 input.validUntil,
@@ -143,7 +146,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
 
         bytes32 signedHash = rawHash.toEthSignedMessageHash();
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(subscriptionSignerKey, signedHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(subscriptionRelayerKey, signedHash);
         signature = abi.encodePacked(r, s, v);
     }
 
@@ -157,15 +160,20 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
         returns (bytes memory)
     {
         return abi.encodeWithSignature(
-            "subscribe((bytes32,address,uint40,uint16,uint40,address,uint8,uint128),bytes)", input, signature
+            "subscribe((bytes32,address,uint40,uint16,uint40,address,uint8),bytes)", input, signature
         );
     }
 
-    /// @dev Approves the module for the full exposure and registers the subscription through Eve's Space in one
-    /// batch, matching how a real subscription is created (approve + subscribe)
+    /// @dev Charges the default mock subscription for its next cycle as the trusted relayer
+    function _charge(uint128 amount) internal {
+        vm.prank({ msgSender: subscriptionRelayer });
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, amount: amount });
+    }
+
+    /// @dev Approves the module for the buffered exposure and registers the subscription through Eve's Space in
+    /// one batch, matching how a real subscription is created (approve + subscribe)
     function _subscribe(Types.SubscribeInput memory input) internal {
         bytes memory signature = _signInput(input);
-        uint256 fullExposure = uint256(input.amount) * input.cycles;
 
         address[] memory targets = new address[](2);
         targets[0] = address(usdt);
@@ -174,7 +182,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
         uint256[] memory values = new uint256[](2);
 
         bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSignature("approve(address,uint256)", address(subscriptionModule), fullExposure);
+        data[0] = abi.encodeWithSignature("approve(address,uint256)", address(subscriptionModule), _bufferedExposure());
         data[1] = _subscribeData(input, signature);
 
         vm.prank({ msgSender: users.eve });

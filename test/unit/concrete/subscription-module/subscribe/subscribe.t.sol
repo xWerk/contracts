@@ -40,15 +40,15 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         space.execute({ module: address(subscriptionModule), value: 0, data: _subscribeData(input, signature) });
     }
 
-    function test_RevertWhen_InvalidBackendSignature() external whenCallerSpace {
+    function test_RevertWhen_InvalidRelayerSignature() external whenCallerSpace {
         Types.SubscribeInput memory input = _defaultInput();
 
-        // Sign the exact terms with the correct signer, then alter the amount after signing
+        // Sign the exact terms with the correct relayer, then alter a signed field (tier) after signing
         bytes memory signature = _signInput(input);
-        input.amount = Constants.SUBSCRIPTION_AMOUNT + 1;
+        input.tier = Constants.SUBSCRIPTION_TIER + 1;
 
-        // Expect the next call to revert with the {InvalidBackendSignature} error
-        vm.expectRevert(Errors.InvalidBackendSignature.selector);
+        // Expect the next call to revert with the {InvalidRelayerSignature} error
+        vm.expectRevert(Errors.InvalidRelayerSignature.selector);
 
         // Run the test
         space.execute({ module: address(subscriptionModule), value: 0, data: _subscribeData(input, signature) });
@@ -84,7 +84,6 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
             subscriptionId: input.subscriptionId,
             tier: input.tier,
             asset: input.asset,
-            amount: input.amount,
             interval: input.interval,
             cycles: input.cycles,
             start: expectedStart
@@ -103,7 +102,6 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         assertEq(subscription.tier, input.tier);
         assertFalse(subscription.isRevoked);
         assertEq(subscription.cyclesCharged, 0);
-        assertEq(subscription.amount, input.amount);
 
         // Assert the derived status is PastDue right after subscribing: cycle 0 is due at `start` and has
         // not been charged yet

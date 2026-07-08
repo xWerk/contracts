@@ -13,12 +13,21 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         SubscriptionModule_Unit_Concrete_Test.setUp();
     }
 
+    function test_RevertWhen_CallerNotRelayer() external givenSubscribed {
+        // Expect the next call to revert with the {OnlyRelayer} error
+        vm.expectRevert(Errors.OnlyRelayer.selector);
+
+        // Run the test: charge from an address that is not the trusted relayer
+        vm.prank({ msgSender: users.bob });
+        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID, amount: Constants.SUBSCRIPTION_AMOUNT });
+    }
+
     function test_RevertWhen_SubscriptionNull() external {
         // Expect the next call to revert with the {SubscriptionNull} error
         vm.expectRevert(Errors.SubscriptionNull.selector);
 
         // Run the test: charge a `subscriptionId` that was never registered
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
     }
 
     function test_RevertWhen_SubscriptionRevoked() external givenSubscribed {
@@ -34,14 +43,14 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         vm.expectRevert(Errors.SubscriptionRevoked.selector);
 
         // Run the test
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
     }
 
     function test_RevertWhen_SubscriptionEnded() external givenSubscribed {
         // Charge every cycle: warp to each cycle's start and charge it
         for (uint256 cycle = 0; cycle < Constants.SUBSCRIPTION_CYCLES; ++cycle) {
             vm.warp({ newTimestamp: _cycleStart(cycle) });
-            subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+            _charge(Constants.SUBSCRIPTION_AMOUNT);
         }
 
         // Warp far beyond the whole billing window so time is not the limiting factor
@@ -51,19 +60,19 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         vm.expectRevert(Errors.SubscriptionEnded.selector);
 
         // Run the test: all `cycles` cycles have been charged
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
     }
 
     function test_RevertWhen_CycleNotDue() external givenSubscribed {
         // Charge cycle 0 successfully (it is due at `start`)
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
 
         // Expect the next call to revert with the {CycleNotDue} error
         vm.expectRevert(Errors.CycleNotDue.selector);
 
         // Run the test: this is the double-charge guard — the counter moved to cycle 1, which only becomes
         // due one interval after `start`, so an immediate repeated charge must revert
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
     }
 
     function test_RevertWhen_SpaceHasNotApprovedModule() external {
@@ -79,7 +88,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         vm.expectRevert();
 
         // Run the test
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
     }
 
     function test_Charge() external givenSubscribed {
@@ -90,7 +99,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         // The subscription starts at the current timestamp, so cycle 0's `paidUntil` is one interval later
         uint40 expectedPaidUntil = uint40(block.timestamp) + Constants.SUBSCRIPTION_INTERVAL;
 
-        // Expect the {SubscriptionCharged} event to be emitted with the pinned amount and computed `paidUntil`
+        // Expect the {SubscriptionCharged} event to be emitted with the relayer-supplied amount and `paidUntil`
         vm.expectEmit(address(subscriptionModule));
         emit ISubscriptionModule.SubscriptionCharged({
             space: address(space),
@@ -100,9 +109,8 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
             paidUntil: expectedPaidUntil
         });
 
-        // Run the test as the relayer (Bob) to prove the charge is permissionless
-        vm.prank({ msgSender: users.bob });
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        // Run the test as the trusted relayer
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
 
         // Assert the cycle was marked as charged
         assertTrue(subscriptionModule.isCharged(MOCK_SUBSCRIPTION_ID, 0));
@@ -110,9 +118,30 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         // Assert the charged-cycle counter was bumped
         assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).cyclesCharged, 1);
 
-        // Assert the pinned amount moved from the {Space} to the treasury
+        // Assert the amount moved from the {Space} to the treasury
         assertEq(IERC20(address(usdt)).balanceOf(address(space)), spaceBalanceBefore - Constants.SUBSCRIPTION_AMOUNT);
         assertEq(IERC20(address(usdt)).balanceOf(werkTreasury), treasuryBalanceBefore + Constants.SUBSCRIPTION_AMOUNT);
+    }
+
+    function test_Charge_PriceChangesBetweenCycles() external givenSubscribed {
+        // Snapshot the treasury balance before charging
+        uint256 treasuryBalanceBefore = IERC20(address(usdt)).balanceOf(werkTreasury);
+
+        // Charge cycle 0 at the base price
+        uint128 firstAmount = Constants.SUBSCRIPTION_AMOUNT;
+        _charge(firstAmount);
+
+        // Warp into cycle 1 and charge it at a higher price (a mid-life price increase, still within the buffer)
+        vm.warp({ newTimestamp: _cycleStart(1) });
+        uint128 secondAmount = Constants.SUBSCRIPTION_AMOUNT * 2;
+        _charge(secondAmount);
+
+        // Assert both cycles were charged with their respective amounts
+        assertEq(subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID).cyclesCharged, 2);
+        assertEq(
+            IERC20(address(usdt)).balanceOf(werkTreasury),
+            treasuryBalanceBefore + uint256(firstAmount) + uint256(secondAmount)
+        );
     }
 
     function test_Charge_CatchUp() external givenSubscribed {
@@ -123,9 +152,9 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         uint256 treasuryBalanceBefore = IERC20(address(usdt)).balanceOf(werkTreasury);
 
         // Charge the arrears: consecutive calls succeed while cycles remain overdue, in strict order
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
 
         // Assert cycles 0-2 are charged, the counter kept pace and exactly three payments were pulled
         assertTrue(subscriptionModule.isCharged(MOCK_SUBSCRIPTION_ID, 2));
@@ -139,7 +168,7 @@ contract charge_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         // Assert the subscription is paid up ({Active}) and a fourth charge reverts: cycle 3 is not due yet
         assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.Active));
         vm.expectRevert(Errors.CycleNotDue.selector);
-        subscriptionModule.charge({ subscriptionId: MOCK_SUBSCRIPTION_ID });
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
     }
 
     /// @dev Returns the timestamp at which `cycle` becomes chargeable for the default mock subscription

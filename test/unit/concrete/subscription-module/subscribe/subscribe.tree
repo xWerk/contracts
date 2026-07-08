@@ -4,9 +4,9 @@ subscribe.t.sol
 └── when caller is the {Space} declared in the inputs
     ├── when the signed terms have expired
     │   └── it should revert with the {SignatureExpired} error
-    ├── when the backend signature does not recover to the stored signer
-    │   └── it should revert with the {InvalidBackendSignature} error
-    └── when the backend signature is valid
+    ├── when the relayer signature does not recover to the stored relayer
+    │   └── it should revert with the {InvalidRelayerSignature} error
+    └── when the relayer signature is valid
         ├── when the subscription already exists
         │   └── it should revert with the {SubscriptionAlreadyExists} error
         └── when the subscription does not already exist

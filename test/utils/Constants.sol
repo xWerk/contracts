@@ -17,7 +17,7 @@ library Constants {
                                 SUBSCRIPTION-MODULE
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev The default per-cycle charge of a mock subscription (10 USDT, 6 decimals)
+    /// @dev The default per-cycle amount the relayer charges for a mock subscription (10 USDT, 6 decimals)
     uint128 public constant SUBSCRIPTION_AMOUNT = 10e6;
 
     /// @dev The default number of seconds between two consecutive subscription cycles (30 days)
@@ -29,6 +29,10 @@ library Constants {
     /// @dev The default plan identifier of a mock subscription
     uint8 public constant SUBSCRIPTION_TIER = 1;
 
-    /// @dev The default lifetime of backend-signed subscription terms (quote expiry window)
+    /// @dev The safety factor applied to the buffered approval (`amount * cycles * multiplier`) so a moderate
+    /// price increase can be charged without a new approval
+    uint256 public constant SUBSCRIPTION_BUFFER_MULTIPLIER = 3;
+
+    /// @dev The default lifetime of relayer-signed subscription terms (quote expiry window)
     uint40 public constant SUBSCRIPTION_QUOTE_TTL = 1 hours;
 }
