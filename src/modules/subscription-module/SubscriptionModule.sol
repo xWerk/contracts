@@ -185,7 +185,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
             cycles: input.cycles,
             start: start,
             asset: input.asset,
-            tier: input.tier,
             isRevoked: false,
             cyclesCharged: 0
         });
@@ -194,7 +193,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         emit Subscribed({
             space: input.space,
             subscriptionId: input.subscriptionId,
-            tier: input.tier,
             asset: input.asset,
             interval: input.interval,
             cycles: input.cycles,
@@ -321,7 +319,6 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
             abi.encode(
                 input.subscriptionId,
                 input.space,
-                input.tier,
                 input.asset,
                 input.interval,
                 input.cycles,

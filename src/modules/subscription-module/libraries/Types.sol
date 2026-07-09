@@ -21,7 +21,7 @@ library Types {
     }
 
     /// @notice Struct encapsulating the backend-signed inputs a {Space} consents to at subscribe time
-    /// @dev The backend signs over `keccak256(abi.encode(subscriptionId, space, tier, asset, interval,
+    /// @dev The backend signs over `keccak256(abi.encode(subscriptionId, space, asset, interval,
     /// cycles, validUntil, block.chainid))`. The signed layout must be treated as frozen.
     /// @param subscriptionId The backend-generated unique identifier; also the mapping key and the replay guard
     /// @param space The payer {Space} smart account; must be `msg.sender` at subscribe
@@ -29,7 +29,6 @@ library Types {
     /// @param cycles The total number of cycles the subscription runs for
     /// @param validUntil The timestamp after which the signed terms can no longer be used to subscribe (quote expiry)
     /// @param asset The address of the ERC-20 asset used to pay each cycle (e.g. USDC); backend-supplied & signed
-    /// @param tier The subscription plan identifier (informational only; emitted in events, not priced on-chain)
     struct SubscribeInput {
         // slot 0
         bytes32 subscriptionId;
@@ -40,7 +39,6 @@ library Types {
         uint40 validUntil;
         // slot 2
         address asset;
-        uint8 tier;
     }
 
     /// @notice Struct encapsulating the full subscription details pinned on-chain at subscribe time
@@ -53,7 +51,6 @@ library Types {
     /// @param cycles The total number of cycles
     /// @param start The timestamp at which cycle 0 became chargeable (set to `block.timestamp` at subscribe)
     /// @param asset The ERC-20 asset pulled from the {Space} each cycle (pinned at subscribe time)
-    /// @param tier The subscription plan identifier (informational)
     /// @param isRevoked Whether the {Space} has revoked the subscription; charging is then permanently disabled
     /// @param cyclesCharged The number of cycles charged so far; when it reaches `cycles` the subscription is
     /// {Status.Expired}
@@ -65,7 +62,6 @@ library Types {
         uint40 start;
         // slot 1
         address asset;
-        uint8 tier;
         bool isRevoked;
         uint16 cyclesCharged;
     }

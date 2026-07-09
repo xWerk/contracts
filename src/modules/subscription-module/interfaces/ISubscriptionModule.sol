@@ -28,7 +28,6 @@ interface ISubscriptionModule {
     /// @notice Emitted when a {Space} subscribes
     /// @param space The payer {Space} smart account
     /// @param subscriptionId The backend-generated unique identifier of the subscription
-    /// @param tier The plan identifier
     /// @param asset The ERC-20 asset used to pay each cycle
     /// @param interval The number of seconds between two consecutive cycles
     /// @param cycles The total number of cycles
@@ -36,7 +35,6 @@ interface ISubscriptionModule {
     event Subscribed(
         address indexed space,
         bytes32 indexed subscriptionId,
-        uint8 tier,
         address asset,
         uint40 interval,
         uint16 cycles,
@@ -113,7 +111,7 @@ interface ISubscriptionModule {
     /// - `msg.sender` must equal `input.space` (consent is proven by `Space.executeBatch`'s `onlyAdminOrEntrypoint` gate)
     /// - the signed terms must not have expired (`block.timestamp <= input.validUntil`)
     /// - the relayer signature must recover to the stored relayer over
-    ///   `keccak256(abi.encode(subscriptionId, space, tier, asset, interval, cycles, validUntil, block.chainid))`
+    ///   `keccak256(abi.encode(subscriptionId, space, asset, interval, cycles, validUntil, block.chainid))`
     ///   wrapped with the EIP-191 prefix (input integrity)
     /// - `input.subscriptionId` must not already be registered
     ///

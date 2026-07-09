@@ -43,9 +43,9 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
     function test_RevertWhen_InvalidRelayerSignature() external whenCallerSpace {
         Types.SubscribeInput memory input = _defaultInput();
 
-        // Sign the exact terms with the correct relayer, then alter a signed field (tier) after signing
+        // Sign the exact terms with the correct relayer, then alter a signed field (interval) after signing
         bytes memory signature = _signInput(input);
-        input.tier = Constants.SUBSCRIPTION_TIER + 1;
+        input.interval = Constants.SUBSCRIPTION_INTERVAL + 1;
 
         // Expect the next call to revert with the {InvalidRelayerSignature} error
         vm.expectRevert(Errors.InvalidRelayerSignature.selector);
@@ -82,7 +82,6 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         emit ISubscriptionModule.Subscribed({
             space: address(space),
             subscriptionId: input.subscriptionId,
-            tier: input.tier,
             asset: input.asset,
             interval: input.interval,
             cycles: input.cycles,
@@ -99,7 +98,6 @@ contract subscribe_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         assertEq(subscription.cycles, input.cycles);
         assertEq(subscription.start, expectedStart);
         assertEq(subscription.asset, input.asset);
-        assertEq(subscription.tier, input.tier);
         assertFalse(subscription.isRevoked);
         assertEq(subscription.cyclesCharged, 0);
 

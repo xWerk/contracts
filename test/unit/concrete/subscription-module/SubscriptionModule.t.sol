@@ -116,8 +116,7 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
             interval: Constants.SUBSCRIPTION_INTERVAL,
             cycles: Constants.SUBSCRIPTION_CYCLES,
             validUntil: uint40(block.timestamp + Constants.SUBSCRIPTION_QUOTE_TTL),
-            asset: address(usdt),
-            tier: Constants.SUBSCRIPTION_TIER
+            asset: address(usdt)
         });
     }
 
@@ -135,7 +134,6 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
             abi.encode(
                 input.subscriptionId,
                 input.space,
-                input.tier,
                 input.asset,
                 input.interval,
                 input.cycles,
@@ -159,9 +157,8 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
         pure
         returns (bytes memory)
     {
-        return abi.encodeWithSignature(
-            "subscribe((bytes32,address,uint40,uint16,uint40,address,uint8),bytes)", input, signature
-        );
+        return
+            abi.encodeWithSignature("subscribe((bytes32,address,uint40,uint16,uint40,address),bytes)", input, signature);
     }
 
     /// @dev Charges the default mock subscription for its next cycle as the trusted relayer

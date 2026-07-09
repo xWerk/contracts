@@ -26,9 +26,6 @@ library Constants {
     /// @dev The default total number of cycles of a mock subscription
     uint16 public constant SUBSCRIPTION_CYCLES = 12;
 
-    /// @dev The default plan identifier of a mock subscription
-    uint8 public constant SUBSCRIPTION_TIER = 1;
-
     /// @dev The safety factor applied to the buffered approval (`amount * cycles * multiplier`) so a moderate
     /// price increase can be charged without a new approval
     uint256 public constant SUBSCRIPTION_BUFFER_MULTIPLIER = 3;
