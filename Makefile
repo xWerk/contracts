@@ -82,17 +82,18 @@ deploy-subscription-module:
 					--rpc-url $(RPC_URL) --account werk-deployer --etherscan-api-key $(ETHERSCAN_API_KEY) \
 					--broadcast --verify --ffi
 
-# Adds a deployed module to the {ModuleKeeper} allowlist
+# Adds one or more deployed modules to the {ModuleKeeper} allowlist in a single call
 #
 # NOTE: the {werk-deployer} account MUST be the {ModuleKeeper} owner
 #
 # Update the following configs before running the script:
 #	- {MODULE_KEEPER} with the address of the {ModuleKeeper} on the target chain
-#	- {MODULE} with the address of the deployed module to allowlist
+#	- {MODULES} with the array of module addresses to allowlist, e.g. "[0xAbc...,0xDef...]" (a single address
+#	  is just a one-element array, e.g. "[0xAbc...]")
 #	- {RPC_URL} with the network RPC used for the transaction
 allowlist-module:
 					forge script script/AllowlistModule.s.sol:AllowlistModule \
-					--sig "run(address,address)" $(MODULE_KEEPER) $(MODULE) \
+					--sig "run(address,address[])" $(MODULE_KEEPER) $(MODULES) \
 					--rpc-url $(RPC_URL) --account werk-deployer \
 					--broadcast
 
