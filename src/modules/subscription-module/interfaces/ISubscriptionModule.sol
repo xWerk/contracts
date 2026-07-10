@@ -130,7 +130,7 @@ interface ISubscriptionModule {
     /// Cycles are charged strictly in order: the next chargeable cycle is always `cyclesCharged`
     ///
     /// Requirements:
-    /// - `msg.sender` must be the trusted relayer
+    /// - `msg.sender` must be the trusted relayer (or the module itself, via {chargeBatch})
     /// - the `subscriptionId` subscription must be registered and not revoked
     /// - the subscription must not have reached its natural end (`cyclesCharged < cycles`)
     /// - the next cycle must be due (`block.timestamp >= start + cyclesCharged * interval`)
@@ -148,6 +148,19 @@ interface ISubscriptionModule {
     /// @param subscriptionId The unique identifier of the subscription
     /// @param amount The amount to pull from the {Space} for this cycle (relayer-supplied)
     function charge(bytes32 subscriptionId, uint128 amount) external;
+
+    /// @notice Charges the next due cycle of multiple subscriptions in a single transaction
+    ///
+    /// Each item is isolated in an external self-call (`try this.charge(...)`), so one failing charge will not
+    //  revert the rest of the batch. A failed item remains due, so the relayer simply retries it on a later run
+    ///
+    /// Requirements:
+    /// - `msg.sender` must be the trusted relayer
+    /// - `subscriptionIds` and `amounts` must have the same length
+    ///
+    /// @param subscriptionIds The unique identifiers of the subscriptions to charge, in order
+    /// @param amounts The amount to pull for each subscription
+    function chargeBatch(bytes32[] calldata subscriptionIds, uint128[] calldata amounts) external;
 
     /// @notice Revokes a subscription, preventing any further charges
     ///

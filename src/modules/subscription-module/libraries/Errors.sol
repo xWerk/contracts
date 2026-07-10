@@ -11,8 +11,11 @@ library Errors {
     /// @notice Thrown when the caller is not the {Space} declared in the subscription inputs (on {subscribe} or {revoke})
     error OnlySubscriptionSpace();
 
-    /// @notice Thrown when the caller of {charge} is not the trusted relayer
+    /// @notice Thrown when the caller of {charge} or {chargeBatch} is not the trusted relayer
     error OnlyRelayer();
+
+    /// @notice Thrown when {chargeBatch} is called with `subscriptionIds` and `amounts` of different lengths
+    error ArrayLengthMismatch();
 
     /// @notice Thrown when the backend signature does not recover to the stored relayer (tampered terms or wrong signer)
     error InvalidRelayerSignature();

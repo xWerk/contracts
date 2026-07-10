@@ -205,8 +205,10 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         // Retrieve the contract storage
         SubscriptionModuleStorage storage $ = _getSubscriptionModuleStorage();
 
-        // Checks: the caller is the trusted relayer
-        if (msg.sender != $.relayer) revert Errors.OnlyRelayer();
+        // Checks: the caller is the trusted relayer, or the module itself.
+        if (msg.sender != $.relayer && msg.sender != address(this)) {
+            revert Errors.OnlyRelayer();
+        }
 
         // Load the full subscription details
         Types.Subscription memory subscription = $.subscriptions[subscriptionId];
@@ -238,6 +240,23 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
 
         // Log the successful charge
         emit SubscriptionCharged(subscription.space, subscriptionId, cycle, amount, paidUntil);
+    }
+
+    /// @inheritdoc ISubscriptionModule
+    function chargeBatch(bytes32[] calldata subscriptionIds, uint128[] calldata amounts) external {
+        // Checks: the caller is the trusted relayer
+        if (msg.sender != _getSubscriptionModuleStorage().relayer) revert Errors.OnlyRelayer();
+
+        // Checks: same input array length
+        if (subscriptionIds.length != amounts.length) revert Errors.ArrayLengthMismatch();
+
+        // Cache the length so the loop condition does not read it on each iteration
+        uint256 subscriptionsLength = subscriptionIds.length;
+
+        for (uint256 i; i < subscriptionsLength; ++i) {
+            // Use try/catch block to ensure one failing transaction is silently skipped
+            try this.charge(subscriptionIds[i], amounts[i]) { } catch { }
+        }
     }
 
     /// @inheritdoc ISubscriptionModule
