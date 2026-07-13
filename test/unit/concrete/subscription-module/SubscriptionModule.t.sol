@@ -31,6 +31,9 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
     /// @dev A deterministic mock subscription identifier reused across the suite
     bytes32 internal constant MOCK_SUBSCRIPTION_ID = keccak256("werk.subscription.mock");
 
+    /// @dev A second deterministic subscription id used to exercise multi-item batches
+    bytes32 internal constant SECOND_SUBSCRIPTION_ID = keccak256("werk.subscription.mock.second");
+
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
     //////////////////////////////////////////////////////////////////////////*/
@@ -85,6 +88,10 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
     }
 
     modifier whenValidBackendSignature() {
+        _;
+    }
+
+    modifier whenArrayLengthMatch() {
         _;
     }
 
@@ -184,5 +191,13 @@ contract SubscriptionModule_Unit_Concrete_Test is Base_Test {
 
         vm.prank({ msgSender: users.eve });
         space.executeBatch({ modules: targets, values: values, data: data });
+    }
+
+    /// @dev Builds a one-item batch for the default mock subscription
+    function _singleItemBatch(uint128 amount) internal pure returns (bytes32[] memory ids, uint128[] memory amounts) {
+        ids = new bytes32[](1);
+        ids[0] = MOCK_SUBSCRIPTION_ID;
+        amounts = new uint128[](1);
+        amounts[0] = amount;
     }
 }

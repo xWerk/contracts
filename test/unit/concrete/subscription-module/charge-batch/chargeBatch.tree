@@ -1,0 +1,13 @@
+chargeBatch.t.sol
+├── when the caller is not the relayer
+│   └── it should revert with the {OnlyRelayer} error
+└── when the caller is the relayer
+    ├── when the `id` and `amount` arrays have different lengths
+    │   └── it should revert with the {ArrayLengthMismatch} error
+    └── when the `id` and `amount` arrays have the same length
+        ├── it should charge each subscription's next due cycle with the provided amount
+        ├── it should transfer the amount from the {Space}s to the treasury
+        └── when an item fails 
+            ├── it should skip the failing item without reverting the batch
+            ├── it should not change the failed item's state
+            └── it should charge the rest of the items
