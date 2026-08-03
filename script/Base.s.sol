@@ -7,6 +7,15 @@ contract BaseScript is Script {
     /// @dev The address of the default protocol admin
     address internal constant DEFAULT_PROTOCOL_ADMIN = 0xcaE83b7162d64022f7Da3D011fc96761cB14116a;
 
+    /// @dev The treasury that receives all {SubscriptionModule} charges
+    /// @dev TODO: replace this placeholder with the real subscription-revenue treasury before any production
+    /// deployment.
+    address internal constant DEFAULT_SUBSCRIPTION_TREASURY = DEFAULT_PROTOCOL_ADMIN;
+
+    /// @dev The trusted relayer for the {SubscriptionModule}: the backend EOA that signs subscribe terms and is
+    /// the only address allowed to call `charge` (same address across all chains)
+    address internal constant DEFAULT_SUBSCRIPTION_RELAYER = DEFAULT_PROTOCOL_ADMIN;
+
     /// @dev The address of the Entrypoint v6 deployment
     address internal constant ENTRYPOINT_V6 = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
 
@@ -173,14 +182,7 @@ contract BaseScript is Script {
 
     /// @notice Generates a salt used for deterministic deployments based on the contract name and a given input salt
     /// @dev ABI encodes the given `contractName` and `inputSalt` strings into a `bytes32` value
-    function constructCreate3Salt(
-        string memory contractName,
-        string memory inputSalt
-    )
-        internal
-        pure
-        returns (bytes32)
-    {
+    function constructCreate3Salt(string memory contractName, string memory inputSalt) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(contractName, inputSalt));
     }
 }

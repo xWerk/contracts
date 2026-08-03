@@ -1,0 +1,9 @@
+setTreasury.t.sol
+├── when the caller is not the owner
+│   └── it should revert with the {OwnableUnauthorizedAccount} error
+└── when the caller is the owner
+    ├── when the new treasury is the zero address
+    │   └── it should revert with the {InvalidZeroAddressTreasury} error
+    └── when the new treasury is not the zero address
+        ├── it should update the treasury address
+        └── it should emit the {TreasuryUpdated} event

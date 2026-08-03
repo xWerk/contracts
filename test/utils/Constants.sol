@@ -12,4 +12,24 @@ library Constants {
 
     /// @dev The rate per second of a compensation component
     UD21x18 public constant RATE_PER_SECOND = UD21x18.wrap(0.001e18); // 86.4 daily
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                SUBSCRIPTION-MODULE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev The default per-cycle amount the relayer charges for a mock subscription (10 USDT, 6 decimals)
+    uint128 public constant SUBSCRIPTION_AMOUNT = 10e6;
+
+    /// @dev The default number of seconds between two consecutive subscription cycles (30 days)
+    uint40 public constant SUBSCRIPTION_INTERVAL = 30 days;
+
+    /// @dev The default total number of cycles of a mock subscription
+    uint16 public constant SUBSCRIPTION_CYCLES = 12;
+
+    /// @dev The safety factor applied to the buffered approval (`amount * cycles * multiplier`) so a moderate
+    /// price increase can be charged without a new approval
+    uint256 public constant SUBSCRIPTION_BUFFER_MULTIPLIER = 3;
+
+    /// @dev The default lifetime of relayer-signed subscription terms (quote expiry window)
+    uint40 public constant SUBSCRIPTION_QUOTE_TTL = 1 hours;
 }

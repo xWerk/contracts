@@ -53,13 +53,7 @@ abstract contract StreamManager is IStreamManager, Initializable, OwnableUpgrade
         _disableInitializers();
     }
 
-    function __StreamManager_init(
-        ISablierLockup _sablierLockup,
-        address _initialAdmin
-    )
-        internal
-        onlyInitializing
-    {
+    function __StreamManager_init(ISablierLockup _sablierLockup, address _initialAdmin) internal onlyInitializing {
         __Ownable_init(_initialAdmin);
 
         // Retrieve the storage of the {StreamManager} contract

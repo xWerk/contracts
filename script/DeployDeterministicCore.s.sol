@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import { BaseScript } from "./Base.s.sol";
 import { PaymentModule } from "src/modules/payment-module/PaymentModule.sol";
 import { CompensationModule } from "src/modules/compensation-module/CompensationModule.sol";
+import { SubscriptionModule } from "src/modules/subscription-module/SubscriptionModule.sol";
 import { StationRegistry } from "src/StationRegistry.sol";
 import { ModuleKeeper } from "src/ModuleKeeper.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
@@ -30,15 +31,17 @@ contract DeployDeterministicCore is BaseScript {
             ModuleKeeper moduleKeeper,
             StationRegistry stationRegistry,
             PaymentModule paymentModule,
-            CompensationModule compensationModule
+            CompensationModule compensationModule,
+            SubscriptionModule subscriptionModule
         )
     {
         moduleKeeper = _deployModuleKeeper(inputSalt);
         stationRegistry = _deployStationRegistry(inputSalt, moduleKeeper);
         paymentModule = _deployPaymentModule(inputSalt);
         compensationModule = _deployCompensationModule(inputSalt);
+        subscriptionModule = _deploySubscriptionModule(inputSalt);
 
-        _configureModuleKeeper(moduleKeeper, paymentModule, compensationModule);
+        _configureModuleKeeper(moduleKeeper, paymentModule, compensationModule, subscriptionModule);
     }
 
     /// @dev Deploys {ModuleKeeper} at a deterministic address across chains
@@ -135,16 +138,40 @@ contract DeployDeterministicCore is BaseScript {
         compensationModule = CompensationModule(CREATE3.deployDeterministic(compensationModuleProxyBytecode, salt));
     }
 
+    /// @dev Deploys {SubscriptionModule} as an ERC1967 proxy at a deterministic address across chains
+    function _deploySubscriptionModule(string memory inputSalt)
+        internal
+        returns (SubscriptionModule subscriptionModule)
+    {
+        // Construct the CREATE3 salt based on the contract name and the provided input salt
+        bytes32 salt = constructCreate3Salt("SubscriptionModule", inputSalt);
+
+        address subscriptionModuleImplementation = address(new SubscriptionModule());
+        bytes memory subscriptionModuleInitData = abi.encodeWithSelector(
+            SubscriptionModule.initialize.selector,
+            DEFAULT_PROTOCOL_ADMIN,
+            DEFAULT_SUBSCRIPTION_RELAYER,
+            DEFAULT_SUBSCRIPTION_TREASURY
+        );
+        bytes memory subscriptionModuleProxyBytecode = abi.encodePacked(
+            type(ERC1967Proxy).creationCode, abi.encode(subscriptionModuleImplementation, subscriptionModuleInitData)
+        );
+
+        subscriptionModule = SubscriptionModule(CREATE3.deployDeterministic(subscriptionModuleProxyBytecode, salt));
+    }
+
     /// @dev Adds deployed modules and external contract addresses to the {ModuleKeeper} allowlist
     function _configureModuleKeeper(
         ModuleKeeper moduleKeeper,
         PaymentModule paymentModule,
-        CompensationModule compensationModule
+        CompensationModule compensationModule,
+        SubscriptionModule subscriptionModule
     )
         internal
     {
         modules.push(address(paymentModule));
         modules.push(address(compensationModule));
+        modules.push(address(subscriptionModule));
 
         // Add the USDC, WETH and Across {SpokePool} deployments to the allowlist
         modules.push(address(usdcMap[block.chainid]));

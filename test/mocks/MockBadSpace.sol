@@ -225,15 +225,7 @@ contract MockBadSpace is ISpace, AccountCore, ERC1271 {
     }
 
     /// @inheritdoc ERC1271
-    function isValidSignature(
-        bytes32 _hash,
-        bytes memory _signature
-    )
-        public
-        view
-        override
-        returns (bytes4 magicValue)
-    {
+    function isValidSignature(bytes32 _hash, bytes memory _signature) public view override returns (bytes4 magicValue) {
         // Compute the hash of message the should be signed
         bytes32 targetDigest = getMessageHash(_hash);
 

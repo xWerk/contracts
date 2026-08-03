@@ -1,0 +1,14 @@
+subscribe.t.sol
+├── when caller is not the {Space} declared in the inputs
+│   └── it should revert with the {OnlySubscriptionSpace} error
+└── when caller is the {Space} declared in the inputs
+    ├── when the signed terms have expired
+    │   └── it should revert with the {SignatureExpired} error
+    ├── when the relayer signature does not recover to the stored relayer
+    │   └── it should revert with the {InvalidRelayerSignature} error
+    └── when the relayer signature is valid
+        ├── when the subscription already exists
+        │   └── it should revert with the {SubscriptionAlreadyExists} error
+        └── when the subscription does not already exist
+            ├── it should save the subscription details
+            └── it should emit the {Subscribed} event
