@@ -273,15 +273,17 @@ contract SubscriptionModule is ISubscriptionModule, OwnableUpgradeable, UUPSUpgr
         // Checks: the subscription is not already revoked
         if (subscription.isRevoked) revert Errors.SubscriptionRevoked();
 
-        // Checks: the caller is the {Space} that subscribed
+        // Checks: the caller is the {Space} that subscribed or the relayer
         // Note: the {Space} calls this via `Space.execute`, which is admin-gated
-        if (msg.sender != subscription.space) revert Errors.OnlySubscriptionSpace();
+        if (msg.sender != subscription.space && msg.sender != $.relayer) {
+            revert Errors.OnlySpaceOrRelayer();
+        }
 
         // Effects: mark the subscription as revoked
         subscription.isRevoked = true;
 
         // Log the subscription revocation
-        emit Revoked(msg.sender, subscriptionId);
+        emit Revoked(subscription.space, subscriptionId);
     }
 
     /// @inheritdoc ISubscriptionModule

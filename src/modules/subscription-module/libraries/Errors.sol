@@ -8,8 +8,11 @@ library Errors {
                                     SUBSCRIPTION-MODULE
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when the caller is not the {Space} declared in the subscription inputs (on {subscribe} or {revoke})
+    /// @notice Thrown when the caller is not the {Space} declared in the subscription inputs
     error OnlySubscriptionSpace();
+
+    /// @notice Thrown when the caller of {revoke} is neither the subscription's {Space} nor the relayer
+    error OnlySpaceOrRelayer();
 
     /// @notice Thrown when the caller of {charge} or {chargeBatch} is not the trusted relayer
     error OnlyRelayer();

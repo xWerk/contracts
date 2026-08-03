@@ -51,7 +51,7 @@ interface ISubscriptionModule {
         address indexed space, bytes32 indexed subscriptionId, uint256 indexed cycle, uint128 amount, uint40 paidUntil
     );
 
-    /// @notice Emitted when a {Space} revokes a subscription
+    /// @notice Emitted when a subscription is revoked
     /// @param space The payer {Space} smart account
     /// @param subscriptionId The unique identifier of the revoked subscription
     event Revoked(address indexed space, bytes32 indexed subscriptionId);
@@ -166,7 +166,7 @@ interface ISubscriptionModule {
     ///
     /// Requirements:
     /// - the `subscriptionId` subscription must be currently active
-    /// - `msg.sender` must equal the `space` of the stored subscription
+    /// - `msg.sender` must be either the `space` of the stored subscription or the trusted relayer
     ///
     /// @param subscriptionId The unique identifier of the subscription to revoke
     function revoke(bytes32 subscriptionId) external;

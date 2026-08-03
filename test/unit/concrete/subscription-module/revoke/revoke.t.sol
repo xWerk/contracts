@@ -50,18 +50,19 @@ contract revoke_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
         });
     }
 
-    function test_RevertWhen_CallerNotSubscriptionSpace() external givenSubscribed {
-        // Make Bob the direct caller: `msg.sender` (Bob) != the subscription's {Space} (Eve's Space)
+    function test_RevertWhen_CallerNotSpaceOrRelayer() external givenSubscribed {
+        // Make Bob the direct caller: `msg.sender` (Bob) is neither the subscription's {Space} (Eve's Space)
+        // nor the relayer
         vm.prank({ msgSender: users.bob });
 
-        // Expect the next call to revert with the {OnlySubscriptionSpace} error
-        vm.expectRevert(Errors.OnlySubscriptionSpace.selector);
+        // Expect the next call to revert with the {OnlySpaceOrRelayer} error
+        vm.expectRevert(Errors.OnlySpaceOrRelayer.selector);
 
         // Run the test
         subscriptionModule.revoke(MOCK_SUBSCRIPTION_ID);
     }
 
-    function test_Revoke() external givenSubscribed {
+    function test_Revoke_WhenCallerSubstriptionSpace() external givenSubscribed {
         // Make Eve the caller
         vm.prank({ msgSender: users.eve });
 
@@ -75,6 +76,27 @@ contract revoke_Unit_Concrete_Test is SubscriptionModule_Unit_Concrete_Test {
             value: 0,
             data: abi.encodeWithSignature("revoke(bytes32)", MOCK_SUBSCRIPTION_ID)
         });
+
+        // Assert the subscription was marked as revoked
+        Types.Subscription memory subscription = subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID);
+        assertTrue(subscription.isRevoked);
+        assertEq(uint8(subscriptionModule.statusOf(MOCK_SUBSCRIPTION_ID)), uint8(Types.Status.Revoked));
+
+        // Assert any further charge is now prevented
+        vm.expectRevert(Errors.SubscriptionRevoked.selector);
+        _charge(Constants.SUBSCRIPTION_AMOUNT);
+    }
+
+    function test_Revoke_WhenCallerRelayer() external givenSubscribed {
+        // Make the trusted relayer the caller: the platform revoking a {Space} it does not control
+        vm.prank({ msgSender: subscriptionRelayer });
+
+        // Expect the {Revoked} event to be attributed to Eve's Space rather than to the relayer that called it
+        vm.expectEmit(address(subscriptionModule));
+        emit ISubscriptionModule.Revoked({ space: address(space), subscriptionId: MOCK_SUBSCRIPTION_ID });
+
+        // Run the test: the relayer calls the module directly, without going through `Space.execute`
+        subscriptionModule.revoke(MOCK_SUBSCRIPTION_ID);
 
         // Assert the subscription was marked as revoked
         Types.Subscription memory subscription = subscriptionModule.getSubscription(MOCK_SUBSCRIPTION_ID);
