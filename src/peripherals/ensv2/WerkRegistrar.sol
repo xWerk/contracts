@@ -6,14 +6,10 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 import { IRegistry } from "@ensv2/registry/interfaces/IRegistry.sol";
-import { RegistryRolesLib } from "@ensv2/registry/libraries/RegistryRolesLib.sol";
+import { IAddressSetter } from "@ensv2/resolver/interfaces/setters/IAddressSetter.sol";
+import { ENSIP19 } from "@ens/contracts/utils/ENSIP19.sol";
 import { ISpace } from "./../../interfaces/ISpace.sol";
 import { Ownable } from "./../../abstracts/Ownable.sol";
-
-/// @notice Minimal ENSIP-11 interface for resolvers that support setting multi-coin address records
-interface IAddrResolver {
-    function setAddr(bytes32 node, uint256 coinType, bytes calldata value) external;
-}
 
 /// @title WerkRegistrar
 /// @notice Registrar for subnames under `werk.eth`, enforcing one subname per Werk space
@@ -32,6 +28,16 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
     /// @notice Namehash of `werk.eth`, used as parent node for subname nodes
     /// @dev See https://docs.ens.domains/resolution/names/
     bytes32 public constant WERK_NODE = 0x628ee8eef5c1212354266f4458b77fa81c351f6d80eef1cdd59827763d44edb8;
+
+    /// @notice DNS-encoded `werk.eth` suffix, appended to a length-prefixed label to build a full DNS-encoded name
+    /// @dev The ENSv2 resolver keys records by DNS-encoded name rather than by node
+    bytes public constant WERK_DNS_SUFFIX = hex"047765726b0365746800";
+
+    /// @notice Minimum length of a label
+    uint256 public constant MIN_LABEL_LENGTH = 3;
+
+    /// @notice Maximum length of a label, matching the DNS limit for a single label
+    uint256 public constant MAX_LABEL_LENGTH = 63;
 
     /// @notice Maps a Werk space to its claimed label hash
     // Note: helps to enforce one subname per space
@@ -66,14 +72,16 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
     /// @param expiresAt The timestamp at which the reservation expires
     event SubnameReserved(string indexed label, address indexed owner, uint40 expiresAt);
 
-    /// @notice Revert when `space` is the zero address
-    error ZeroSpace();
+    /// @notice Revert when `coinType` is not an EVM coin type, as a space's address is only valid on EVM chains
+    /// @param coinType The rejected ENSIP-11 coin type
+    error InvalidCoinType(uint256 coinType);
 
     /// @notice Revert when caller is not the Werk space address
     error NotSpaceCaller();
 
-    /// @notice Revert when `label` is empty
-    error EmptyLabel();
+    /// @notice Revert when `label` does not follow the label rules enforced by {_isValidLabel}
+    /// @param label The rejected label
+    error InvalidLabel(string label);
 
     /// @notice Revert when the space already has a subname registered
     /// @param space The Werk space address
@@ -119,8 +127,13 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
 
     /// @notice Checks if a given label is available for registration
     /// @param label The label to check availability for
-    /// @return True if the label can be registered, false if already taken or actively reserved
+    /// @return True if the label can be registered, false if invalid, already taken or actively reserved
     function available(string calldata label) external view returns (bool) {
+        // Check if the label follows the label rules
+        if (!_isValidLabel(label)) {
+            return false;
+        }
+
         bytes32 labelHash = keccak256(bytes(label));
 
         // Check if the label is already claimed
@@ -140,10 +153,9 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
     /// @notice Reserves a label for 30 minutes for the caller
     /// @param label The label to reserve (e.g. "alice" for "alice.werk.eth")
     function reserve(string calldata label) external onlySpace {
-        bytes memory labelBytes = bytes(label);
-        if (labelBytes.length == 0) revert EmptyLabel();
+        if (!_isValidLabel(label)) revert InvalidLabel(label);
 
-        bytes32 labelHash = keccak256(labelBytes);
+        bytes32 labelHash = keccak256(bytes(label));
 
         // Check if the label is already claimed
         address existingSpace = labelToSpace[labelHash];
@@ -172,10 +184,9 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
     /// Requires this contract to have `ROLE_REGISTRAR` on `werkRegistry`
     /// @param label subname for "werk.eth", e.g. "alice" for `alice.werk.eth`
     function register(string calldata label) external onlySpace nonReentrant {
-        bytes memory labelBytes = bytes(label);
-        if (labelBytes.length == 0) revert EmptyLabel();
+        if (!_isValidLabel(label)) revert InvalidLabel(label);
 
-        bytes32 labelHash = keccak256(labelBytes);
+        bytes32 labelHash = keccak256(bytes(label));
 
         // Validate reservation
         _validateReservation(labelHash, msg.sender);
@@ -198,36 +209,30 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
         labelToSpace[labelHash] = msg.sender;
 
         // Register the name in the Werk registry and set the default address record
-        uint256 tokenId = _registerAndSetAddr(label, labelHash, msg.sender);
+        uint256 tokenId = _registerAndSetAddr(label, msg.sender);
 
         emit WerkSubnameClaimed(msg.sender, label, tokenId, keccak256(abi.encodePacked(WERK_NODE, labelHash)));
     }
 
     /// @notice Add or update an address record for an additional coin type for an existing Werk subname
-    /// @dev Uses the caller's address as the encoded value, consistent with `claimSubname`
+    /// @dev Uses the caller's address as the encoded value, consistent with `register`
     ///      Caller must be the Werk space that owns the subname
+    ///      Only EVM coin types are accepted as the space's address is meaningless on non-EVM chains
     /// @param label Leftmost label, e.g. "alice" for `alice.werk.eth`
     /// @param coinType ENSIP-11 coin type to set an address for
     function addCoinType(string calldata label, uint256 coinType) external onlySpace nonReentrant {
-        if (coinType == 0) {
-            revert ZeroSpace();
+        if (!ENSIP19.isEVMCoinType(coinType)) {
+            revert InvalidCoinType(coinType);
         }
 
-        bytes memory labelBytes = bytes(label);
-        if (labelBytes.length == 0) revert EmptyLabel();
-
-        bytes32 labelHash = keccak256(labelBytes);
-
         // Only the space that owns this label may extend its records
-        address space = labelToSpace[labelHash];
+        // Note: no label validation needed as only valid labels can be registered
+        address space = labelToSpace[keccak256(bytes(label))];
         if (space == address(0) || space != msg.sender) {
             revert NotSpaceCaller();
         }
 
-        bytes32 node = keccak256(abi.encodePacked(WERK_NODE, labelHash));
-        bytes memory addrBytes = abi.encodePacked(space);
-
-        IAddrResolver(RESOLVER).setAddr(node, coinType, addrBytes);
+        IAddressSetter(RESOLVER).setAddress(_dnsEncode(label), coinType, abi.encodePacked(space));
     }
 
     /// @notice Return the Werk space that claimed a given label
@@ -274,23 +279,48 @@ contract WerkRegistrar is ReentrancyGuard, Ownable {
     }
 
     /// @dev Registers the subname on the Werk registry and sets the ENSIP-19 default address record
-    function _registerAndSetAddr(
-        string calldata label,
-        bytes32 labelHash,
-        address space
-    )
-        internal
-        returns (uint256 tokenId)
-    {
-        // Note: ROLE_CAN_TRANSFER_ADMIN is intentionally omitted to prevent transfers
-        // from desyncing the registrar's `spaceToLabel` and `labelToSpace` mappings
-        uint256 rolesForSpace =
-            RegistryRolesLib.ROLE_SET_RESOLVER | RegistryRolesLib.ROLE_RENEW | RegistryRolesLib.ROLE_UNREGISTER;
+    function _registerAndSetAddr(string calldata label, address space) internal returns (uint256 tokenId) {
+        // Note: the space is granted no roles on its subname. `ROLE_CAN_TRANSFER_ADMIN`, `ROLE_UNREGISTER` and
+        // `ROLE_SET_RESOLVER` would let it transfer, unregister or repoint the subname and desync the registrar's
+        // `spaceToLabel` and `labelToSpace` mappings, while `ROLE_RENEW` is useless as the subname never expires
+        tokenId = WERK_REGISTRY.register(label, space, IRegistry(address(0)), RESOLVER, 0, type(uint64).max);
 
-        tokenId = WERK_REGISTRY.register(label, space, IRegistry(address(0)), RESOLVER, rolesForSpace, type(uint64).max);
+        IAddressSetter(RESOLVER).setAddress(_dnsEncode(label), COIN_TYPE_DEFAULT, abi.encodePacked(space));
+    }
 
-        bytes32 node = keccak256(abi.encodePacked(WERK_NODE, labelHash));
-        IAddrResolver(RESOLVER).setAddr(node, COIN_TYPE_DEFAULT, abi.encodePacked(space));
+    /// @dev Checks that `label` follows the label rules, which guarantee it is already ENSIP-15 normalized:
+    ///  - between `MIN_LABEL_LENGTH` and `MAX_LABEL_LENGTH` characters
+    ///  - only lowercase letters (a-z), digits (0-9) and hyphens (-)
+    ///  - no leading or trailing hyphen
+    ///  - no hyphens at both the 3rd and 4th positions (reserved for the "xn--" punycode prefix)
+    function _isValidLabel(string calldata label) internal pure returns (bool) {
+        bytes calldata labelBytes = bytes(label);
+        uint256 length = labelBytes.length;
+
+        // Checks: the label length is within bounds
+        if (length < MIN_LABEL_LENGTH || length > MAX_LABEL_LENGTH) return false;
+
+        // Checks: the label does not start or end with a hyphen
+        if (labelBytes[0] == "-" || labelBytes[length - 1] == "-") return false;
+
+        // Checks: the label does not have hyphens at both the 3rd and 4th positions
+        if (length > 3 && labelBytes[2] == "-" && labelBytes[3] == "-") return false;
+
+        // Checks: every character is a lowercase letter, a digit or a hyphen
+        for (uint256 i; i < length; ++i) {
+            bytes1 char = labelBytes[i];
+            bool isLetter = char >= "a" && char <= "z";
+            bool isDigit = char >= "0" && char <= "9";
+            if (!isLetter && !isDigit && char != "-") return false;
+        }
+
+        return true;
+    }
+
+    /// @dev Builds the DNS-encoded name `<label>.werk.eth`
+    /// Note: `label` is at most `MAX_LABEL_LENGTH` bytes long and contains no dot as only valid labels are registered
+    function _dnsEncode(string calldata label) internal pure returns (bytes memory) {
+        return abi.encodePacked(uint8(bytes(label).length), label, WERK_DNS_SUFFIX);
     }
 
     /// @dev Checks that `msg.sender` is a deployed contract implementing {ISpace}
