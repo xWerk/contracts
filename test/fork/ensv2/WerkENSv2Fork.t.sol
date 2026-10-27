@@ -3,37 +3,34 @@ pragma solidity ^0.8.26;
 
 import { Space } from "src/Space.sol";
 import { MockNonCompliantSpace } from "../../mocks/MockNonCompliantSpace.sol";
-import { WerkRegistry } from "src/peripherals/ensv2/WerkRegistry.sol";
 import { WerkRegistrar } from "src/peripherals/ensv2/WerkRegistrar.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { IVerifiableFactory } from "src/peripherals/ensv2/interfaces/IVerifiableFactory.sol";
+import { WerkENSv2Deployer } from "script/ensv2/WerkENSv2Deployer.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
-import { RegistryRolesLib } from "@ensv2/registry/libraries/RegistryRolesLib.sol";
-import { IHCAFactoryBasic } from "@ensv2/hca/interfaces/IHCAFactoryBasic.sol";
-import { IRegistryMetadata } from "@ensv2/registry/interfaces/IRegistryMetadata.sol";
 import { IStandardRegistry } from "@ensv2/registry/interfaces/IStandardRegistry.sol";
 import { IRegistry } from "@ensv2/registry/interfaces/IRegistry.sol";
+import { IAddressSetter } from "@ensv2/resolver/interfaces/setters/IAddressSetter.sol";
+import { IEnhancedAccessControl } from "@ensv2/access-control/interfaces/IEnhancedAccessControl.sol";
+import { NameCoder } from "@ens/contracts/utils/NameCoder.sol";
 import { Constants } from "../../utils/Constants.sol";
 import { Fork_Test } from "../../fork/Fork.t.sol";
 
-/// @notice Minimal interface to read address records from the ENSv2 PermissionedResolver.
-interface IResolver {
-    function addr(bytes32 node) external view returns (address payable);
-    function addr(bytes32 node, uint256 coinType) external view returns (bytes memory);
-    function setAddr(bytes32 node, uint256 coinType, bytes calldata value) external;
-    function initialize(address admin, uint256 roleBitmap) external;
-    function grantRootRoles(uint256 roleBitmap, address account) external returns (bool);
+/// @notice Minimal interface of the ENS Universal Resolver used to resolve names end-to-end
+interface IUniversalResolver {
+    function resolve(bytes calldata name, bytes calldata data) external view returns (bytes memory, address);
 }
 
-/// @notice Fork test against local anvil running ENSv2 devnet.
-/// Tests the full subname registration and resolution flow.
+/// @notice Fork test against the live ENSv2 deployment on Sepolia
+/// Tests the full subname registration and resolution flow through the public Universal Resolver
+/// Skipped when the `SEPOLIA_RPC_URL` environment variable is not set
 contract WerkENSv2Fork_Test is Fork_Test {
     /*//////////////////////////////////////////////////////////////////////////
                                      VARIABLES
     //////////////////////////////////////////////////////////////////////////*/
 
-    WerkRegistry werkRegistry;
+    IPermissionedRegistry werkRegistry;
     WerkRegistrar werkRegistrar;
-    IResolver resolver;
+    address werkResolver;
 
     bytes32 ethNode;
     bytes32 werkNode;
@@ -43,40 +40,54 @@ contract WerkENSv2Fork_Test is Fork_Test {
     //////////////////////////////////////////////////////////////////////////*/
 
     function setUp() public override {
+        // Skip the whole suite when no Sepolia RPC is configured
+        if (bytes(vm.envOr("SEPOLIA_RPC_URL", string(""))).length == 0) {
+            vm.skip(true);
+            return;
+        }
+
+        // Fork Sepolia at a pinned block before deploying the Werk infrastructure
+        vm.createSelectFork({ urlOrAlias: "sepolia", blockNumber: Constants.SEPOLIA_FORK_BLOCK });
+
         Fork_Test.setUp();
 
         // Compute ENS nodes
         ethNode = keccak256(abi.encodePacked(bytes32(0), keccak256("eth")));
         werkNode = keccak256(abi.encodePacked(ethNode, keccak256("werk")));
 
-        // Step 1: Deploy a PermissionedResolver
-        resolver = deployWerkResolver();
-        vm.label(address(resolver), "WerkResolver");
+        // Step 1: Deploy the Werk resolver as a `PermissionedResolver` proxy
+        werkResolver = WerkENSv2Deployer.deployResolver(
+            IVerifiableFactory(Constants.VERIFIABLE_FACTORY),
+            Constants.PERMISSIONED_RESOLVER_IMPL,
+            WerkENSv2Deployer.RESOLVER_SALT,
+            users.admin
+        );
+        vm.label(werkResolver, "WerkResolver");
 
-        // Step 2: Deploy WerkRegistry
-        werkRegistry = deployWerkRegistry();
+        // Step 2: Deploy the Werk registry as a `UserRegistry` proxy
+        werkRegistry = WerkENSv2Deployer.deployRegistry(
+            IVerifiableFactory(Constants.VERIFIABLE_FACTORY),
+            Constants.USER_REGISTRY_IMPL,
+            WerkENSv2Deployer.REGISTRY_SALT,
+            users.admin
+        );
         vm.label(address(werkRegistry), "WerkRegistry");
 
-        // Step 3: Register "werk.eth" on the ETH registry
-        // Note: On testnet/mainnet "werk.eth" will already be registered
-        registerWerkLabel();
+        // Step 3: Point the existing "werk.eth" on the ETH registry to the Werk registry
+        linkWerkLabel();
 
         // Step 4: Deploy WerkRegistrar
-        werkRegistrar =
-            new WerkRegistrar(IPermissionedRegistry(address(werkRegistry)), address(resolver), Constants.WERK_OWNER);
+        werkRegistrar = new WerkRegistrar(werkRegistry, werkResolver, users.admin);
         vm.label(address(werkRegistrar), "WerkRegistrar");
 
-        // Step 5: Grant ROLE_REGISTRAR to WerkRegistrar on WerkRegistry
-        vm.prank(Constants.WERK_OWNER);
-        werkRegistry.grantRootRoles(RegistryRolesLib.ROLE_REGISTRAR, address(werkRegistrar));
+        // Step 5: Grant the WerkRegistrar its roles and link the Werk registry to its canonical parent
+        vm.startPrank(users.admin);
+        WerkENSv2Deployer.configure(
+            werkRegistry, werkResolver, address(werkRegistrar), IRegistry(Constants.ETH_REGISTRY)
+        );
+        vm.stopPrank();
 
-        // Step 6: Grant resolver write permissions to WerkRegistrar
-        vm.prank(Constants.WERK_OWNER);
-        uint256 ROLE_SET_ADDR = 1 << 0;
-        uint256 ROLE_SET_ADDR_ADMIN = ROLE_SET_ADDR << 128;
-        resolver.grantRootRoles(ROLE_SET_ADDR | ROLE_SET_ADDR_ADMIN, address(werkRegistrar));
-
-        // Step 7: Allowlist WerkRegistrar in ModuleKeeper so Spaces can call it
+        // Step 6: Allowlist WerkRegistrar in ModuleKeeper so Spaces can call it
         address[] memory modules = new address[](1);
         modules[0] = address(werkRegistrar);
         vm.prank(users.admin);
@@ -101,19 +112,18 @@ contract WerkENSv2Fork_Test is Fork_Test {
         assertEq(werkRegistrar.labelToSpace(labelHash), address(space), "labelToSpace mismatch");
         assertEq(werkRegistrar.spaceToLabel(address(space)), labelHash, "spaceToLabel mismatch");
 
-        // Verify the name is registered in WerkRegistry
-        bytes32 aliceNode = keccak256(abi.encodePacked(werkNode, labelHash));
+        // Verify the name is registered in the Werk registry
+        assertEq(werkRegistry.getResolver(label), werkResolver, "resolver mismatch");
 
         // Verify ENSIP-19 default record was set
-        bytes memory defaultAddrBytes = resolver.addr(aliceNode, Constants.COIN_TYPE_DEFAULT);
+        bytes memory defaultAddrBytes = _resolveAddress(label, Constants.COIN_TYPE_DEFAULT);
         assertEq(defaultAddrBytes, abi.encodePacked(address(space)), "default address mismatch");
 
         // ETH (coinType 60) resolves via default
-        address resolvedAddr = resolver.addr(aliceNode);
-        assertEq(resolvedAddr, address(space), "ETH fallback mismatch");
+        assertEq(_resolveAddr(label), address(space), "ETH fallback mismatch");
 
         // Base resolves via default (fallback)
-        bytes memory baseAddrBytes = resolver.addr(aliceNode, Constants.BASE_COIN_TYPE);
+        bytes memory baseAddrBytes = _resolveAddress(label, Constants.BASE_COIN_TYPE);
         assertEq(baseAddrBytes, abi.encodePacked(address(space)), "Base fallback mismatch");
     }
 
@@ -179,10 +189,78 @@ contract WerkENSv2Fork_Test is Fork_Test {
         nonCompliant.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("alice")));
     }
 
-    function test_RevertWhen_EmptyLabel() external {
+    function test_RevertWhen_LabelEmpty() external {
+        _expectInvalidLabelOnReserve("");
+    }
+
+    function test_RevertWhen_LabelTooShort() external {
+        _expectInvalidLabelOnReserve("ab");
+    }
+
+    function test_RevertWhen_LabelTooLong() external {
+        // 64 characters, one above `MAX_LABEL_LENGTH`
+        _expectInvalidLabelOnReserve("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    }
+
+    function test_RevertWhen_LabelHasUppercase() external {
+        _expectInvalidLabelOnReserve("Alice");
+    }
+
+    function test_RevertWhen_LabelHasDot() external {
+        _expectInvalidLabelOnReserve("al.ice");
+    }
+
+    function test_RevertWhen_LabelHasNonASCII() external {
+        _expectInvalidLabelOnReserve(unicode"café");
+    }
+
+    function test_RevertWhen_LabelStartsWithHyphen() external {
+        _expectInvalidLabelOnReserve("-alice");
+    }
+
+    function test_RevertWhen_LabelEndsWithHyphen() external {
+        _expectInvalidLabelOnReserve("alice-");
+    }
+
+    function test_RevertWhen_LabelHasHyphensAtThirdAndFourthPositions() external {
+        _expectInvalidLabelOnReserve("xn--alice");
+    }
+
+    function test_RevertWhen_RegisterInvalidLabel() external {
+        // Make Alice the caller
         vm.prank(users.alice);
-        vm.expectRevert(WerkRegistrar.EmptyLabel.selector);
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("")));
+
+        // Expect the next call to revert with the {InvalidLabel} error before any reservation check
+        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.InvalidLabel.selector, "Alice"));
+
+        // Run the test
+        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("Alice")));
+    }
+
+    function test_ClaimSubname_LabelWithDigitsAndHyphens() external {
+        string memory label = "acme-co-2026";
+
+        // Alice reserves and registers a label with digits and inner hyphens
+        _reserveAndRegisterSubname(space, users.alice, label);
+
+        // Assert that it resolves to the space
+        assertEq(_resolveAddr(label), address(space), "label with digits and hyphens should resolve to space");
+    }
+
+    function test_ClaimSubname_LabelMaxLength() external {
+        // 63 characters, exactly `MAX_LABEL_LENGTH`
+        string memory label = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        // Alice reserves and registers the longest allowed label
+        _reserveAndRegisterSubname(space, users.alice, label);
+
+        // Assert that it resolves to the space
+        assertEq(_resolveAddr(label), address(space), "max length label should resolve to space");
+    }
+
+    function test_Available_InvalidLabel() external view {
+        // Assert that an invalid label is reported as unavailable
+        assertFalse(werkRegistrar.available("Alice"), "invalid label should not be available");
     }
 
     function test_RevertWhen_NoReservation() external {
@@ -219,7 +297,9 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.prank(users.bob);
 
         // Expect the next call to revert with the {ReservationNotFound} error
-        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.NotReservationOwner.selector, block.timestamp + 30 minutes));
+        vm.expectRevert(
+            abi.encodeWithSelector(WerkRegistrar.NotReservationOwner.selector, block.timestamp + 30 minutes)
+        );
 
         // Run the test
         space2.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("alice")));
@@ -243,16 +323,119 @@ contract WerkENSv2Fork_Test is Fork_Test {
         // Alice reserves and registers subname
         _reserveAndRegisterSubname(space, users.alice, "alice");
 
-        // Add an additional coin type (e.g., Solana coinType = 501)
-        uint256 solanaCoinType = 501;
-        vm.prank(users.alice);
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.addCoinType, ("alice", solanaCoinType)));
+        // Assert that no explicit Optimism record exists yet as it only resolves via the default record
+        assertFalse(_hasAddress("alice", Constants.OPTIMISM_COIN_TYPE), "Optimism record should not exist yet");
 
-        // Verify the new coin type record
-        bytes32 labelHash = keccak256(bytes("alice"));
-        bytes32 aliceNode = keccak256(abi.encodePacked(werkNode, labelHash));
-        bytes memory solanaAddr = resolver.addr(aliceNode, solanaCoinType);
-        assertEq(solanaAddr, abi.encodePacked(address(space)), "Solana address mismatch");
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Run the test
+        space.execute(
+            address(werkRegistrar),
+            0,
+            abi.encodeCall(WerkRegistrar.addCoinType, ("alice", Constants.OPTIMISM_COIN_TYPE))
+        );
+
+        // Assert that the explicit Optimism record was set to the space address
+        assertTrue(_hasAddress("alice", Constants.OPTIMISM_COIN_TYPE), "Optimism record should exist");
+        bytes memory optimismAddr = _resolveAddress("alice", Constants.OPTIMISM_COIN_TYPE);
+        assertEq(optimismAddr, abi.encodePacked(address(space)), "Optimism address mismatch");
+    }
+
+    function test_RevertWhen_CoinTypeNotEVM() external {
+        // Alice reserves and registers subname
+        _reserveAndRegisterSubname(space, users.alice, "alice");
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {InvalidCoinType} error
+        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.InvalidCoinType.selector, Constants.SOLANA_COIN_TYPE));
+
+        // Run the test
+        space.execute(
+            address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.addCoinType, ("alice", Constants.SOLANA_COIN_TYPE))
+        );
+    }
+
+    function test_RevertWhen_SpaceUnregistersSubname() external {
+        // Alice reserves and registers subname
+        _reserveAndRegisterSubname(space, users.alice, "alice");
+
+        // Allowlist the Werk registry so the space can call it directly
+        // Note: this mirrors a space upgraded to an implementation without the allowlist check
+        _allowlistWerkRegistry();
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error
+        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
+
+        // Run the test
+        space.execute(
+            address(werkRegistry), 0, abi.encodeCall(IStandardRegistry.unregister, (uint256(keccak256("alice"))))
+        );
+    }
+
+    function test_RevertWhen_SpaceSetsResolver() external {
+        // Alice reserves and registers subname
+        _reserveAndRegisterSubname(space, users.alice, "alice");
+
+        // Allowlist the Werk registry so the space can call it directly
+        _allowlistWerkRegistry();
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error
+        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
+
+        // Run the test
+        space.execute(
+            address(werkRegistry),
+            0,
+            abi.encodeCall(IStandardRegistry.setResolver, (uint256(keccak256("alice")), users.eve))
+        );
+    }
+
+    function test_RevertWhen_AdminRegistersSubname() external {
+        // Make the admin the caller
+        vm.prank(users.admin);
+
+        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error
+        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
+
+        // Run the test
+        werkRegistry.register("alice", users.admin, IRegistry(address(0)), werkResolver, 0, type(uint64).max);
+    }
+
+    function test_RevertWhen_AdminSetsAddress() external {
+        // Alice reserves and registers subname
+        _reserveAndRegisterSubname(space, users.alice, "alice");
+
+        // Make the admin the caller
+        vm.prank(users.admin);
+
+        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error
+        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
+
+        // Run the test
+        IAddressSetter(werkResolver).setAddress(_dnsEncode("alice"), 60, abi.encodePacked(users.eve));
+    }
+
+    function test_CanonicalParent() external view {
+        // Assert that the Werk registry points to "werk" on the ETH registry as its parent
+        (IRegistry parent, string memory label) = werkRegistry.getParent();
+        assertEq(address(parent), Constants.ETH_REGISTRY, "parent mismatch");
+        assertEq(label, "werk", "parent label mismatch");
+
+        // Assert that the ETH registry points back to the Werk registry so the link is canonical
+        assertEq(
+            address(IRegistry(Constants.ETH_REGISTRY).getSubregistry("werk")),
+            address(werkRegistry),
+            "subregistry mismatch"
+        );
     }
 
     function test_MultipleSpaces_ClaimDifferentSubnames() external {
@@ -260,13 +443,9 @@ contract WerkENSv2Fork_Test is Fork_Test {
         _reserveAndRegisterSubname(space, users.alice, "alice");
         _reserveAndRegisterSubname(space2, users.bob, "bob");
 
-        // Compute nodes for both alice and bob
-        bytes32 aliceNode = keccak256(abi.encodePacked(werkNode, keccak256(bytes("alice"))));
-        bytes32 bobNode = keccak256(abi.encodePacked(werkNode, keccak256(bytes("bob"))));
-
         // Assert they resolve correctly
-        assertEq(resolver.addr(aliceNode), address(space), "alice should resolve to space");
-        assertEq(resolver.addr(bobNode), address(space2), "bob should resolve to space2");
+        assertEq(_resolveAddr("alice"), address(space), "alice should resolve to space");
+        assertEq(_resolveAddr("bob"), address(space2), "bob should resolve to space2");
     }
 
     function test_Available() external {
@@ -291,48 +470,10 @@ contract WerkENSv2Fork_Test is Fork_Test {
                             DEPLOYMENT-RELATED FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Deploys a PermissionedResolver proxy for Werk subnames
-    function deployWerkResolver() internal returns (IResolver) {
-        uint256 ROLE_SET_ADDR = 1 << 0;
-        uint256 ROLE_SET_ADDR_ADMIN = ROLE_SET_ADDR << 128;
-        uint256 resolverOwnerRoles = ROLE_SET_ADDR | ROLE_SET_ADDR_ADMIN;
-
-        bytes memory resolverInitData = abi.encodeCall(IResolver.initialize, (Constants.WERK_OWNER, resolverOwnerRoles));
-        return IResolver(address(new ERC1967Proxy(Constants.PERMISSIONED_RESOLVER_IMPL, resolverInitData)));
-    }
-
-    /// @dev Deploys the WerkRegistry
-    function deployWerkRegistry() internal returns (WerkRegistry) {
-        uint256 ownerRoles = RegistryRolesLib.ROLE_REGISTRAR_ADMIN | RegistryRolesLib.ROLE_REGISTRAR
-            | RegistryRolesLib.ROLE_SET_RESOLVER | RegistryRolesLib.ROLE_SET_RESOLVER_ADMIN
-            | RegistryRolesLib.ROLE_SET_PARENT | RegistryRolesLib.ROLE_SET_PARENT_ADMIN
-            | RegistryRolesLib.ROLE_UNREGISTER | RegistryRolesLib.ROLE_UNREGISTER_ADMIN | RegistryRolesLib.ROLE_RENEW
-            | RegistryRolesLib.ROLE_RENEW_ADMIN;
-
-        return new WerkRegistry(
-            IHCAFactoryBasic(Constants.HCA_FACTORY),
-            IRegistryMetadata(Constants.SIMPLE_REGISTRY_METADATA),
-            Constants.WERK_OWNER,
-            ownerRoles
-        );
-    }
-
-    /// @dev Registers "werk" label on the ETH registry
-    function registerWerkLabel() internal {
-        uint256 werkRoles = RegistryRolesLib.ROLE_SET_RESOLVER | RegistryRolesLib.ROLE_RENEW
-            | RegistryRolesLib.ROLE_UNREGISTER | RegistryRolesLib.ROLE_SET_SUBREGISTRY
-            | RegistryRolesLib.ROLE_CAN_TRANSFER_ADMIN;
-
-        vm.prank(Constants.ETH_REGISTRAR);
-        IStandardRegistry(Constants.ETH_REGISTRY)
-            .register(
-                "werk",
-                Constants.WERK_OWNER,
-                IRegistry(address(werkRegistry)),
-                address(resolver),
-                werkRoles,
-                type(uint64).max
-            );
+    /// @dev Points the existing "werk.eth" on the ETH registry to the Werk registry, as its owner does post-deployment
+    function linkWerkLabel() internal {
+        vm.prank(Constants.WERK_ETH_OWNER);
+        IStandardRegistry(Constants.ETH_REGISTRY).setSubregistry(uint256(keccak256("werk")), werkRegistry);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -352,5 +493,65 @@ contract WerkENSv2Fork_Test is Fork_Test {
     function _reserveAndRegisterSubname(Space _space, address caller, string memory label) internal {
         _reserveSubname(_space, caller, label);
         _claimSubname(_space, caller, label);
+    }
+
+    /// @dev Resolves the `coinType` address of `<label>.werk.eth` through the public Universal Resolver
+    function _resolveAddress(string memory label, uint256 coinType) internal view returns (bytes memory) {
+        bytes32 node = keccak256(abi.encodePacked(werkNode, keccak256(bytes(label))));
+        bytes memory data = abi.encodeWithSignature("addr(bytes32,uint256)", node, coinType);
+
+        (bytes memory result, address resolver) =
+            IUniversalResolver(Constants.UNIVERSAL_RESOLVER).resolve(_dnsEncode(label), data);
+        assertEq(resolver, werkResolver, "universal resolver found a different resolver");
+
+        return abi.decode(result, (bytes));
+    }
+
+    /// @dev Resolves the ETH address of `<label>.werk.eth` through the public Universal Resolver
+    function _resolveAddr(string memory label) internal view returns (address) {
+        bytes32 node = keccak256(abi.encodePacked(werkNode, keccak256(bytes(label))));
+        bytes memory data = abi.encodeWithSignature("addr(bytes32)", node);
+
+        (bytes memory result, address resolver) =
+            IUniversalResolver(Constants.UNIVERSAL_RESOLVER).resolve(_dnsEncode(label), data);
+        assertEq(resolver, werkResolver, "universal resolver found a different resolver");
+
+        return abi.decode(result, (address));
+    }
+
+    /// @dev Checks through the public Universal Resolver whether `<label>.werk.eth` has an explicit `coinType` record
+    function _hasAddress(string memory label, uint256 coinType) internal view returns (bool) {
+        bytes32 node = keccak256(abi.encodePacked(werkNode, keccak256(bytes(label))));
+        bytes memory data = abi.encodeWithSignature("hasAddr(bytes32,uint256)", node, coinType);
+
+        (bytes memory result,) = IUniversalResolver(Constants.UNIVERSAL_RESOLVER).resolve(_dnsEncode(label), data);
+
+        return abi.decode(result, (bool));
+    }
+
+    /// @dev Expects reserving `label` from the space to revert with the {InvalidLabel} error
+    function _expectInvalidLabelOnReserve(string memory label) internal {
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {InvalidLabel} error
+        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.InvalidLabel.selector, label));
+
+        // Run the test
+        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, (label)));
+    }
+
+    /// @dev Allowlists the Werk registry in the {ModuleKeeper} so that spaces can call it directly
+    function _allowlistWerkRegistry() internal {
+        address[] memory modules = new address[](1);
+        modules[0] = address(werkRegistry);
+        vm.prank(users.admin);
+        moduleKeeper.addToAllowlist(modules);
+    }
+
+    /// @dev Builds the DNS-encoded name `<label>.werk.eth` with the ENS `NameCoder`
+    /// Note: independent from the {WerkRegistrar} encoding so that the test catches a bug in either one
+    function _dnsEncode(string memory label) internal pure returns (bytes memory) {
+        return NameCoder.encode(string.concat(label, ".werk.eth"));
     }
 }
