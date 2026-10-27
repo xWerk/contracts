@@ -33,8 +33,4 @@ library Constants {
     // Note: only use `BASE_COIN_TYPE` to test that it fallbacks to `COIN_TYPE_DEFAULT`
     uint256 constant COIN_TYPE_DEFAULT = 1 << 31;
     uint256 constant BASE_COIN_TYPE = 2_147_492_101;
-
-    // ENSIP-11 coin types used to test `addCoinType`: Optimism (EVM, chain ID 10) and Solana (non-EVM)
-    uint256 constant OPTIMISM_COIN_TYPE = 2_147_483_658;
-    uint256 constant SOLANA_COIN_TYPE = 501;
 }
