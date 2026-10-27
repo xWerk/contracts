@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import { BaseScript } from "./../Base.s.sol";
 import { WerkRegistrar } from "./../../src/peripherals/ensv2/WerkRegistrar.sol";
+import { ISpaceFactory } from "./../../src/peripherals/ensv2/interfaces/ISpaceFactory.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 
 /// @notice Deploys the {WerkRegistrar} contract
@@ -17,6 +18,7 @@ contract DeployWerkRegistrar is BaseScript {
         returns (WerkRegistrar werkRegistrar)
     {
         // Deploy the {WerkRegistrar} contract
-        werkRegistrar = new WerkRegistrar(werkRegistry, resolver, DEFAULT_PROTOCOL_ADMIN);
+        werkRegistrar =
+            new WerkRegistrar(werkRegistry, resolver, ISpaceFactory(STATION_REGISTRY), DEFAULT_PROTOCOL_ADMIN);
     }
 }

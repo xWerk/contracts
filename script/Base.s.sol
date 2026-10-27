@@ -10,6 +10,9 @@ contract BaseScript is Script {
     /// @dev The address of the Entrypoint v6 deployment
     address internal constant ENTRYPOINT_V6 = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
 
+    /// @dev The address of the {StationRegistry} proxy, deployed at the same address across chains
+    address internal constant STATION_REGISTRY = 0xf169648a758b767AD6775E2f7eD8337a0aE4685d;
+
     /// @dev Sablier Lockup deployments mapped by the chain ID
     mapping(uint256 chainId => address sablierLockup) internal sablierLockupMap;
 

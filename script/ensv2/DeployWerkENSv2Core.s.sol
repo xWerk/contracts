@@ -5,19 +5,16 @@ import { BaseScript } from "./../Base.s.sol";
 import { WerkENSv2Deployer } from "./WerkENSv2Deployer.sol";
 import { WerkRegistrar } from "./../../src/peripherals/ensv2/WerkRegistrar.sol";
 import { IVerifiableFactory } from "./../../src/peripherals/ensv2/interfaces/IVerifiableFactory.sol";
+import { ISpaceFactory } from "./../../src/peripherals/ensv2/interfaces/ISpaceFactory.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
-import { RegistryRolesLib } from "@ensv2/registry/libraries/RegistryRolesLib.sol";
 
 /// @notice Deploys the Werk ENSv2 infrastructure: the Werk registry and resolver as ENSv2 proxies, and the
 ///  {WerkRegistrar}, then grants the registrar its roles and links the registry to "werk.eth" in both directions
 /// @dev Broadcasts explicitly from `DEFAULT_PROTOCOL_ADMIN` as it holds the roles needed by the post-deployment calls
-/// Requires `DEFAULT_PROTOCOL_ADMIN` to own "werk.eth" on the ETH registry, checked before any transaction is sent
+/// Requires `DEFAULT_PROTOCOL_ADMIN` to own "werk.eth" on the ETH registry
 contract DeployWerkENSv2Core is BaseScript {
     /// @notice Thrown when there is no ENSv2 `ETHRegistry` deployment known for the current chain
     error UnsupportedChain(uint256 chainId);
-
-    /// @notice Thrown when `DEFAULT_PROTOCOL_ADMIN` cannot set the subregistry of "werk.eth" on the ETH registry
-    error NotWerkEthOwner(address account);
 
     function run(
         IVerifiableFactory verifiableFactory,
@@ -32,12 +29,6 @@ contract DeployWerkENSv2Core is BaseScript {
         IPermissionedRegistry ethRegistry = IPermissionedRegistry(ensv2EthRegistryMap[block.chainid]);
         if (address(ethRegistry) == address(0)) revert UnsupportedChain(block.chainid);
 
-        // Checks: the protocol admin can point "werk.eth" to the Werk registry
-        uint256 werkLabelId = uint256(keccak256("werk"));
-        if (!ethRegistry.hasRoles(werkLabelId, RegistryRolesLib.ROLE_SET_SUBREGISTRY, DEFAULT_PROTOCOL_ADMIN)) {
-            revert NotWerkEthOwner(DEFAULT_PROTOCOL_ADMIN);
-        }
-
         vm.startBroadcast(DEFAULT_PROTOCOL_ADMIN);
 
         // Step 1: Deploy the Werk registry as a `UserRegistry` proxy
@@ -51,13 +42,14 @@ contract DeployWerkENSv2Core is BaseScript {
         );
 
         // Step 3: Deploy the {WerkRegistrar}
-        werkRegistrar = new WerkRegistrar(werkRegistry, werkResolver, DEFAULT_PROTOCOL_ADMIN);
+        werkRegistrar =
+            new WerkRegistrar(werkRegistry, werkResolver, ISpaceFactory(STATION_REGISTRY), DEFAULT_PROTOCOL_ADMIN);
 
         // Step 4: Grant the {WerkRegistrar} its roles and link the registry to its canonical parent
         WerkENSv2Deployer.configure(werkRegistry, werkResolver, address(werkRegistrar), ethRegistry);
 
         // Step 5: Point "werk.eth" on the ETH registry to the Werk registry so that its subnames resolve
-        ethRegistry.setSubregistry(werkLabelId, werkRegistry);
+        ethRegistry.setSubregistry(uint256(keccak256("werk")), werkRegistry);
 
         vm.stopBroadcast();
     }

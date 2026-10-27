@@ -86,8 +86,11 @@ library WerkENSv2Deployer {
     )
         internal
     {
-        // Grant `ROLE_REGISTRAR` to the {WerkRegistrar} on the Werk registry
-        werkRegistry.grantRootRoles(RegistryRolesLib.ROLE_REGISTRAR, werkRegistrar);
+        // Grant the {WerkRegistrar} the roles to register, renew and clear subnames on the Werk registry
+        werkRegistry.grantRootRoles(
+            RegistryRolesLib.ROLE_REGISTRAR | RegistryRolesLib.ROLE_RENEW | RegistryRolesLib.ROLE_UNREGISTER,
+            werkRegistrar
+        );
 
         // Grant `ROLE_SET_ADDRESS` to the {WerkRegistrar} on the Werk resolver
         // Note: the admin role is intentionally omitted as the registrar never needs to grant it further
