@@ -2,30 +2,28 @@
 pragma solidity ^0.8.26;
 
 import { BaseScript } from "./../Base.s.sol";
-import { WerkRegistry } from "./../../src/peripherals/ensv2/WerkRegistry.sol";
-import { IHCAFactoryBasic } from "@ensv2/hca/interfaces/IHCAFactoryBasic.sol";
-import { IRegistryMetadata } from "@ensv2/registry/interfaces/IRegistryMetadata.sol";
-import { RegistryRolesLib } from "@ensv2/registry/libraries/RegistryRolesLib.sol";
+import { WerkENSv2Deployer } from "./WerkENSv2Deployer.sol";
+import { IVerifiableFactory } from "./../../src/peripherals/ensv2/interfaces/IVerifiableFactory.sol";
+import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 
-/// @notice Deploys the {WerkRegistry} contract with full owner roles
+/// @notice Deploys the Werk registry as an ENSv2 `UserRegistry` proxy with the admin roles granted to the protocol admin
+/// @dev Uses its own salt so that it never collides with the registry deployed by {DeployWerkENSv2Core}
 contract DeployWerkRegistry is BaseScript {
+    /// @dev `VerifiableFactory` salt of the standalone Werk registry
+    uint256 internal constant STANDALONE_REGISTRY_SALT = uint256(keccak256("WerkRegistry.standalone"));
+
     function run(
-        IHCAFactoryBasic hcaFactory,
-        IRegistryMetadata metadataProvider
+        IVerifiableFactory verifiableFactory,
+        address userRegistryImpl
     )
         public
         virtual
         broadcast
-        returns (WerkRegistry werkRegistry)
+        returns (IPermissionedRegistry werkRegistry)
     {
-        // Compute the owner roles bitmap
-        uint256 ownerRoles = RegistryRolesLib.ROLE_REGISTRAR_ADMIN | RegistryRolesLib.ROLE_REGISTRAR
-            | RegistryRolesLib.ROLE_SET_RESOLVER | RegistryRolesLib.ROLE_SET_RESOLVER_ADMIN
-            | RegistryRolesLib.ROLE_SET_PARENT | RegistryRolesLib.ROLE_SET_PARENT_ADMIN
-            | RegistryRolesLib.ROLE_UNREGISTER | RegistryRolesLib.ROLE_UNREGISTER_ADMIN | RegistryRolesLib.ROLE_RENEW
-            | RegistryRolesLib.ROLE_RENEW_ADMIN;
-
-        // Deploy the {WerkRegistry} contract
-        werkRegistry = new WerkRegistry(hcaFactory, metadataProvider, DEFAULT_PROTOCOL_ADMIN, ownerRoles);
+        // Deploy the Werk registry proxy
+        werkRegistry = WerkENSv2Deployer.deployRegistry(
+            verifiableFactory, userRegistryImpl, STANDALONE_REGISTRY_SALT, DEFAULT_PROTOCOL_ADMIN
+        );
     }
 }

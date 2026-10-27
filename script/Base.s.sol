@@ -28,6 +28,9 @@ contract BaseScript is Script {
     /// @dev Werk ENS Subdomain Registrar deployments mapped by the chain ID
     mapping(uint256 chainId => address registrar) internal ensSubdomainRegistrarMap;
 
+    /// @dev ENSv2 `ETHRegistry` deployments mapped by the chain ID
+    mapping(uint256 chainId => address ethRegistry) internal ensv2EthRegistryMap;
+
     constructor() {
         // Populate the Sablier Lockup deployments map
         populateSablierLockupMap();
@@ -48,6 +51,10 @@ contract BaseScript is Script {
         // Note: ENS subdomains are issued only on either Base or Base Sepolia
         ensSubdomainRegistrarMap[8453] = 0x959f784aa89311930871545A662F430CCb6DD0Bb;
         ensSubdomainRegistrarMap[84_532] = 0xfd35d5B15780CC6B8ccd8f1Cded4319aC5a63042;
+
+        // Populate the ENSv2 `ETHRegistry` deployments map
+        // TODO: add Ethereum Mainnet once ENS publishes the ENSv2 mainnet addresses
+        ensv2EthRegistryMap[11_155_111] = 0xD4eBcbBdF463C9c45784603Db0dDD499BC44A8B4;
     }
 
     modifier broadcast() {
@@ -173,14 +180,7 @@ contract BaseScript is Script {
 
     /// @notice Generates a salt used for deterministic deployments based on the contract name and a given input salt
     /// @dev ABI encodes the given `contractName` and `inputSalt` strings into a `bytes32` value
-    function constructCreate3Salt(
-        string memory contractName,
-        string memory inputSalt
-    )
-        internal
-        pure
-        returns (bytes32)
-    {
+    function constructCreate3Salt(string memory contractName, string memory inputSalt) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(contractName, inputSalt));
     }
 }
