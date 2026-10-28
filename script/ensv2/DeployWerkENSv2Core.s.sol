@@ -41,11 +41,12 @@ contract DeployWerkENSv2Core is BaseScript {
             verifiableFactory, permissionedResolverImpl, WerkENSv2Deployer.RESOLVER_SALT, DEFAULT_PROTOCOL_ADMIN
         );
 
-        // Step 3: Deploy the {WerkRegistrar}
-        werkRegistrar =
-            new WerkRegistrar(werkRegistry, werkResolver, ISpaceFactory(STATION_REGISTRY), DEFAULT_PROTOCOL_ADMIN);
+        // Step 3: Deploy the `WerkRegistrar` as an ERC1967 proxy
+        werkRegistrar = WerkENSv2Deployer.deployRegistrar(
+            werkRegistry, werkResolver, ISpaceFactory(STATION_REGISTRY), DEFAULT_PROTOCOL_ADMIN
+        );
 
-        // Step 4: Grant the {WerkRegistrar} its roles and link the registry to its canonical parent
+        // Step 4: Grant the `WerkRegistrar` its roles and link the registry to its canonical parent
         WerkENSv2Deployer.configure(werkRegistry, werkResolver, address(werkRegistrar), ethRegistry);
 
         // Step 5: Point "werk.eth" on the ETH registry to the Werk registry so that its subnames resolve

@@ -56,7 +56,8 @@ contract BaseScript is Script {
         ensSubdomainRegistrarMap[84_532] = 0xfd35d5B15780CC6B8ccd8f1Cded4319aC5a63042;
 
         // Populate the ENSv2 `ETHRegistry` deployments map
-        // TODO: add Ethereum Mainnet once ENS publishes the ENSv2 mainnet addresses
+        // See https://docs.ens.domains/learn/deployments
+        ensv2EthRegistryMap[1] = 0xf60aba43E1f7F3DAB1186Ff03B561401C9Df85E2;
         ensv2EthRegistryMap[11_155_111] = 0xD4eBcbBdF463C9c45784603Db0dDD499BC44A8B4;
     }
 

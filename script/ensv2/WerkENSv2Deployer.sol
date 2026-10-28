@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.26;
 
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { WerkRegistrar } from "./../../src/peripherals/ensv2/WerkRegistrar.sol";
 import { IVerifiableFactory } from "./../../src/peripherals/ensv2/interfaces/IVerifiableFactory.sol";
+import { ISpaceFactory } from "./../../src/peripherals/ensv2/interfaces/ISpaceFactory.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 import { IRegistry } from "@ensv2/registry/interfaces/IRegistry.sol";
 import { RegistryRolesLib } from "@ensv2/registry/libraries/RegistryRolesLib.sol";
@@ -11,7 +14,7 @@ import { Grant, IEACGrantInitializable } from "@ensv2/access-control/interfaces/
 import { IEnhancedAccessControl } from "@ensv2/access-control/interfaces/IEnhancedAccessControl.sol";
 
 /// @title WerkENSv2Deployer
-/// @notice Shared deployment logic for the Werk ENSv2 registry and resolver proxies
+/// @notice Shared deployment logic for the Werk ENSv2 registry, resolver and registrar proxies
 /// @dev Used by both the deployment scripts and the fork tests so that they exercise the same roles and salts
 library WerkENSv2Deployer {
     /// @dev Root roles granted to the Werk admin on the Werk registry
@@ -35,6 +38,25 @@ library WerkENSv2Deployer {
 
     /// @dev `VerifiableFactory` salt of the Werk resolver deployed by {DeployWerkENSv2Core}
     uint256 internal constant RESOLVER_SALT = uint256(keccak256("WerkResolver"));
+
+    /// @dev Deploys the {WerkRegistrar} implementation behind an ERC1967 proxy owned by `admin`
+    function deployRegistrar(
+        IPermissionedRegistry werkRegistry,
+        address werkResolver,
+        ISpaceFactory stationRegistry,
+        address admin
+    )
+        internal
+        returns (WerkRegistrar)
+    {
+        // Deploy the {WerkRegistrar} implementation
+        address implementation = address(new WerkRegistrar());
+
+        // Deploy the proxy and initialize it in the same transaction
+        bytes memory initData =
+            abi.encodeCall(WerkRegistrar.initialize, (werkRegistry, werkResolver, stationRegistry, admin));
+        return WerkRegistrar(address(new ERC1967Proxy(implementation, initData)));
+    }
 
     /// @dev Deploys the Werk registry as a `UserRegistry` proxy with `REGISTRY_ADMIN_ROLES` granted to `admin`
     function deployRegistry(

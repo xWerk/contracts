@@ -7,7 +7,8 @@ import { MockUnregisteredSpace } from "../../mocks/MockUnregisteredSpace.sol";
 import { WerkRegistrar } from "src/peripherals/ensv2/WerkRegistrar.sol";
 import { IVerifiableFactory } from "src/peripherals/ensv2/interfaces/IVerifiableFactory.sol";
 import { ISpaceFactory } from "src/peripherals/ensv2/interfaces/ISpaceFactory.sol";
-import { Errors } from "src/libraries/Errors.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { WerkENSv2Deployer } from "script/ensv2/WerkENSv2Deployer.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 import { IStandardRegistry } from "@ensv2/registry/interfaces/IStandardRegistry.sol";
@@ -42,6 +43,9 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
     bytes32 ethNode;
     bytes32 werkNode;
+
+    /// @dev ERC-1967 slot holding the proxy implementation address
+    bytes32 constant ERC1967_IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
@@ -84,9 +88,10 @@ contract WerkENSv2Fork_Test is Fork_Test {
         // Step 3: Point the existing "werk.eth" on the ETH registry to the Werk registry
         linkWerkLabel();
 
-        // Step 4: Deploy WerkRegistrar
-        werkRegistrar =
-            new WerkRegistrar(werkRegistry, werkResolver, ISpaceFactory(address(stationRegistry)), users.admin);
+        // Step 4: Deploy WerkRegistrar as an ERC1967 proxy
+        werkRegistrar = WerkENSv2Deployer.deployRegistrar(
+            werkRegistry, werkResolver, ISpaceFactory(address(stationRegistry)), users.admin
+        );
         vm.label(address(werkRegistrar), "WerkRegistrar");
 
         // Step 5: Grant the WerkRegistrar its roles and link the Werk registry to its canonical parent
@@ -674,13 +679,85 @@ contract WerkENSv2Fork_Test is Fork_Test {
         // Make Eve the caller
         vm.prank(users.eve);
 
-        // Expect the next call to revert with the {Unauthorized} error
-        vm.expectRevert(Errors.Unauthorized.selector);
+        // Expect the next call to revert with the {OwnableUnauthorizedAccount} error
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, users.eve));
 
         // Run the test
         string[] memory labels = new string[](1);
         labels[0] = "alice";
         werkRegistrar.clearLabels(labels);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                    UPGRADEABILITY
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function test_Upgrade_KeepsState() external {
+        // Alice reserves and registers a subname
+        _reserveAndRegisterSubname(space, users.alice, "alice");
+
+        // Deploy a new implementation
+        address newImplementation = address(new WerkRegistrar());
+
+        // Make the owner the caller
+        vm.prank(users.admin);
+
+        // Run the test
+        werkRegistrar.upgradeToAndCall(newImplementation, "");
+
+        // Assert that the proxy points to the new implementation
+        bytes32 implementation = vm.load(address(werkRegistrar), ERC1967_IMPLEMENTATION_SLOT);
+        assertEq(address(uint160(uint256(implementation))), newImplementation, "implementation not upgraded");
+
+        // Assert that the configuration and the claims survived the upgrade
+        assertEq(address(werkRegistrar.WERK_REGISTRY()), address(werkRegistry), "registry mismatch");
+        assertEq(werkRegistrar.RESOLVER(), werkResolver, "resolver mismatch");
+        assertEq(werkRegistrar.owner(), users.admin, "owner mismatch");
+        assertEq(
+            werkRegistrar.getLabelHashForSpace(address(space)), keccak256(bytes("alice")), "label for space mismatch"
+        );
+
+        // Assert that the space still cannot reserve a second subname after the upgrade
+        vm.prank(users.alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                WerkRegistrar.SpaceAlreadyHasSubname.selector, address(space), keccak256(bytes("alice"))
+            )
+        );
+        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("bob")));
+    }
+
+    function test_RevertWhen_UpgradeCallerNotOwner() external {
+        // Deploy a new implementation
+        address newImplementation = address(new WerkRegistrar());
+
+        // Make Eve the caller
+        vm.prank(users.eve);
+
+        // Expect the next call to revert with the {OwnableUnauthorizedAccount} error
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, users.eve));
+
+        // Run the test
+        werkRegistrar.upgradeToAndCall(newImplementation, "");
+    }
+
+    function test_RevertWhen_InitializeImplementation() external {
+        // Deploy a new implementation
+        WerkRegistrar implementation = new WerkRegistrar();
+
+        // Expect the next call to revert with the {InvalidInitialization} error
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+
+        // Run the test
+        implementation.initialize(werkRegistry, werkResolver, ISpaceFactory(address(stationRegistry)), users.eve);
+    }
+
+    function test_RevertWhen_ReinitializeProxy() external {
+        // Expect the next call to revert with the {InvalidInitialization} error
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+
+        // Run the test
+        werkRegistrar.initialize(werkRegistry, werkResolver, ISpaceFactory(address(stationRegistry)), users.eve);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

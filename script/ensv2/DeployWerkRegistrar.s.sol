@@ -2,11 +2,12 @@
 pragma solidity ^0.8.26;
 
 import { BaseScript } from "./../Base.s.sol";
+import { WerkENSv2Deployer } from "./WerkENSv2Deployer.sol";
 import { WerkRegistrar } from "./../../src/peripherals/ensv2/WerkRegistrar.sol";
 import { ISpaceFactory } from "./../../src/peripherals/ensv2/interfaces/ISpaceFactory.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 
-/// @notice Deploys the {WerkRegistrar} contract
+/// @notice Deploys the {WerkRegistrar} contract as an ERC1967 proxy owned by the protocol admin
 contract DeployWerkRegistrar is BaseScript {
     function run(
         IPermissionedRegistry werkRegistry,
@@ -17,8 +18,9 @@ contract DeployWerkRegistrar is BaseScript {
         broadcast
         returns (WerkRegistrar werkRegistrar)
     {
-        // Deploy the {WerkRegistrar} contract
-        werkRegistrar =
-            new WerkRegistrar(werkRegistry, resolver, ISpaceFactory(STATION_REGISTRY), DEFAULT_PROTOCOL_ADMIN);
+        // Deploy the {WerkRegistrar} implementation and proxy
+        werkRegistrar = WerkENSv2Deployer.deployRegistrar(
+            werkRegistry, resolver, ISpaceFactory(STATION_REGISTRY), DEFAULT_PROTOCOL_ADMIN
+        );
     }
 }
