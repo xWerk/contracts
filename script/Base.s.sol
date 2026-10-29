@@ -9,8 +9,8 @@ contract BaseScript is Script {
 
     /// @dev The trusted backend signer: the AWS KMS key the backend uses to authorize protocol actions (e.g.
     /// {WerkRegistrar} claims), the same address across all chains
-    /// @dev TODO: replace this placeholder with the backend KMS signer address before deploying
-    address internal constant DEFAULT_BACKEND_SIGNER = DEFAULT_PROTOCOL_ADMIN;
+    /// Note: also the relayer of the {SubscriptionModule} deployed on Base Sepolia
+    address internal constant DEFAULT_BACKEND_SIGNER = 0x2D3adA8aC2bbe5839e869D209AB58C5E4713EAcE;
 
     /// @dev The address of the Entrypoint v6 deployment
     address internal constant ENTRYPOINT_V6 = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
