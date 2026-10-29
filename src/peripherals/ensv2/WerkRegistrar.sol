@@ -34,7 +34,7 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     uint256 internal constant GRACE_PERIOD = 30 days;
 
     /// @dev Action tags mixed into the signed payload so that a signature authorizes a single action
-    /// Note: required if the backend sets different rules for register and review actions
+    /// Note: required if the backend sets different rules for register and renew actions
     bytes32 internal constant REGISTER_ACTION = keccak256("WerkRegistrar.register");
     bytes32 internal constant RENEW_ACTION = keccak256("WerkRegistrar.renew");
 
@@ -46,11 +46,6 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// The ENSv2 resolver keys records by DNS-encoded name rather than by node
     bytes internal constant WERK_DNS_SUFFIX = hex"047765726b0365746800";
 
-    /// @dev Maximum byte length of a label, as {_dnsEncode} prefixes it with its length in a single byte
-    /// Note: the label policy (allowed characters, normalization, reserved labels) is enforced by the trusted signer,
-    /// whose signature binds the label hash
-    uint256 internal constant MAX_LABEL_BYTES = 255;
-
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
     //////////////////////////////////////////////////////////////////////////*/
@@ -61,7 +56,6 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         IPermissionedRegistry werkRegistry;
         /// @notice Shared resolver used for all werk subnames
         address resolver;
-        /// @notice Factory that deploys and registers Werk spaces
         /// @notice Maps a Werk space to the label hash it last claimed
         /// @dev Only a pointer into the registry: the claim is active only while the registry reports the label as
         /// registered to that space
@@ -114,10 +108,6 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @notice Revert when the subname cannot be renewed yet as its grace period has not started
     /// @param opensAt The timestamp at which the grace period starts
     error RenewalNotOpen(uint64 opensAt);
-
-    /// @notice Revert when the label is empty or longer than `MAX_LABEL_BYTES`
-    /// @param length The byte length of the rejected label
-    error InvalidLabelLength(uint256 length);
 
     /// @notice Revert when the space already has an active subname
     /// @param space The Werk space address
@@ -214,20 +204,18 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
     /// @notice Claim a subname `<label>.werk.eth` for a Werk space for `REGISTRATION_PERIOD` + `GRACE_PERIOD`
     /// @dev Requirements:
-    ///  - the label must be between 1 and `MAX_LABEL_BYTES` bytes long
     ///  - the trusted signer must have signed (`REGISTER_ACTION`, this contract, `msg.sender`, label hash,
     ///    `validUntil`, chain id) and `validUntil` must not have passed
     ///  - one active subname per space
     ///  - the label must not be registered, including during its grace period
+    /// The label policy (allowed characters, normalization, reserved labels) is enforced by the trusted signer, whose
+    /// signature binds the label hash. An empty or over-long label is rejected by the registry, as its DNS encoding
+    /// prefixes the label with its length in a single byte
     /// Requires this contract to have `ROLE_REGISTRAR` on `werkRegistry`
     /// @param label subname for "werk.eth", e.g. "alice" for `alice.werk.eth`
     /// @param validUntil The timestamp until which the signature can be used
     /// @param signature The trusted signer's EIP-191 signature over the payload
     function register(string calldata label, uint40 validUntil, bytes calldata signature) external nonReentrant {
-        // Checks: the label fits the single length byte of its DNS encoding
-        uint256 labelLength = bytes(label).length;
-        if (labelLength == 0 || labelLength > MAX_LABEL_BYTES) revert InvalidLabelLength(labelLength);
-
         bytes32 labelHash = keccak256(bytes(label));
 
         // Checks: the backend authorized this space to claim this label

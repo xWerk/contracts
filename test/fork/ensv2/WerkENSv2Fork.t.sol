@@ -180,12 +180,16 @@ contract WerkENSv2Fork_Test is Fork_Test {
     }
 
     function test_RevertWhen_LabelEmpty() external {
-        _expectInvalidLabelLength("");
+        // Expect the registry to reject the label with the {LabelIsEmpty} error
+        _expectRegistryLabelRevert("", abi.encodeWithSelector(NameCoder.LabelIsEmpty.selector));
     }
 
     function test_RevertWhen_LabelTooLong() external {
-        // 256 bytes, one above `MAX_LABEL_BYTES`
-        _expectInvalidLabelLength(_repeat("a", 256));
+        // 256 bytes, one above what a single DNS length byte can encode
+        string memory label = _repeat("a", 256);
+
+        // Expect the registry to reject the label with the {LabelIsTooLong} error
+        _expectRegistryLabelRevert(label, abi.encodeWithSelector(NameCoder.LabelIsTooLong.selector, label));
     }
 
     function test_ClaimSubname_LabelWithDigitsAndHyphens() external {
@@ -199,7 +203,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
     }
 
     function test_ClaimSubname_LabelMaxLength() external {
-        // 255 bytes, exactly `MAX_LABEL_BYTES`
+        // 255 bytes, the longest label a single DNS length byte can encode
         string memory label = _repeat("a", 255);
 
         // Alice claims the longest allowed label
@@ -837,13 +841,13 @@ contract WerkENSv2Fork_Test is Fork_Test {
         return abi.decode(result, (address));
     }
 
-    /// @dev Expects claiming `label` from the space to revert with the {InvalidLabelLength} error
-    function _expectInvalidLabelLength(string memory label) internal {
+    /// @dev Expects claiming `label` from the space to revert with the registry's `revertData`
+    function _expectRegistryLabelRevert(string memory label, bytes memory revertData) internal {
         // Make Alice the caller
         vm.prank(users.alice);
 
-        // Expect the next call to revert with the {InvalidLabelLength} error
-        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.InvalidLabelLength.selector, bytes(label).length));
+        // Expect the next call to revert with the registry error
+        vm.expectRevert(revertData);
 
         // Run the test
         space.execute(address(werkRegistrar), 0, _registerCall(space, label));
