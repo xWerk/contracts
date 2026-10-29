@@ -2,11 +2,8 @@
 pragma solidity ^0.8.26;
 
 import { Space } from "src/Space.sol";
-import { MockNonCompliantSpace } from "../../mocks/MockNonCompliantSpace.sol";
-import { MockUnregisteredSpace } from "../../mocks/MockUnregisteredSpace.sol";
 import { WerkRegistrar } from "src/peripherals/ensv2/WerkRegistrar.sol";
 import { IVerifiableFactory } from "src/peripherals/ensv2/interfaces/IVerifiableFactory.sol";
-import { ISpaceFactory } from "src/peripherals/ensv2/interfaces/ISpaceFactory.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { WerkENSv2Deployer } from "script/ensv2/WerkENSv2Deployer.sol";
@@ -16,6 +13,7 @@ import { IRegistry } from "@ensv2/registry/interfaces/IRegistry.sol";
 import { IAddressSetter } from "@ensv2/resolver/interfaces/setters/IAddressSetter.sol";
 import { IEnhancedAccessControl } from "@ensv2/access-control/interfaces/IEnhancedAccessControl.sol";
 import { NameCoder } from "@ens/contracts/utils/NameCoder.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { Constants } from "../../utils/Constants.sol";
 import { Fork_Test } from "../../fork/Fork.t.sol";
 
@@ -44,6 +42,13 @@ contract WerkENSv2Fork_Test is Fork_Test {
     bytes32 ethNode;
     bytes32 werkNode;
 
+    /// @dev The trusted backend signer and its private key
+    address signer;
+    uint256 signerKey;
+
+    /// @dev Default lifetime of the signatures produced by the helpers
+    uint40 constant SIGNATURE_TTL = 1 hours;
+
     /// @dev ERC-1967 slot holding the proxy implementation address
     bytes32 constant ERC1967_IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
@@ -67,6 +72,9 @@ contract WerkENSv2Fork_Test is Fork_Test {
         ethNode = keccak256(abi.encodePacked(bytes32(0), keccak256("eth")));
         werkNode = keccak256(abi.encodePacked(ethNode, keccak256("werk")));
 
+        // Create the trusted backend signer
+        (signer, signerKey) = makeAddrAndKey("signer");
+
         // Step 1: Deploy the Werk resolver as a `PermissionedResolver` proxy
         werkResolver = WerkENSv2Deployer.deployResolver(
             IVerifiableFactory(Constants.VERIFIABLE_FACTORY),
@@ -89,9 +97,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
         linkWerkLabel();
 
         // Step 4: Deploy WerkRegistrar as an ERC1967 proxy
-        werkRegistrar = WerkENSv2Deployer.deployRegistrar(
-            werkRegistry, werkResolver, ISpaceFactory(address(stationRegistry)), users.admin
-        );
+        werkRegistrar = WerkENSv2Deployer.deployRegistrar(werkRegistry, werkResolver, users.admin, signer);
         vm.label(address(werkRegistrar), "WerkRegistrar");
 
         // Step 5: Grant the WerkRegistrar its roles and link the Werk registry to its canonical parent
@@ -115,10 +121,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
     function test_ClaimSubname_And_Resolve() external {
         string memory label = "alice";
 
-        // Step 1: Space reserves the label
-        _reserveSubname(space, users.alice, label);
-
-        // Step 2: Space claims the subname
+        // Run the test
         _claimSubname(space, users.alice, label);
 
         // Verify the registrar getters, which read the ownership from the Werk registry
@@ -143,14 +146,13 @@ contract WerkENSv2Fork_Test is Fork_Test {
     }
 
     function test_RevertWhen_SpaceAlreadyHasSubname() external {
-        // Alice reserves and registers a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
-        // Make alice the caller
+        // Make Alice the caller
         vm.prank(users.alice);
 
-        // Expect the next call to revert with the {SpaceAlreadyHasSubname} error as a space with an active
-        // subname cannot even reserve a second one
+        // Expect the next call to revert with the {SpaceAlreadyHasSubname} error even with a valid signature
         vm.expectRevert(
             abi.encodeWithSelector(
                 WerkRegistrar.SpaceAlreadyHasSubname.selector, address(space), keccak256(bytes("alice"))
@@ -158,12 +160,12 @@ contract WerkENSv2Fork_Test is Fork_Test {
         );
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("bob")));
+        space.execute(address(werkRegistrar), 0, _registerCall(space, "bob"));
     }
 
     function test_RevertWhen_LabelAlreadyTaken() external {
-        // Alice reserves and claims the "alice" subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims the "alice" subname
+        _claimSubname(space, users.alice, "alice");
 
         // Make Bob the caller
         vm.prank(users.bob);
@@ -174,167 +176,207 @@ contract WerkENSv2Fork_Test is Fork_Test {
         );
 
         // Run the test
-        space2.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("alice")));
-    }
-
-    function test_RevertWhen_CallerIsEOA() external {
-        // Compute an unauthorized address
-        address unauthorized = makeAddr("unauthorized");
-
-        // Make the unauthorized address the caller
-        vm.prank(unauthorized);
-
-        // Expect the next call to revert with the {SpaceZeroCodeSize} error
-        vm.expectRevert(WerkRegistrar.SpaceZeroCodeSize.selector);
-
-        // Run the test
-        werkRegistrar.reserve("alice");
-    }
-
-    function test_RevertWhen_CallerNotSpace() external {
-        // Initialize a non compliant space
-        MockNonCompliantSpace nonCompliant = new MockNonCompliantSpace(users.admin);
-
-        // Expect the next call to revert with the {SpaceUnsupportedInterface} error
-        vm.expectRevert(WerkRegistrar.SpaceUnsupportedInterface.selector);
-
-        // Run the test
-        nonCompliant.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("alice")));
+        space2.execute(address(werkRegistrar), 0, _registerCall(space2, "alice"));
     }
 
     function test_RevertWhen_LabelEmpty() external {
-        _expectInvalidLabelOnReserve("");
-    }
-
-    function test_RevertWhen_LabelTooShort() external {
-        _expectInvalidLabelOnReserve("ab");
+        _expectInvalidLabelLength("");
     }
 
     function test_RevertWhen_LabelTooLong() external {
-        // 64 characters, one above `MAX_LABEL_LENGTH`
-        _expectInvalidLabelOnReserve("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-    }
-
-    function test_RevertWhen_LabelHasUppercase() external {
-        _expectInvalidLabelOnReserve("Alice");
-    }
-
-    function test_RevertWhen_LabelHasDot() external {
-        _expectInvalidLabelOnReserve("al.ice");
-    }
-
-    function test_RevertWhen_LabelHasNonASCII() external {
-        _expectInvalidLabelOnReserve(unicode"café");
-    }
-
-    function test_RevertWhen_LabelStartsWithHyphen() external {
-        _expectInvalidLabelOnReserve("-alice");
-    }
-
-    function test_RevertWhen_LabelEndsWithHyphen() external {
-        _expectInvalidLabelOnReserve("alice-");
-    }
-
-    function test_RevertWhen_LabelHasHyphensAtThirdAndFourthPositions() external {
-        _expectInvalidLabelOnReserve("xn--alice");
-    }
-
-    function test_RevertWhen_RegisterInvalidLabel() external {
-        // Make Alice the caller
-        vm.prank(users.alice);
-
-        // Expect the next call to revert with the {InvalidLabel} error before any reservation check
-        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.InvalidLabel.selector, "Alice"));
-
-        // Run the test
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("Alice")));
+        // 256 bytes, one above `MAX_LABEL_BYTES`
+        _expectInvalidLabelLength(_repeat("a", 256));
     }
 
     function test_ClaimSubname_LabelWithDigitsAndHyphens() external {
         string memory label = "acme-co-2026";
 
-        // Alice reserves and registers a label with digits and inner hyphens
-        _reserveAndRegisterSubname(space, users.alice, label);
+        // Alice claims a label with digits and inner hyphens
+        _claimSubname(space, users.alice, label);
 
         // Assert that it resolves to the space
         assertEq(_resolveAddr(label), address(space), "label with digits and hyphens should resolve to space");
     }
 
     function test_ClaimSubname_LabelMaxLength() external {
-        // 63 characters, exactly `MAX_LABEL_LENGTH`
-        string memory label = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        // 255 bytes, exactly `MAX_LABEL_BYTES`
+        string memory label = _repeat("a", 255);
 
-        // Alice reserves and registers the longest allowed label
-        _reserveAndRegisterSubname(space, users.alice, label);
+        // Alice claims the longest allowed label
+        _claimSubname(space, users.alice, label);
 
         // Assert that it resolves to the space
         assertEq(_resolveAddr(label), address(space), "max length label should resolve to space");
     }
 
-    function test_Available_InvalidLabel() external view {
-        // Assert that an invalid label is reported as unavailable
-        assertFalse(werkRegistrar.available("Alice"), "invalid label should not be available");
-    }
+    function test_RevertWhen_SignatureExpired() external {
+        // Sign a claim that expires now and move past it
+        uint40 validUntil = uint40(block.timestamp);
+        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+        vm.warp(block.timestamp + 1);
 
-    function test_RevertWhen_NoReservation() external {
         // Make Alice the caller
         vm.prank(users.alice);
 
-        // Expect the next call to revert with the {ReservationNotFound} error
-        vm.expectRevert(WerkRegistrar.ReservationNotFound.selector);
+        // Expect the next call to revert with the {SignatureExpired} error
+        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.SignatureExpired.selector, validUntil));
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("alice")));
-    }
-
-    function test_RevertWhen_ReservationExpired() external {
-        // Alice reserves a subname
-        _reserveSubname(space, users.alice, "alice");
-
-        // Warp past the 30-minute reservation window
-        vm.warp(block.timestamp + 31 minutes);
-
-        // Make Alice the caller
-        vm.prank(users.alice);
-
-        // Expect the next call to revert with the {ReservationExpired} error
-        vm.expectRevert(WerkRegistrar.ReservationExpired.selector);
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("alice")));
-    }
-
-    function test_RevertWhen_NotReservationOwner() external {
-        // space reserves "alice"
-        _reserveSubname(space, users.alice, "alice");
-
-        // space2 tries to claim it
-        vm.prank(users.bob);
-
-        // Expect the next call to revert with the {ReservationNotFound} error
-        vm.expectRevert(
-            abi.encodeWithSelector(WerkRegistrar.NotReservationOwner.selector, block.timestamp + 30 minutes)
+        space.execute(
+            address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("alice", validUntil, signature))
         );
-
-        // Run the test
-        space2.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("alice")));
     }
 
-    function test_RevertWhen_AlreadyReserved() external {
-        // Alice reserves subname
-        _reserveSubname(space, users.alice, "alice");
+    function test_RevertWhen_SignedByUntrustedSigner() external {
+        // Sign the claim with a key that is not the trusted signer
+        (, uint256 untrustedKey) = makeAddrAndKey("untrusted-signer");
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, untrustedKey);
 
-        // Make Bob the caller
-        vm.prank(users.bob);
+        // Expect the claim to revert with the {InvalidSignature} error
+        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil, signature);
+    }
 
-        // Expect the next call to revert with the {AlreadyReserved} error
-        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.AlreadyReserved.selector, block.timestamp + 30 minutes));
+    function test_RevertWhen_SignatureForAnotherSpace() external {
+        // The backend authorized `space` to claim "alice"
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+
+        // Expect `space2` replaying it to revert with the {InvalidSignature} error
+        _expectInvalidSignatureOnRegister(space2, users.bob, "alice", validUntil, signature);
+    }
+
+    function test_RevertWhen_SignatureForAnotherLabel() external {
+        // The backend authorized `space` to claim "alice"
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+
+        // Expect claiming "bob" with it to revert with the {InvalidSignature} error
+        _expectInvalidSignatureOnRegister(space, users.alice, "bob", validUntil, signature);
+    }
+
+    function test_RevertWhen_SignatureValidUntilTampered() external {
+        // The backend authorized the claim until `validUntil`
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+
+        // Expect extending the deadline to revert with the {InvalidSignature} error
+        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil + 1 days, signature);
+    }
+
+    function test_RevertWhen_SignatureReused() external {
+        // Alice claims "alice" and the owner clears it
+        bytes memory registerCall = _registerCall(space, "alice");
+        vm.prank(users.alice);
+        space.execute(address(werkRegistrar), 0, registerCall);
+
+        string[] memory labels = new string[](1);
+        labels[0] = "alice";
+        vm.prank(users.admin);
+        werkRegistrar.clearLabels(labels);
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect replaying the same signature to revert with the {SignatureAlreadyUsed} error
+        vm.expectRevert(WerkRegistrar.SignatureAlreadyUsed.selector);
 
         // Run the test
-        space2.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("alice")));
+        space.execute(address(werkRegistrar), 0, registerCall);
     }
+
+    function test_RevertWhen_SignatureMalformed() external {
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+
+        // Expect a signature of the wrong length to revert with the {InvalidSignature} error
+        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil, hex"1234");
+    }
+
+    function test_RevertWhen_RenewSignatureUsedForRegister() external {
+        // The backend authorized `space` to renew "alice"
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _sign(_renewAction(), address(space), "alice", validUntil, signerKey);
+
+        // Expect claiming with it to revert with the {InvalidSignature} error
+        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil, signature);
+    }
+
+    function test_RevertWhen_RenewWithoutValidSignature() external {
+        // Alice claims a subname and enters the grace period
+        _claimSubname(space, users.alice, "alice");
+        vm.warp(block.timestamp + 365 days + 1);
+
+        // The backend authorized a claim, not a renewal
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {InvalidSignature} error
+        vm.expectRevert(WerkRegistrar.InvalidSignature.selector);
+
+        // Run the test
+        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.renew, ("alice", validUntil, signature)));
+    }
+
+    function test_SetSigner() external {
+        (address newSigner, uint256 newSignerKey) = makeAddrAndKey("new-signer");
+
+        // Expect the {SignerUpdated} event to be emitted
+        vm.expectEmit(address(werkRegistrar));
+        emit WerkRegistrar.SignerUpdated(signer, newSigner);
+
+        // Run the test
+        vm.prank(users.admin);
+        werkRegistrar.setSigner(newSigner);
+
+        // Assert that the signer was rotated
+        assertEq(werkRegistrar.signer(), newSigner, "signer not rotated");
+
+        // Assert that the old signer is no longer trusted
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory oldSignature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil, oldSignature);
+
+        // Assert that the new signer is trusted
+        bytes memory newSignature = _sign(_registerAction(), address(space), "alice", validUntil, newSignerKey);
+        vm.prank(users.alice);
+        space.execute(
+            address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("alice", validUntil, newSignature))
+        );
+        assertEq(werkRegistrar.getSpaceForLabel("alice"), address(space), "space for label mismatch");
+    }
+
+    function test_RevertWhen_SetSignerCallerNotOwner() external {
+        // Make Eve the caller
+        vm.prank(users.eve);
+
+        // Expect the next call to revert with the {OwnableUnauthorizedAccount} error
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, users.eve));
+
+        // Run the test
+        werkRegistrar.setSigner(users.eve);
+    }
+
+    function test_RevertWhen_SetSignerZeroAddress() external {
+        // Make the owner the caller
+        vm.prank(users.admin);
+
+        // Expect the next call to revert with the {InvalidZeroAddressSigner} error
+        vm.expectRevert(WerkRegistrar.InvalidZeroAddressSigner.selector);
+
+        // Run the test
+        werkRegistrar.setSigner(address(0));
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                   ACCESS CONTROL
+    //////////////////////////////////////////////////////////////////////////*/
 
     function test_RevertWhen_SpaceUnregistersSubname() external {
-        // Alice reserves and registers subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
         // Allowlist the Werk registry so the space can call it directly
         // Note: this mirrors a space upgraded to an implementation without the allowlist check
@@ -353,8 +395,8 @@ contract WerkENSv2Fork_Test is Fork_Test {
     }
 
     function test_RevertWhen_SpaceSetsResolver() external {
-        // Alice reserves and registers subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
         // Allowlist the Werk registry so the space can call it directly
         _allowlistWerkRegistry();
@@ -385,8 +427,8 @@ contract WerkENSv2Fork_Test is Fork_Test {
     }
 
     function test_RevertWhen_AdminSetsAddress() external {
-        // Alice reserves and registers subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
         // Make the admin the caller
         vm.prank(users.admin);
@@ -414,8 +456,8 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
     function test_MultipleSpaces_ClaimDifferentSubnames() external {
         // Alice and Bob each claim a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
-        _reserveAndRegisterSubname(space2, users.bob, "bob");
+        _claimSubname(space, users.alice, "alice");
+        _claimSubname(space2, users.bob, "bob");
 
         // Assert they resolve correctly
         assertEq(_resolveAddr("alice"), address(space), "alice should resolve to space");
@@ -426,94 +468,9 @@ contract WerkENSv2Fork_Test is Fork_Test {
         // Assert that unclaimed label is available
         assertTrue(werkRegistrar.available("alice"), "unclaimed label should be available");
 
-        // Assert that reserved label is not available
-        _reserveSubname(space, users.alice, "alice");
-        assertFalse(werkRegistrar.available("alice"), "reserved label should not be available");
-
-        // Assert that expired reservation makes label available again
-        vm.warp(block.timestamp + 31 minutes);
-        assertTrue(werkRegistrar.available("alice"), "expired reservation should be available");
-
         // Assert that claimed label is not available
-        // Note: claimed by another space as the first one is still in its reservation cooldown
-        _reserveAndRegisterSubname(space2, users.bob, "alice");
+        _claimSubname(space, users.alice, "alice");
         assertFalse(werkRegistrar.available("alice"), "claimed label should not be available");
-    }
-
-    /*//////////////////////////////////////////////////////////////////////////
-                                  RESERVATION RULES
-    //////////////////////////////////////////////////////////////////////////*/
-
-    function test_Reserve_ReleasesPreviousReservation() external {
-        // Alice reserves "alice"
-        _reserveSubname(space, users.alice, "alice");
-
-        // Alice reserves "bob", which releases her reservation of "alice"
-        _reserveSubname(space, users.alice, "bob");
-
-        // Assert that "alice" is available again while "bob" is reserved
-        assertTrue(werkRegistrar.available("alice"), "released label should be available");
-        assertFalse(werkRegistrar.available("bob"), "new reservation should not be available");
-
-        // Assert that another space can reserve and register the released label right away
-        _reserveAndRegisterSubname(space2, users.bob, "alice");
-        assertEq(_resolveAddr("alice"), address(space2), "released label should resolve to space2");
-    }
-
-    function test_RevertWhen_ReserveDuringCooldown() external {
-        // Alice reserves "alice" and lets the reservation expire
-        _reserveSubname(space, users.alice, "alice");
-        uint256 cooldownEnd = block.timestamp + 60 minutes;
-        vm.warp(block.timestamp + 31 minutes);
-
-        // Make Alice the caller
-        vm.prank(users.alice);
-
-        // Expect the next call to revert with the {ReservationCooldown} error
-        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.ReservationCooldown.selector, cooldownEnd));
-
-        // Run the test
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("alice")));
-    }
-
-    function test_RevertWhen_ReserveReleasedLabelDuringCooldown() external {
-        // Alice reserves "alice", then releases it by reserving "bob"
-        _reserveSubname(space, users.alice, "alice");
-        _reserveSubname(space, users.alice, "bob");
-
-        // Make Alice the caller
-        vm.prank(users.alice);
-
-        // Expect the next call to revert with the {ReservationCooldown} error as the release starts the cooldown
-        vm.expectRevert(
-            abi.encodeWithSelector(WerkRegistrar.ReservationCooldown.selector, block.timestamp + 30 minutes)
-        );
-
-        // Run the test
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("alice")));
-    }
-
-    function test_Reserve_AfterCooldown() external {
-        // Alice reserves "alice" and waits for both the reservation and its cooldown to end
-        _reserveSubname(space, users.alice, "alice");
-        vm.warp(block.timestamp + 60 minutes);
-
-        // Run the test
-        _reserveSubname(space, users.alice, "alice");
-
-        // Assert that the label is reserved again
-        assertFalse(werkRegistrar.available("alice"), "label should be reserved again");
-    }
-
-    function test_RevertWhen_CallerNotRegisteredSpace() external {
-        // Deploy a contract claiming to be a space without being registered on the {StationRegistry}
-        MockUnregisteredSpace unregistered = new MockUnregisteredSpace();
-
-        // Expect the next call to revert with the {SpaceNotRegistered} error
-        vm.expectRevert(WerkRegistrar.SpaceNotRegistered.selector);
-
-        // Run the test
-        unregistered.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("alice")));
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -521,8 +478,8 @@ contract WerkENSv2Fork_Test is Fork_Test {
     //////////////////////////////////////////////////////////////////////////*/
 
     function test_RevertWhen_RenewBeforeGracePeriod() external {
-        // Alice reserves and registers a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
         // Make Alice the caller
         vm.prank(users.alice);
@@ -531,12 +488,12 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.RenewalNotOpen.selector, block.timestamp + 365 days));
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.renew, ("alice")));
+        space.execute(address(werkRegistrar), 0, _renewCall(space, "alice"));
     }
 
     function test_Renew_DuringGracePeriod() external {
-        // Alice reserves and registers a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
         uint256 expiry = werkRegistry.getExpiry(uint256(keccak256("alice")));
 
         // Warp into the grace period
@@ -551,8 +508,8 @@ contract WerkENSv2Fork_Test is Fork_Test {
     }
 
     function test_RevertWhen_RenewByNonOwner() external {
-        // Alice reserves and registers a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
         // Warp into the grace period
         vm.warp(block.timestamp + 365 days + 1);
@@ -564,12 +521,12 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.NotSubnameOwner.selector, address(space2)));
 
         // Run the test
-        space2.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.renew, ("alice")));
+        space2.execute(address(werkRegistrar), 0, _renewCall(space2, "alice"));
     }
 
-    function test_RevertWhen_ReserveDuringGracePeriod() external {
-        // Alice reserves and registers a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+    function test_RevertWhen_RegisterDuringGracePeriod() external {
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
         // Warp into the grace period
         vm.warp(block.timestamp + 366 days);
@@ -586,12 +543,12 @@ contract WerkENSv2Fork_Test is Fork_Test {
         );
 
         // Run the test
-        space2.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("alice")));
+        space2.execute(address(werkRegistrar), 0, _registerCall(space2, "alice"));
     }
 
     function test_RevertWhen_RenewAfterExpiry() external {
-        // Alice reserves and registers a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
         // Warp past the grace period
         vm.warp(block.timestamp + 395 days);
@@ -603,16 +560,16 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.NotSubnameOwner.selector, address(space)));
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.renew, ("alice")));
+        space.execute(address(werkRegistrar), 0, _renewCall(space, "alice"));
     }
 
     function test_ClaimExpiredLabel_ByAnotherSpace() external {
-        // Alice reserves and registers a subname, then lets it expire
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname, then lets it expire
+        _claimSubname(space, users.alice, "alice");
         vm.warp(block.timestamp + 395 days);
 
         // Run the test
-        _reserveAndRegisterSubname(space2, users.bob, "alice");
+        _claimSubname(space2, users.bob, "alice");
 
         // Assert that the label now resolves to the new space and the previous space has no active subname
         assertEq(_resolveAddr("alice"), address(space2), "expired label should resolve to the new space");
@@ -621,12 +578,12 @@ contract WerkENSv2Fork_Test is Fork_Test {
     }
 
     function test_ClaimNewLabel_AfterOwnSubnameExpired() external {
-        // Alice reserves and registers a subname, then lets it expire
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname, then lets it expire
+        _claimSubname(space, users.alice, "alice");
         vm.warp(block.timestamp + 395 days);
 
         // Run the test
-        _reserveAndRegisterSubname(space, users.alice, "alice-new");
+        _claimSubname(space, users.alice, "alice-new");
 
         // Assert that the space holds its new subname
         assertEq(_resolveAddr("alice-new"), address(space), "new subname should resolve to space");
@@ -643,8 +600,8 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
     function test_ClearLabels() external {
         // Alice and Bob each claim a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
-        _reserveAndRegisterSubname(space2, users.bob, "bob");
+        _claimSubname(space, users.alice, "alice");
+        _claimSubname(space2, users.bob, "bob");
 
         // Make the owner the caller
         vm.prank(users.admin);
@@ -668,13 +625,13 @@ contract WerkENSv2Fork_Test is Fork_Test {
         assertEq(_werkResolverDefaultAddress("alice").length, 0, "default address record should be reset");
 
         // Assert that a cleared space can claim a new subname
-        _reserveAndRegisterSubname(space, users.alice, "alice-new");
+        _claimSubname(space, users.alice, "alice-new");
         assertEq(_resolveAddr("alice-new"), address(space), "new subname should resolve to space");
     }
 
     function test_RevertWhen_ClearLabelsCallerNotOwner() external {
-        // Alice reserves and registers a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
         // Make Eve the caller
         vm.prank(users.eve);
@@ -693,8 +650,8 @@ contract WerkENSv2Fork_Test is Fork_Test {
     //////////////////////////////////////////////////////////////////////////*/
 
     function test_Upgrade_KeepsState() external {
-        // Alice reserves and registers a subname
-        _reserveAndRegisterSubname(space, users.alice, "alice");
+        // Alice claims a subname
+        _claimSubname(space, users.alice, "alice");
 
         // Deploy a new implementation
         address newImplementation = address(new WerkRegistrar());
@@ -713,18 +670,19 @@ contract WerkENSv2Fork_Test is Fork_Test {
         assertEq(address(werkRegistrar.WERK_REGISTRY()), address(werkRegistry), "registry mismatch");
         assertEq(werkRegistrar.RESOLVER(), werkResolver, "resolver mismatch");
         assertEq(werkRegistrar.owner(), users.admin, "owner mismatch");
+        assertEq(werkRegistrar.signer(), signer, "signer mismatch");
         assertEq(
             werkRegistrar.getLabelHashForSpace(address(space)), keccak256(bytes("alice")), "label for space mismatch"
         );
 
-        // Assert that the space still cannot reserve a second subname after the upgrade
+        // Assert that the space still cannot claim a second subname after the upgrade
         vm.prank(users.alice);
         vm.expectRevert(
             abi.encodeWithSelector(
                 WerkRegistrar.SpaceAlreadyHasSubname.selector, address(space), keccak256(bytes("alice"))
             )
         );
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, ("bob")));
+        space.execute(address(werkRegistrar), 0, _registerCall(space, "bob"));
     }
 
     function test_RevertWhen_UpgradeCallerNotOwner() external {
@@ -749,7 +707,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
 
         // Run the test
-        implementation.initialize(werkRegistry, werkResolver, ISpaceFactory(address(stationRegistry)), users.eve);
+        implementation.initialize(werkRegistry, werkResolver, users.eve, users.eve);
     }
 
     function test_RevertWhen_ReinitializeProxy() external {
@@ -757,7 +715,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
 
         // Run the test
-        werkRegistrar.initialize(werkRegistry, werkResolver, ISpaceFactory(address(stationRegistry)), users.eve);
+        werkRegistrar.initialize(werkRegistry, werkResolver, users.eve, users.eve);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -774,24 +732,77 @@ contract WerkENSv2Fork_Test is Fork_Test {
                                     OTHER HELPERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    function _reserveSubname(Space _space, address caller, string memory label) internal {
-        vm.prank(caller);
-        _space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, (label)));
-    }
-
+    /// @dev Claims `label` for `_space` with a fresh signature of the trusted signer
     function _claimSubname(Space _space, address caller, string memory label) internal {
         vm.prank(caller);
-        _space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, (label)));
+        _space.execute(address(werkRegistrar), 0, _registerCall(_space, label));
     }
 
-    function _reserveAndRegisterSubname(Space _space, address caller, string memory label) internal {
-        _reserveSubname(_space, caller, label);
-        _claimSubname(_space, caller, label);
-    }
-
+    /// @dev Renews `label` for `_space` with a fresh signature of the trusted signer
     function _renewSubname(Space _space, address caller, string memory label) internal {
         vm.prank(caller);
-        _space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.renew, (label)));
+        _space.execute(address(werkRegistrar), 0, _renewCall(_space, label));
+    }
+
+    /// @dev Builds a {WerkRegistrar.register} call for `_space` signed by the trusted signer
+    function _registerCall(Space _space, string memory label) internal view returns (bytes memory) {
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _sign(_registerAction(), address(_space), label, validUntil, signerKey);
+        return abi.encodeCall(WerkRegistrar.register, (label, validUntil, signature));
+    }
+
+    /// @dev Builds a {WerkRegistrar.renew} call for `_space` signed by the trusted signer
+    function _renewCall(Space _space, string memory label) internal view returns (bytes memory) {
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _sign(_renewAction(), address(_space), label, validUntil, signerKey);
+        return abi.encodeCall(WerkRegistrar.renew, (label, validUntil, signature));
+    }
+
+    /// @dev Signs the payload the {WerkRegistrar} verifies, the way the backend does
+    /// Note: rebuilt independently from the {WerkRegistrar} so that the test catches a mismatch in either one
+    function _sign(
+        bytes32 action,
+        address _space,
+        string memory label,
+        uint40 validUntil,
+        uint256 privateKey
+    )
+        internal
+        view
+        returns (bytes memory)
+    {
+        bytes32 rawHash = keccak256(
+            abi.encode(action, address(werkRegistrar), _space, keccak256(bytes(label)), validUntil, block.chainid)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, MessageHashUtils.toEthSignedMessageHash(rawHash));
+        return abi.encodePacked(r, s, v);
+    }
+
+    /// @dev Action tag of a signed {WerkRegistrar.register} payload
+    function _registerAction() internal pure returns (bytes32) {
+        return keccak256("WerkRegistrar.register");
+    }
+
+    /// @dev Action tag of a signed {WerkRegistrar.renew} payload
+    function _renewAction() internal pure returns (bytes32) {
+        return keccak256("WerkRegistrar.renew");
+    }
+
+    /// @dev Expects claiming `label` from `_space` with the given signature to revert with {InvalidSignature}
+    function _expectInvalidSignatureOnRegister(
+        Space _space,
+        address caller,
+        string memory label,
+        uint40 validUntil,
+        bytes memory signature
+    )
+        internal
+    {
+        vm.prank(caller);
+        vm.expectRevert(WerkRegistrar.InvalidSignature.selector);
+        _space.execute(
+            address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, (label, validUntil, signature))
+        );
     }
 
     /// @dev Reads the ENSIP-19 default address record of `<label>.werk.eth` directly from the Werk resolver
@@ -826,16 +837,23 @@ contract WerkENSv2Fork_Test is Fork_Test {
         return abi.decode(result, (address));
     }
 
-    /// @dev Expects reserving `label` from the space to revert with the {InvalidLabel} error
-    function _expectInvalidLabelOnReserve(string memory label) internal {
+    /// @dev Expects claiming `label` from the space to revert with the {InvalidLabelLength} error
+    function _expectInvalidLabelLength(string memory label) internal {
         // Make Alice the caller
         vm.prank(users.alice);
 
-        // Expect the next call to revert with the {InvalidLabel} error
-        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.InvalidLabel.selector, label));
+        // Expect the next call to revert with the {InvalidLabelLength} error
+        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.InvalidLabelLength.selector, bytes(label).length));
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.reserve, (label)));
+        space.execute(address(werkRegistrar), 0, _registerCall(space, label));
+    }
+
+    /// @dev Builds a string of `count` copies of `char`
+    function _repeat(string memory char, uint256 count) internal pure returns (string memory result) {
+        for (uint256 i; i < count; ++i) {
+            result = string.concat(result, char);
+        }
     }
 
     /// @dev Allowlists the Werk registry in the {ModuleKeeper} so that spaces can call it directly

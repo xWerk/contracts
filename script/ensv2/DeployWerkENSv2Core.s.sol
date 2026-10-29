@@ -5,7 +5,6 @@ import { BaseScript } from "./../Base.s.sol";
 import { WerkENSv2Deployer } from "./WerkENSv2Deployer.sol";
 import { WerkRegistrar } from "./../../src/peripherals/ensv2/WerkRegistrar.sol";
 import { IVerifiableFactory } from "./../../src/peripherals/ensv2/interfaces/IVerifiableFactory.sol";
-import { ISpaceFactory } from "./../../src/peripherals/ensv2/interfaces/ISpaceFactory.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 
 /// @notice Deploys the Werk ENSv2 infrastructure: the Werk registry and resolver as ENSv2 proxies, and the
@@ -43,7 +42,7 @@ contract DeployWerkENSv2Core is BaseScript {
 
         // Step 3: Deploy the `WerkRegistrar` as an ERC1967 proxy
         werkRegistrar = WerkENSv2Deployer.deployRegistrar(
-            werkRegistry, werkResolver, ISpaceFactory(STATION_REGISTRY), DEFAULT_PROTOCOL_ADMIN
+            werkRegistry, werkResolver, DEFAULT_PROTOCOL_ADMIN, DEFAULT_BACKEND_SIGNER
         );
 
         // Step 4: Grant the `WerkRegistrar` its roles and link the registry to its canonical parent

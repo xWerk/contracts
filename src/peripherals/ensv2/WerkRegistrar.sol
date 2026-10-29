@@ -4,19 +4,25 @@ pragma solidity ^0.8.26;
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 import { IRegistry } from "@ensv2/registry/interfaces/IRegistry.sol";
 import { IAddressSetter } from "@ensv2/resolver/interfaces/setters/IAddressSetter.sol";
 import { COIN_TYPE_DEFAULT } from "@ens/contracts/utils/ENSIP19.sol";
 import { NameCoder } from "@ens/contracts/utils/NameCoder.sol";
-import { ISpace } from "./../../interfaces/ISpace.sol";
-import { ISpaceFactory } from "./interfaces/ISpaceFactory.sol";
 
 /// @title WerkRegistrar
 /// @notice Registrar for subnames under `werk.eth`, enforcing one active subname per Werk space
 /// @dev The Werk registry is the source of truth for label ownership and expiry. A subname is held for
 /// `REGISTRATION_PERIOD` followed by a `GRACE_PERIOD` during which only the owning space can renew it
+/// Eligibility is decided off-chain: every {register} and {renew} call must carry a signature of the trusted
+/// signer over the space, the label and a `validUntil` deadline. The signature is bound to `msg.sender`, and the
+/// backend only signs for Space addresses it derives from the `StationRegistry`, so only that Space can use it
 contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+    using ECDSA for bytes32;
+    using MessageHashUtils for bytes32;
+
     /// @dev Version identifier for the current implementation of the contract
     string public constant VERSION = "1.0.0";
 
@@ -27,8 +33,10 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// Note: the subname keeps resolving during the grace period
     uint256 internal constant GRACE_PERIOD = 30 days;
 
-    /// @dev Period a label is reserved for, also used as the cooldown before the same space can reserve it again
-    uint256 internal constant RESERVATION_PERIOD = 30 minutes;
+    /// @dev Action tags mixed into the signed payload so that a signature authorizes a single action
+    /// Note: required if the backend sets different rules for register and review actions
+    bytes32 internal constant REGISTER_ACTION = keccak256("WerkRegistrar.register");
+    bytes32 internal constant RENEW_ACTION = keccak256("WerkRegistrar.renew");
 
     /// @dev Namehash of `werk.eth`, used as parent node for subname nodes
     /// See https://docs.ens.domains/resolution/names/
@@ -38,19 +46,10 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// The ENSv2 resolver keys records by DNS-encoded name rather than by node
     bytes internal constant WERK_DNS_SUFFIX = hex"047765726b0365746800";
 
-    /// @dev Minimum length of a label
-    uint256 internal constant MIN_LABEL_LENGTH = 3;
-
-    /// @dev Maximum length of a label, matching the DNS limit for a single label
-    uint256 internal constant MAX_LABEL_LENGTH = 63;
-
-    /// @notice Reservation details for a label
-    /// @param owner The address that owns the reservation
-    /// @param expiresAt The timestamp at which the reservation expires
-    struct Reservation {
-        address owner;
-        uint40 expiresAt;
-    }
+    /// @dev Maximum byte length of a label, as {_dnsEncode} prefixes it with its length in a single byte
+    /// Note: the label policy (allowed characters, normalization, reserved labels) is enforced by the trusted signer,
+    /// whose signature binds the label hash
+    uint256 internal constant MAX_LABEL_BYTES = 255;
 
     /*//////////////////////////////////////////////////////////////////////////
                             NAMESPACED STORAGE LAYOUT
@@ -63,16 +62,14 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         /// @notice Shared resolver used for all werk subnames
         address resolver;
         /// @notice Factory that deploys and registers Werk spaces
-        ISpaceFactory stationRegistry;
         /// @notice Maps a Werk space to the label hash it last claimed
         /// @dev Only a pointer into the registry: the claim is active only while the registry reports the label as
         /// registered to that space
         mapping(address space => bytes32 labelHash) spaceToLabel;
-        /// @notice Reservations mapped by label hash
-        mapping(bytes32 labelHash => Reservation) reservations;
-        /// @notice Maps a Werk space to the label hash of its latest reservation
-        /// @dev Used to enforce one active reservation per space
-        mapping(address space => bytes32 labelHash) reservationOf;
+        /// @notice The trusted backend address whose signature authorizes {register} and {renew}
+        address signer;
+        /// @notice Whether a signed payload was already consumed
+        mapping(bytes32 payloadHash => bool used) usedPayloads;
     }
 
     // keccak256(abi.encode(uint256(keccak256("werk.storage.WerkRegistrar")) - 1)) & ~bytes32(uint256(0xff))
@@ -105,11 +102,10 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @param label The plaintext label (e.g. "alice")
     event LabelCleared(address indexed space, string label);
 
-    /// @notice Emitted when a subdomain is reserved
-    /// @param label The reserved label (e.g. "alice" in "alice.werk.eth")
-    /// @param owner The owner of the reserved subdomain
-    /// @param expiresAt The timestamp at which the reservation expires
-    event SubnameReserved(string indexed label, address indexed owner, uint40 expiresAt);
+    /// @notice Emitted when the owner updates the trusted signer
+    /// @param oldSigner The previous signer address
+    /// @param newSigner The new signer address
+    event SignerUpdated(address indexed oldSigner, address indexed newSigner);
 
     /// @notice Revert when the caller does not own the subname
     /// @param caller The caller that is not the owner of the subname
@@ -119,9 +115,9 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @param opensAt The timestamp at which the grace period starts
     error RenewalNotOpen(uint64 opensAt);
 
-    /// @notice Revert when `label` does not follow the label rules enforced by {_isValidLabel}
-    /// @param label The rejected label
-    error InvalidLabel(string label);
+    /// @notice Revert when the label is empty or longer than `MAX_LABEL_BYTES`
+    /// @param length The byte length of the rejected label
+    error InvalidLabelLength(uint256 length);
 
     /// @notice Revert when the space already has an active subname
     /// @param space The Werk space address
@@ -133,30 +129,18 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @param existingSpace Werk space that already claimed the label
     error LabelAlreadyTaken(bytes32 labelHash, address existingSpace);
 
-    /// @notice Revert when the caller is an invalid zero code contract or EOA
-    error SpaceZeroCodeSize();
+    /// @notice Revert when the signature is used after its `validUntil` deadline
+    /// @param validUntil The timestamp until which the signature was valid
+    error SignatureExpired(uint40 validUntil);
 
-    /// @notice Revert when the caller does not implement the {ISpace} interface
-    error SpaceUnsupportedInterface();
+    /// @notice Revert when the signature was not produced by the trusted signer over the expected payload
+    error InvalidSignature();
 
-    /// @notice Revert when the caller is not a Space registered on the `STATION_REGISTRY`
-    error SpaceNotRegistered();
+    /// @notice Revert when the signed payload was already consumed by a previous {register} or {renew}
+    error SignatureAlreadyUsed();
 
-    /// @notice Revert when the subdomain has already been reserved
-    error AlreadyReserved(uint40 expiresAt);
-
-    /// @notice Revert when the caller reserves again a label it held until the end of its cooldown
-    /// @param endsAt The timestamp at which the caller can reserve the label again
-    error ReservationCooldown(uint256 endsAt);
-
-    /// @notice Revert when the reservation has expired
-    error ReservationExpired();
-
-    /// @notice Revert when there is no reservation found for the given label
-    error ReservationNotFound();
-
-    /// @notice Revert when the caller is not the owner of the reservation
-    error NotReservationOwner(uint40 expiresAt);
+    /// @notice Revert when the signer is set to the zero address
+    error InvalidZeroAddressSigner();
 
     /*//////////////////////////////////////////////////////////////////////////
                             CONSTRUCTOR & INITIALIZER
@@ -171,17 +155,20 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @dev Initializes the proxy and the {Ownable} contract
     /// @param werkRegistry ENSv2 registry that holds all `werk.eth` subnames
     /// @param resolver Shared resolver used for all werk subnames
-    /// @param stationRegistry Factory that deploys and registers Werk spaces
     /// @param initialAdmin Address of the registrar owner
+    /// @param initialSigner The trusted backend address whose signature authorizes {register} and {renew}
     function initialize(
         IPermissionedRegistry werkRegistry,
         address resolver,
-        ISpaceFactory stationRegistry,
-        address initialAdmin
+        address initialAdmin,
+        address initialSigner
     )
         public
         initializer
     {
+        // Checks: the signer is not the zero address
+        if (initialSigner == address(0)) revert InvalidZeroAddressSigner();
+
         __Ownable_init(initialAdmin);
         __ReentrancyGuard_init();
         __UUPSUpgradeable_init();
@@ -191,7 +178,7 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
         $.werkRegistry = werkRegistry;
         $.resolver = resolver;
-        $.stationRegistry = stationRegistry;
+        $.signer = initialSigner;
     }
 
     /// @dev Allows only the owner to upgrade the contract
@@ -211,130 +198,53 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         return _getWerkRegistrarStorage().resolver;
     }
 
-    /// @notice Factory that deploys and registers Werk spaces
-    function STATION_REGISTRY() public view returns (ISpaceFactory) {
-        return _getWerkRegistrarStorage().stationRegistry;
-    }
-
-    /// @notice Returns the reservation of a label
-    /// @param labelHash The label hash of the reservation
-    /// @return owner The address that owns the reservation
-    /// @return expiresAt The timestamp at which the reservation expires
-    function reservations(bytes32 labelHash) external view returns (address owner, uint40 expiresAt) {
-        Reservation memory reservation = _getWerkRegistrarStorage().reservations[labelHash];
-        return (reservation.owner, reservation.expiresAt);
-    }
-
-    /// @notice Returns the label hash of the latest reservation of a Werk space
-    /// @param space The Werk space address
-    function reservationOf(address space) external view returns (bytes32 labelHash) {
-        return _getWerkRegistrarStorage().reservationOf[space];
-    }
-
-    /// @dev Allow only calls from Werk spaces registered on the `STATION_REGISTRY`
-    modifier onlySpace() {
-        _onlySpace();
-        _;
+    /// @notice The trusted backend address whose signature authorizes {register} and {renew}
+    function signer() external view returns (address) {
+        return _getWerkRegistrarStorage().signer;
     }
 
     /// @notice Checks if a given label is available for registration
     /// @param label The label to check availability for
-    /// @return True if the label can be registered, false if invalid, taken (incl. grace period) or actively reserved
+    /// @return True if the label is not registered (including during its grace period)
+    /// Note: does not apply the label policy, which only the trusted signer enforces
     function available(string calldata label) external view returns (bool) {
-        // Check if the label follows the label rules
-        if (!_isValidLabel(label)) {
-            return false;
-        }
+        return _getWerkRegistrarStorage().werkRegistry.getStatus(uint256(keccak256(bytes(label))))
+            == IPermissionedRegistry.Status.AVAILABLE;
+    }
+
+    /// @notice Claim a subname `<label>.werk.eth` for a Werk space for `REGISTRATION_PERIOD` + `GRACE_PERIOD`
+    /// @dev Requirements:
+    ///  - the label must be between 1 and `MAX_LABEL_BYTES` bytes long
+    ///  - the trusted signer must have signed (`REGISTER_ACTION`, this contract, `msg.sender`, label hash,
+    ///    `validUntil`, chain id) and `validUntil` must not have passed
+    ///  - one active subname per space
+    ///  - the label must not be registered, including during its grace period
+    /// Requires this contract to have `ROLE_REGISTRAR` on `werkRegistry`
+    /// @param label subname for "werk.eth", e.g. "alice" for `alice.werk.eth`
+    /// @param validUntil The timestamp until which the signature can be used
+    /// @param signature The trusted signer's EIP-191 signature over the payload
+    function register(string calldata label, uint40 validUntil, bytes calldata signature) external nonReentrant {
+        // Checks: the label fits the single length byte of its DNS encoding
+        uint256 labelLength = bytes(label).length;
+        if (labelLength == 0 || labelLength > MAX_LABEL_BYTES) revert InvalidLabelLength(labelLength);
 
         bytes32 labelHash = keccak256(bytes(label));
 
-        // Retrieve the contract storage
-        WerkRegistrarStorage storage $ = _getWerkRegistrarStorage();
+        // Checks: the backend authorized this space to claim this label
+        _verifySignature(REGISTER_ACTION, labelHash, validUntil, signature);
 
-        // Check if the label is registered on the Werk registry, including during its grace period
-        if ($.werkRegistry.getStatus(uint256(labelHash)) != IPermissionedRegistry.Status.AVAILABLE) {
-            return false;
-        }
-
-        // Check if there is an active reservation for the label
-        return $.reservations[labelHash].expiresAt <= block.timestamp;
-    }
-
-    /// @notice Reserves a label for `RESERVATION_PERIOD` for the caller
-    /// @dev Requirements:
-    ///  - the caller has no active subname
-    ///  - the label is not registered nor actively reserved
-    ///  - the caller did not hold a reservation for the label during the last `RESERVATION_PERIOD`
-    /// Reserving a new label releases the caller's previous active reservation, keeping one per space
-    /// @param label The label to reserve (e.g. "alice" for "alice.werk.eth")
-    function reserve(string calldata label) external onlySpace {
-        if (!_isValidLabel(label)) revert InvalidLabel(label);
-
-        // Checks: the caller has no active subname as it could not register a second one
+        // Checks: the caller has no active subname
         bytes32 activeLabelHash = _activeLabelHash(msg.sender);
         if (activeLabelHash != bytes32(0)) revert SpaceAlreadyHasSubname(msg.sender, activeLabelHash);
 
-        bytes32 labelHash = keccak256(bytes(label));
-
-        // Retrieve the contract storage
-        WerkRegistrarStorage storage $ = _getWerkRegistrarStorage();
-
         // Checks: the label is not registered, including during its grace period
+        WerkRegistrarStorage storage $ = _getWerkRegistrarStorage();
         IPermissionedRegistry.State memory state = $.werkRegistry.getState(uint256(labelHash));
         if (state.status != IPermissionedRegistry.Status.AVAILABLE) {
             revert LabelAlreadyTaken(labelHash, state.latestOwner);
         }
 
-        // Checks: there is no reservation for the label that is still valid (not expired)
-        // Note: an empty reservation has a zero `expiresAt`, so it never counts as valid
-        Reservation memory reservation = $.reservations[labelHash];
-        if (reservation.expiresAt > block.timestamp) {
-            revert AlreadyReserved({ expiresAt: reservation.expiresAt });
-        }
-
-        // Checks: the caller did not just hold the label, so that it cannot keep it reserved indefinitely
-        if (reservation.owner == msg.sender && block.timestamp < reservation.expiresAt + RESERVATION_PERIOD) {
-            revert ReservationCooldown({ endsAt: reservation.expiresAt + RESERVATION_PERIOD });
-        }
-
-        // Effects: release the caller's previous active reservation by expiring it now
-        // Note: the released reservation keeps its owner so that the cooldown also applies to it
-        bytes32 previousLabelHash = $.reservationOf[msg.sender];
-        Reservation storage previous = $.reservations[previousLabelHash];
-        if (previous.owner == msg.sender && previous.expiresAt > block.timestamp) {
-            previous.expiresAt = uint40(block.timestamp);
-        }
-
-        // Effects: reserve the label for the caller
-        uint40 expiresAt = uint40(block.timestamp + RESERVATION_PERIOD);
-        $.reservations[labelHash] = Reservation({ owner: msg.sender, expiresAt: expiresAt });
-        $.reservationOf[msg.sender] = labelHash;
-
-        emit SubnameReserved({ label: label, owner: msg.sender, expiresAt: expiresAt });
-    }
-
-    /// @notice Claim a subname `<label>.werk.eth` for a Werk space for `REGISTRATION_PERIOD` + `GRACE_PERIOD`
-    /// @dev Requirements:
-    ///  - `msg.sender` must be a Werk space registered on the `STATION_REGISTRY`
-    ///  - `msg.sender` must have a valid reservation for the label
-    ///  - one active subname per space
-    /// Requires this contract to have `ROLE_REGISTRAR` on `werkRegistry`
-    /// @param label subname for "werk.eth", e.g. "alice" for `alice.werk.eth`
-    function register(string calldata label) external onlySpace nonReentrant {
-        if (!_isValidLabel(label)) revert InvalidLabel(label);
-
-        bytes32 labelHash = keccak256(bytes(label));
-
-        // Validate reservation
-        // Note: a valid reservation implies the label was available when reserved and nobody else could register it.
-        // It also enforces one active subname per space without re-checking it here: {reserve} rejects spaces holding
-        // an active subname, and a space holds at most one valid reservation that this call consumes
-        _validateReservation(labelHash, msg.sender);
-
-        // Clear the reservation and point the space to its new label
-        WerkRegistrarStorage storage $ = _getWerkRegistrarStorage();
-        delete $.reservations[labelHash];
-        delete $.reservationOf[msg.sender];
+        // Effects: point the space to its new label
         $.spaceToLabel[msg.sender] = labelHash;
 
         // Register the name in the Werk registry and set the default address record
@@ -346,10 +256,19 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
     /// @notice Renews the caller's subname for another `REGISTRATION_PERIOD`
     /// @dev Only allowed during the grace period, i.e. after `REGISTRATION_PERIOD` and before the subname expires
+    /// The trusted signer must have signed (`RENEW_ACTION`, this contract, `msg.sender`, label hash, `validUntil`,
+    /// chain id) and `validUntil` must not have passed
     /// Requires this contract to have `ROLE_RENEW` on `werkRegistry`
     /// @param label Leftmost label, e.g. "alice" for `alice.werk.eth`
-    function renew(string calldata label) external onlySpace {
-        uint256 labelId = uint256(keccak256(bytes(label)));
+    /// @param validUntil The timestamp until which the signature can be used
+    /// @param signature The trusted signer's EIP-191 signature over the payload
+    function renew(string calldata label, uint40 validUntil, bytes calldata signature) external {
+        bytes32 labelHash = keccak256(bytes(label));
+
+        // Checks: the backend authorized this space to renew this label
+        _verifySignature(RENEW_ACTION, labelHash, validUntil, signature);
+
+        uint256 labelId = uint256(labelHash);
         IPermissionedRegistry werkRegistry = _getWerkRegistrarStorage().werkRegistry;
         IPermissionedRegistry.State memory state = werkRegistry.getState(labelId);
 
@@ -396,6 +315,25 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         }
     }
 
+    /// @notice Rotates the trusted signer
+    /// @dev Only callable by the owner
+    /// @param newSigner The new signer address
+    function setSigner(address newSigner) external onlyOwner {
+        // Checks: the new signer is not the zero address
+        if (newSigner == address(0)) revert InvalidZeroAddressSigner();
+
+        // Retrieve the contract storage
+        WerkRegistrarStorage storage $ = _getWerkRegistrarStorage();
+
+        // Cache the old signer for the event
+        address oldSigner = $.signer;
+
+        // Effects: update the signer address
+        $.signer = newSigner;
+
+        emit SignerUpdated(oldSigner, newSigner);
+    }
+
     /// @notice Return the Werk space that holds a given label
     /// @param label Leftmost label, e.g. "alice"
     /// @return space Werk space address that holds the label (zero if none or expired)
@@ -410,18 +348,30 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         return _activeLabelHash(space);
     }
 
-    /// @dev Validates that `space` has an active reservation for `labelHash`
-    function _validateReservation(bytes32 labelHash, address space) internal view {
-        Reservation memory reservation = _getWerkRegistrarStorage().reservations[labelHash];
-        if (reservation.owner == address(0)) {
-            revert ReservationNotFound();
+    /// @dev Checks that the trusted signer authorized `msg.sender` to perform `action` on `labelHash` on this chain,
+    /// then consumes the signed payload so that it cannot be replayed
+    function _verifySignature(bytes32 action, bytes32 labelHash, uint40 validUntil, bytes calldata signature) internal {
+        // Checks: the signature has not expired
+        if (block.timestamp > validUntil) revert SignatureExpired(validUntil);
+
+        // Rebuild the payload the signer signed off-chain
+        // Note: `address(this)` and `block.chainid` prevent replays on other contracts and chains
+        bytes32 payloadHash =
+            keccak256(abi.encode(action, address(this), msg.sender, labelHash, validUntil, block.chainid));
+
+        // Checks: the payload was not consumed yet
+        WerkRegistrarStorage storage $ = _getWerkRegistrarStorage();
+        if ($.usedPayloads[payloadHash]) revert SignatureAlreadyUsed();
+
+        // Checks: the recovered signer is the trusted signer
+        // Note: `tryRecover` is used so that a malformed signature reverts with {InvalidSignature} too
+        (address recovered, ECDSA.RecoverError error,) = payloadHash.toEthSignedMessageHash().tryRecover(signature);
+        if (error != ECDSA.RecoverError.NoError || recovered != $.signer) {
+            revert InvalidSignature();
         }
-        if (reservation.expiresAt <= block.timestamp) {
-            revert ReservationExpired();
-        }
-        if (reservation.owner != space) {
-            revert NotReservationOwner({ expiresAt: reservation.expiresAt });
-        }
+
+        // Effects: consume the payload
+        $.usedPayloads[payloadHash] = true;
     }
 
     /// @dev Returns the label hash of the active subname held by `space`, or zero if it holds none
@@ -458,49 +408,8 @@ contract WerkRegistrar is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         IAddressSetter(resolver).setAddress(_dnsEncode(label), COIN_TYPE_DEFAULT, abi.encodePacked(space));
     }
 
-    /// @dev Checks that `label` follows the label rules, which guarantee it is already ENSIP-15 normalized:
-    ///  - between `MIN_LABEL_LENGTH` and `MAX_LABEL_LENGTH` characters
-    ///  - only lowercase letters (a-z), digits (0-9) and hyphens (-)
-    ///  - no leading or trailing hyphen
-    ///  - no hyphens at both the 3rd and 4th positions (reserved for the "xn--" punycode prefix)
-    function _isValidLabel(string calldata label) internal pure returns (bool) {
-        bytes calldata labelBytes = bytes(label);
-        uint256 length = labelBytes.length;
-
-        // Checks: the label length is within bounds
-        if (length < MIN_LABEL_LENGTH || length > MAX_LABEL_LENGTH) return false;
-
-        // Checks: the label does not start or end with a hyphen
-        if (labelBytes[0] == "-" || labelBytes[length - 1] == "-") return false;
-
-        // Checks: the label does not have hyphens at both the 3rd and 4th positions
-        // Note: a 3-character label never reads index 3, as a hyphen at index 2 was rejected as trailing above
-        if (labelBytes[2] == "-" && labelBytes[3] == "-") return false;
-
-        // Checks: every character is a lowercase letter, a digit or a hyphen
-        for (uint256 i; i < length; ++i) {
-            bytes1 char = labelBytes[i];
-            bool isLetter = char >= "a" && char <= "z";
-            bool isDigit = char >= "0" && char <= "9";
-            if (!isLetter && !isDigit && char != "-") return false;
-        }
-
-        return true;
-    }
-
     /// @dev Builds the DNS-encoded name `<label>.werk.eth`
     function _dnsEncode(string calldata label) internal pure returns (bytes memory) {
         return abi.encodePacked(uint8(bytes(label).length), label, WERK_DNS_SUFFIX);
-    }
-
-    /// @dev Checks that `msg.sender` is a deployed contract implementing {ISpace} and registered as a Werk space
-    function _onlySpace() internal view {
-        if (msg.sender.code.length == 0) {
-            revert SpaceZeroCodeSize();
-        }
-
-        if (!ISpace(msg.sender).supportsInterface(type(ISpace).interfaceId)) revert SpaceUnsupportedInterface();
-
-        if (!_getWerkRegistrarStorage().stationRegistry.isRegistered(msg.sender)) revert SpaceNotRegistered();
     }
 }

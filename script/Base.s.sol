@@ -7,11 +7,13 @@ contract BaseScript is Script {
     /// @dev The address of the default protocol admin
     address internal constant DEFAULT_PROTOCOL_ADMIN = 0xcaE83b7162d64022f7Da3D011fc96761cB14116a;
 
+    /// @dev The trusted backend signer: the AWS KMS key the backend uses to authorize protocol actions (e.g.
+    /// {WerkRegistrar} claims), the same address across all chains
+    /// @dev TODO: replace this placeholder with the backend KMS signer address before deploying
+    address internal constant DEFAULT_BACKEND_SIGNER = DEFAULT_PROTOCOL_ADMIN;
+
     /// @dev The address of the Entrypoint v6 deployment
     address internal constant ENTRYPOINT_V6 = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
-
-    /// @dev The address of the {StationRegistry} proxy, deployed at the same address across chains
-    address internal constant STATION_REGISTRY = 0xf169648a758b767AD6775E2f7eD8337a0aE4685d;
 
     /// @dev Sablier Lockup deployments mapped by the chain ID
     mapping(uint256 chainId => address sablierLockup) internal sablierLockupMap;
