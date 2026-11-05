@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import { Space } from "src/Space.sol";
 import { WerkRegistrar } from "src/peripherals/ensv2/WerkRegistrar.sol";
 import { IVerifiableFactory } from "src/peripherals/ensv2/interfaces/IVerifiableFactory.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { WerkENSv2Deployer } from "script/ensv2/WerkENSv2Deployer.sol";
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 import { IStandardRegistry } from "@ensv2/registry/interfaces/IStandardRegistry.sol";
 import { IRegistry } from "@ensv2/registry/interfaces/IRegistry.sol";
 import { IAddressSetter } from "@ensv2/resolver/interfaces/setters/IAddressSetter.sol";
+import { ITextSetter } from "@ensv2/resolver/interfaces/setters/ITextSetter.sol";
+import { IPermissionedResolver } from "@ensv2/resolver/interfaces/IPermissionedResolver.sol";
 import { IEnhancedAccessControl } from "@ensv2/access-control/interfaces/IEnhancedAccessControl.sol";
 import { NameCoder } from "@ens/contracts/utils/NameCoder.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -20,11 +23,6 @@ import { Fork_Test } from "../../fork/Fork.t.sol";
 /// @notice Minimal interface of the ENS Universal Resolver used to resolve names end-to-end
 interface IUniversalResolver {
     function resolve(bytes calldata name, bytes calldata data) external view returns (bytes memory, address);
-}
-
-/// @notice Minimal ENSIP-10 interface used to read records directly from the Werk resolver
-interface IExtendedResolver {
-    function resolve(bytes calldata name, bytes calldata data) external view returns (bytes memory);
 }
 
 /// @notice Fork test against the live ENSv2 deployment on Sepolia
@@ -37,7 +35,6 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
     IPermissionedRegistry werkRegistry;
     WerkRegistrar werkRegistrar;
-    address werkResolver;
 
     bytes32 ethNode;
     bytes32 werkNode;
@@ -51,6 +48,9 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
     /// @dev ERC-1967 slot holding the proxy implementation address
     bytes32 constant ERC1967_IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+
+    /// @dev ETH mainnet coin type, which takes precedence over the default address record
+    uint256 constant COIN_TYPE_ETH = 60;
 
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
@@ -68,6 +68,12 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
         Fork_Test.setUp();
 
+        // Clear any code at the test users' addresses, as their private keys are public and they may be
+        // EIP-7702 delegated on Sepolia, which would make them reject the subname ERC-1155 mint
+        vm.etch(users.alice, "");
+        vm.etch(users.bob, "");
+        vm.etch(users.eve, "");
+
         // Compute ENS nodes
         ethNode = keccak256(abi.encodePacked(bytes32(0), keccak256("eth")));
         werkNode = keccak256(abi.encodePacked(ethNode, keccak256("werk")));
@@ -75,16 +81,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
         // Create the trusted backend signer
         (signer, signerKey) = makeAddrAndKey("signer");
 
-        // Step 1: Deploy the Werk resolver as a `PermissionedResolver` proxy
-        werkResolver = WerkENSv2Deployer.deployResolver(
-            IVerifiableFactory(Constants.VERIFIABLE_FACTORY),
-            Constants.PERMISSIONED_RESOLVER_IMPL,
-            WerkENSv2Deployer.RESOLVER_SALT,
-            users.admin
-        );
-        vm.label(werkResolver, "WerkResolver");
-
-        // Step 2: Deploy the Werk registry as a `UserRegistry` proxy
+        // Step 1: Deploy the Werk registry as a `UserRegistry` proxy
         werkRegistry = WerkENSv2Deployer.deployRegistry(
             IVerifiableFactory(Constants.VERIFIABLE_FACTORY),
             Constants.USER_REGISTRY_IMPL,
@@ -93,25 +90,23 @@ contract WerkENSv2Fork_Test is Fork_Test {
         );
         vm.label(address(werkRegistry), "WerkRegistry");
 
-        // Step 3: Point the existing "werk.eth" on the ETH registry to the Werk registry
+        // Step 2: Point the existing "werk.eth" on the ETH registry to the Werk registry
         linkWerkLabel();
 
-        // Step 4: Deploy WerkRegistrar as an ERC1967 proxy
-        werkRegistrar = WerkENSv2Deployer.deployRegistrar(werkRegistry, werkResolver, users.admin, signer);
+        // Step 3: Deploy WerkRegistrar as an ERC1967 proxy
+        werkRegistrar = WerkENSv2Deployer.deployRegistrar(
+            werkRegistry,
+            IVerifiableFactory(Constants.VERIFIABLE_FACTORY),
+            Constants.PERMISSIONED_RESOLVER_IMPL,
+            users.admin,
+            signer
+        );
         vm.label(address(werkRegistrar), "WerkRegistrar");
 
-        // Step 5: Grant the WerkRegistrar its roles and link the Werk registry to its canonical parent
+        // Step 4: Grant the WerkRegistrar its roles and link the Werk registry to its canonical parent
         vm.startPrank(users.admin);
-        WerkENSv2Deployer.configure(
-            werkRegistry, werkResolver, address(werkRegistrar), IRegistry(Constants.ETH_REGISTRY)
-        );
+        WerkENSv2Deployer.configure(werkRegistry, address(werkRegistrar), IRegistry(Constants.ETH_REGISTRY));
         vm.stopPrank();
-
-        // Step 6: Allowlist WerkRegistrar in ModuleKeeper so Spaces can call it
-        address[] memory modules = new address[](1);
-        modules[0] = address(werkRegistrar);
-        vm.prank(users.admin);
-        moduleKeeper.addToAllowlist(modules);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -122,16 +117,21 @@ contract WerkENSv2Fork_Test is Fork_Test {
         string memory label = "alice";
 
         // Run the test
-        _claimSubname(space, users.alice, label);
+        _claimSubname(address(space), users.alice, label);
 
-        // Verify the registrar getters, which read the ownership from the Werk registry
+        // Verify the registrar getters
         bytes32 labelHash = keccak256(bytes(label));
         assertEq(werkRegistrar.getSpaceForLabel(label), address(space), "space for label mismatch");
         assertEq(werkRegistrar.getLabelHashForSpace(address(space)), labelHash, "label for space mismatch");
 
-        // Verify the name is registered in the Werk registry for one year plus the grace period
-        assertEq(werkRegistry.getResolver(label), werkResolver, "resolver mismatch");
+        // Verify the name is held by the admin EOA in the Werk registry for one year plus the grace period
+        assertEq(_ownerOf(label), users.alice, "owner mismatch");
         assertEq(werkRegistry.getExpiry(uint256(labelHash)), block.timestamp + 395 days, "expiry mismatch");
+
+        // Verify the name points to the owner's own resolver, deployed on its first claim
+        address resolver = werkRegistrar.resolverOf(users.alice);
+        assertEq(werkRegistry.getResolver(label), resolver, "resolver mismatch");
+        assertGt(resolver.code.length, 0, "resolver not deployed");
 
         // Verify ENSIP-19 default record was set
         bytes memory defaultAddrBytes = _resolveAddress(label, Constants.COIN_TYPE_DEFAULT);
@@ -145,12 +145,22 @@ contract WerkENSv2Fork_Test is Fork_Test {
         assertEq(baseAddrBytes, abi.encodePacked(address(space)), "Base fallback mismatch");
     }
 
+    function test_ClaimSubname_SpaceNotDeployed() external {
+        // A space that is only deployed on another chain, e.g. Base
+        address baseSpace = makeAddr("base-space");
+
+        // Run the test
+        _claimSubname(baseSpace, users.alice, "alice");
+
+        // Assert that the subname resolves to the space even though it has no code on this chain
+        assertEq(baseSpace.code.length, 0, "space should not be deployed");
+        assertEq(_resolveAddr("alice"), baseSpace, "subname should resolve to the space");
+        assertEq(werkRegistrar.getSpaceForLabel("alice"), baseSpace, "space for label mismatch");
+    }
+
     function test_RevertWhen_SpaceAlreadyHasSubname() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
-
-        // Make Alice the caller
-        vm.prank(users.alice);
+        _claimSubname(address(space), users.alice, "alice");
 
         // Expect the next call to revert with the {SpaceAlreadyHasSubname} error even with a valid signature
         vm.expectRevert(
@@ -160,23 +170,20 @@ contract WerkENSv2Fork_Test is Fork_Test {
         );
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, _registerCall(space, "bob"));
+        _register(address(space), users.alice, "bob");
     }
 
     function test_RevertWhen_LabelAlreadyTaken() external {
         // Alice claims the "alice" subname
-        _claimSubname(space, users.alice, "alice");
-
-        // Make Bob the caller
-        vm.prank(users.bob);
+        _claimSubname(address(space), users.alice, "alice");
 
         // Expect the next call to revert with the {LabelAlreadyTaken} error
         vm.expectRevert(
-            abi.encodeWithSelector(WerkRegistrar.LabelAlreadyTaken.selector, keccak256(bytes("alice")), address(space))
+            abi.encodeWithSelector(WerkRegistrar.LabelAlreadyTaken.selector, keccak256(bytes("alice")), users.alice)
         );
 
         // Run the test
-        space2.execute(address(werkRegistrar), 0, _registerCall(space2, "alice"));
+        _register(address(space2), users.bob, "alice");
     }
 
     function test_RevertWhen_LabelEmpty() external {
@@ -196,7 +203,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
         string memory label = "acme-co-2026";
 
         // Alice claims a label with digits and inner hyphens
-        _claimSubname(space, users.alice, label);
+        _claimSubname(address(space), users.alice, label);
 
         // Assert that it resolves to the space
         assertEq(_resolveAddr(label), address(space), "label with digits and hyphens should resolve to space");
@@ -207,7 +214,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
         string memory label = _repeat("a", 255);
 
         // Alice claims the longest allowed label
-        _claimSubname(space, users.alice, label);
+        _claimSubname(address(space), users.alice, label);
 
         // Assert that it resolves to the space
         assertEq(_resolveAddr(label), address(space), "max length label should resolve to space");
@@ -216,7 +223,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
     function test_RevertWhen_SignatureExpired() external {
         // Sign a claim that expires now and move past it
         uint40 validUntil = uint40(block.timestamp);
-        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+        bytes memory signature = _signRegister(users.alice, address(space), "alice", validUntil, signerKey);
         vm.warp(block.timestamp + 1);
 
         // Make Alice the caller
@@ -226,53 +233,61 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.SignatureExpired.selector, validUntil));
 
         // Run the test
-        space.execute(
-            address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("alice", validUntil, signature))
-        );
+        werkRegistrar.register("alice", address(space), validUntil, signature);
     }
 
     function test_RevertWhen_SignedByUntrustedSigner() external {
         // Sign the claim with a key that is not the trusted signer
         (, uint256 untrustedKey) = makeAddrAndKey("untrusted-signer");
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
-        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, untrustedKey);
+        bytes memory signature = _signRegister(users.alice, address(space), "alice", validUntil, untrustedKey);
 
         // Expect the claim to revert with the {InvalidSignature} error
-        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil, signature);
+        _expectInvalidSignatureOnRegister(users.alice, address(space), "alice", validUntil, signature);
     }
 
     function test_RevertWhen_SignatureForAnotherSpace() external {
-        // The backend authorized `space` to claim "alice"
+        // The backend authorized Bob to claim "alice" for `space`
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
-        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+        bytes memory signature = _signRegister(users.bob, address(space), "alice", validUntil, signerKey);
 
-        // Expect `space2` replaying it to revert with the {InvalidSignature} error
-        _expectInvalidSignatureOnRegister(space2, users.bob, "alice", validUntil, signature);
+        // Expect using it for `space2` to revert with the {InvalidSignature} error
+        _expectInvalidSignatureOnRegister(users.bob, address(space2), "alice", validUntil, signature);
+    }
+
+    function test_RevertWhen_SignatureForAnotherOwner() external {
+        // The backend authorized Alice to claim "alice" for `space`
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _signRegister(users.alice, address(space), "alice", validUntil, signerKey);
+
+        // Expect Eve replaying it to revert with the {InvalidSignature} error
+        _expectInvalidSignatureOnRegister(users.eve, address(space), "alice", validUntil, signature);
     }
 
     function test_RevertWhen_SignatureForAnotherLabel() external {
         // The backend authorized `space` to claim "alice"
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
-        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+        bytes memory signature = _signRegister(users.alice, address(space), "alice", validUntil, signerKey);
 
         // Expect claiming "bob" with it to revert with the {InvalidSignature} error
-        _expectInvalidSignatureOnRegister(space, users.alice, "bob", validUntil, signature);
+        _expectInvalidSignatureOnRegister(users.alice, address(space), "bob", validUntil, signature);
     }
 
     function test_RevertWhen_SignatureValidUntilTampered() external {
         // The backend authorized the claim until `validUntil`
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
-        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+        bytes memory signature = _signRegister(users.alice, address(space), "alice", validUntil, signerKey);
 
         // Expect extending the deadline to revert with the {InvalidSignature} error
-        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil + 1 days, signature);
+        _expectInvalidSignatureOnRegister(users.alice, address(space), "alice", validUntil + 1 days, signature);
     }
 
     function test_RevertWhen_SignatureReused() external {
         // Alice claims "alice" and the owner clears it
-        bytes memory registerCall = _registerCall(space, "alice");
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _signRegister(users.alice, address(space), "alice", validUntil, signerKey);
         vm.prank(users.alice);
-        space.execute(address(werkRegistrar), 0, registerCall);
+        werkRegistrar.register("alice", address(space), validUntil, signature);
 
         string[] memory labels = new string[](1);
         labels[0] = "alice";
@@ -286,33 +301,33 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(WerkRegistrar.SignatureAlreadyUsed.selector);
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, registerCall);
+        werkRegistrar.register("alice", address(space), validUntil, signature);
     }
 
     function test_RevertWhen_SignatureMalformed() external {
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
 
         // Expect a signature of the wrong length to revert with the {InvalidSignature} error
-        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil, hex"1234");
+        _expectInvalidSignatureOnRegister(users.alice, address(space), "alice", validUntil, hex"1234");
     }
 
     function test_RevertWhen_RenewSignatureUsedForRegister() external {
-        // The backend authorized `space` to renew "alice"
+        // The backend authorized Alice to renew "alice"
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
-        bytes memory signature = _sign(_renewAction(), address(space), "alice", validUntil, signerKey);
+        bytes memory signature = _signRenew(users.alice, "alice", validUntil, signerKey);
 
         // Expect claiming with it to revert with the {InvalidSignature} error
-        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil, signature);
+        _expectInvalidSignatureOnRegister(users.alice, address(space), "alice", validUntil, signature);
     }
 
     function test_RevertWhen_RenewWithoutValidSignature() external {
         // Alice claims a subname and enters the grace period
-        _claimSubname(space, users.alice, "alice");
+        _claimSubname(address(space), users.alice, "alice");
         vm.warp(block.timestamp + 365 days + 1);
 
         // The backend authorized a claim, not a renewal
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
-        bytes memory signature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
+        bytes memory signature = _signRegister(users.alice, address(space), "alice", validUntil, signerKey);
 
         // Make Alice the caller
         vm.prank(users.alice);
@@ -321,7 +336,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(WerkRegistrar.InvalidSignature.selector);
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.renew, ("alice", validUntil, signature)));
+        werkRegistrar.renew("alice", validUntil, signature);
     }
 
     function test_SetSigner() external {
@@ -340,15 +355,13 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
         // Assert that the old signer is no longer trusted
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
-        bytes memory oldSignature = _sign(_registerAction(), address(space), "alice", validUntil, signerKey);
-        _expectInvalidSignatureOnRegister(space, users.alice, "alice", validUntil, oldSignature);
+        bytes memory oldSignature = _signRegister(users.alice, address(space), "alice", validUntil, signerKey);
+        _expectInvalidSignatureOnRegister(users.alice, address(space), "alice", validUntil, oldSignature);
 
         // Assert that the new signer is trusted
-        bytes memory newSignature = _sign(_registerAction(), address(space), "alice", validUntil, newSignerKey);
+        bytes memory newSignature = _signRegister(users.alice, address(space), "alice", validUntil, newSignerKey);
         vm.prank(users.alice);
-        space.execute(
-            address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, ("alice", validUntil, newSignature))
-        );
+        werkRegistrar.register("alice", address(space), validUntil, newSignature);
         assertEq(werkRegistrar.getSpaceForLabel("alice"), address(space), "space for label mismatch");
     }
 
@@ -378,13 +391,9 @@ contract WerkENSv2Fork_Test is Fork_Test {
                                    ACCESS CONTROL
     //////////////////////////////////////////////////////////////////////////*/
 
-    function test_RevertWhen_SpaceUnregistersSubname() external {
+    function test_RevertWhen_OwnerUnregistersSubname() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
-
-        // Allowlist the Werk registry so the space can call it directly
-        // Note: this mirrors a space upgraded to an implementation without the allowlist check
-        _allowlistWerkRegistry();
+        _claimSubname(address(space), users.alice, "alice");
 
         // Make Alice the caller
         vm.prank(users.alice);
@@ -393,17 +402,12 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
 
         // Run the test
-        space.execute(
-            address(werkRegistry), 0, abi.encodeCall(IStandardRegistry.unregister, (uint256(keccak256("alice"))))
-        );
+        werkRegistry.unregister(uint256(keccak256("alice")));
     }
 
-    function test_RevertWhen_SpaceSetsResolver() external {
+    function test_RevertWhen_OwnerSetsResolver() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
-
-        // Allowlist the Werk registry so the space can call it directly
-        _allowlistWerkRegistry();
+        _claimSubname(address(space), users.alice, "alice");
 
         // Make Alice the caller
         vm.prank(users.alice);
@@ -412,11 +416,24 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
 
         // Run the test
-        space.execute(
-            address(werkRegistry),
-            0,
-            abi.encodeCall(IStandardRegistry.setResolver, (uint256(keccak256("alice")), users.eve))
-        );
+        werkRegistry.setResolver(uint256(keccak256("alice")), users.eve);
+    }
+
+    function test_RevertWhen_OwnerTransfersSubname() external {
+        // Alice claims a subname
+        _claimSubname(address(space), users.alice, "alice");
+        uint256 tokenId = werkRegistry.getTokenId(uint256(keccak256("alice")));
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {TransferUnsafeUntilRegistryIsEmancipated} error
+        // Note: once emancipated, the registry still rejects it with {TransferDisallowed}, as the owner holds no
+        // `ROLE_CAN_TRANSFER_ADMIN` on its subname
+        vm.expectRevert(IPermissionedRegistry.TransferUnsafeUntilRegistryIsEmancipated.selector);
+
+        // Run the test
+        IERC1155(address(werkRegistry)).safeTransferFrom(users.alice, users.eve, tokenId, 1, "");
     }
 
     function test_RevertWhen_AdminRegistersSubname() external {
@@ -427,21 +444,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
 
         // Run the test
-        werkRegistry.register("alice", users.admin, IRegistry(address(0)), werkResolver, 0, type(uint64).max);
-    }
-
-    function test_RevertWhen_AdminSetsAddress() external {
-        // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
-
-        // Make the admin the caller
-        vm.prank(users.admin);
-
-        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error
-        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
-
-        // Run the test
-        IAddressSetter(werkResolver).setAddress(_dnsEncode("alice"), 60, abi.encodePacked(users.eve));
+        werkRegistry.register("alice", users.admin, IRegistry(address(0)), address(0), 0, type(uint64).max);
     }
 
     function test_CanonicalParent() external view {
@@ -460,12 +463,16 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
     function test_MultipleSpaces_ClaimDifferentSubnames() external {
         // Alice and Bob each claim a subname
-        _claimSubname(space, users.alice, "alice");
-        _claimSubname(space2, users.bob, "bob");
+        _claimSubname(address(space), users.alice, "alice");
+        _claimSubname(address(space2), users.bob, "bob");
 
         // Assert they resolve correctly
         assertEq(_resolveAddr("alice"), address(space), "alice should resolve to space");
         assertEq(_resolveAddr("bob"), address(space2), "bob should resolve to space2");
+
+        // Assert that each owner got its own resolver
+        assertEq(werkRegistry.getResolver("alice"), werkRegistrar.resolverOf(users.alice), "alice resolver mismatch");
+        assertEq(werkRegistry.getResolver("bob"), werkRegistrar.resolverOf(users.bob), "bob resolver mismatch");
     }
 
     function test_Available() external {
@@ -473,8 +480,128 @@ contract WerkENSv2Fork_Test is Fork_Test {
         assertTrue(werkRegistrar.available("alice"), "unclaimed label should be available");
 
         // Assert that claimed label is not available
-        _claimSubname(space, users.alice, "alice");
+        _claimSubname(address(space), users.alice, "alice");
         assertFalse(werkRegistrar.available("alice"), "claimed label should not be available");
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                  OWNER RECORDS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function test_OwnerSetsTextRecord() external {
+        // Alice claims a subname
+        _claimSubname(address(space), users.alice, "alice");
+        address resolver = werkRegistrar.resolverOf(users.alice);
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Run the test
+        ITextSetter(resolver).setText(_dnsEncode("alice"), "url", "https://alice.xyz");
+
+        // Assert that the record resolves through the Universal Resolver
+        assertEq(_resolveText("alice", "url"), "https://alice.xyz", "text record mismatch");
+    }
+
+    function test_RevertWhen_OwnerSetsDefaultAddress() external {
+        // Alice claims a subname
+        _claimSubname(address(space), users.alice, "alice");
+        address resolver = werkRegistrar.resolverOf(users.alice);
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error
+        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
+
+        // Run the test
+        IAddressSetter(resolver)
+            .setAddress(_dnsEncode("alice"), Constants.COIN_TYPE_DEFAULT, abi.encodePacked(users.eve));
+    }
+
+    function test_RevertWhen_OwnerSetsChainAddress() external {
+        // Alice claims a subname
+        _claimSubname(address(space), users.alice, "alice");
+        address resolver = werkRegistrar.resolverOf(users.alice);
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error, as the ETH address record
+        // would take precedence over the default one
+        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
+
+        // Run the test
+        IAddressSetter(resolver).setAddress(_dnsEncode("alice"), COIN_TYPE_ETH, abi.encodePacked(users.eve));
+    }
+
+    function test_RevertWhen_OwnerLinksRecord() external {
+        // Alice claims a subname
+        _claimSubname(address(space), users.alice, "alice");
+        address resolver = werkRegistrar.resolverOf(users.alice);
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error
+        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
+
+        // Run the test
+        IPermissionedResolver(resolver).linkToRecord(_dnsEncode("alice"), 0);
+    }
+
+    function test_RevertWhen_AdminSetsAddress() external {
+        // Alice claims a subname
+        _claimSubname(address(space), users.alice, "alice");
+        address resolver = werkRegistrar.resolverOf(users.alice);
+
+        // Make the admin the caller
+        vm.prank(users.admin);
+
+        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error
+        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
+
+        // Run the test
+        IAddressSetter(resolver).setAddress(_dnsEncode("alice"), COIN_TYPE_ETH, abi.encodePacked(users.eve));
+    }
+
+    function test_OwnerRecords_DoNotAffectOtherSubnames() external {
+        // Alice and Bob each claim a subname
+        _claimSubname(address(space), users.alice, "alice");
+        _claimSubname(address(space2), users.bob, "bob");
+        address bobResolver = werkRegistrar.resolverOf(users.bob);
+
+        // Make Bob the caller
+        vm.prank(users.bob);
+
+        // Run the test: Bob writes a record for "alice" on his own resolver
+        ITextSetter(bobResolver).setText(_dnsEncode("alice"), "url", "https://phish.xyz");
+
+        // Assert that "alice" does not resolve the record, as the registry points it to Alice's resolver
+        assertEq(_resolveText("alice", "url"), "", "record leaked to another subname");
+    }
+
+    function test_OneOwner_MultipleSpaces() external {
+        // Alice claims a subname for each space she administers
+        _claimSubname(address(space), users.alice, "acme");
+        _claimSubname(address(space2), users.alice, "studio");
+
+        // Assert that both subnames share Alice's resolver
+        address resolver = werkRegistrar.resolverOf(users.alice);
+        assertEq(werkRegistry.getResolver("acme"), resolver, "acme resolver mismatch");
+        assertEq(werkRegistry.getResolver("studio"), resolver, "studio resolver mismatch");
+
+        // Alice sets a different record on each subname
+        vm.startPrank(users.alice);
+        ITextSetter(resolver).setText(_dnsEncode("acme"), "description", "Design agency");
+        ITextSetter(resolver).setText(_dnsEncode("studio"), "description", "Video production");
+        vm.stopPrank();
+
+        // Assert that each subname resolves to its own space and keeps its own records
+        assertEq(_resolveAddr("acme"), address(space), "acme should resolve to space");
+        assertEq(_resolveAddr("studio"), address(space2), "studio should resolve to space2");
+        assertEq(_resolveText("acme", "description"), "Design agency", "acme record mismatch");
+        assertEq(_resolveText("studio", "description"), "Video production", "studio record mismatch");
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -483,28 +610,29 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
     function test_RevertWhen_RenewBeforeGracePeriod() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
-
-        // Make Alice the caller
-        vm.prank(users.alice);
+        _claimSubname(address(space), users.alice, "alice");
 
         // Expect the next call to revert with the {RenewalNotOpen} error until the end of the first year
         vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.RenewalNotOpen.selector, block.timestamp + 365 days));
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, _renewCall(space, "alice"));
+        _renew(users.alice, "alice");
     }
 
     function test_Renew_DuringGracePeriod() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
-        uint256 expiry = werkRegistry.getExpiry(uint256(keccak256("alice")));
+        _claimSubname(address(space), users.alice, "alice");
+        uint64 expiry = werkRegistry.getExpiry(uint256(keccak256("alice")));
 
         // Warp into the grace period
         vm.warp(block.timestamp + 365 days + 1);
 
+        // Expect the {SubnameRenewed} event to be emitted for the space
+        vm.expectEmit(address(werkRegistrar));
+        emit WerkRegistrar.SubnameRenewed(address(space), "alice", expiry + 365 days);
+
         // Run the test
-        _renewSubname(space, users.alice, "alice");
+        _renew(users.alice, "alice");
 
         // Assert that the subname is extended by one year and still resolves to the space
         assertEq(werkRegistry.getExpiry(uint256(keccak256("alice"))), expiry + 365 days, "expiry not extended");
@@ -513,24 +641,21 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
     function test_RevertWhen_RenewByNonOwner() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
+        _claimSubname(address(space), users.alice, "alice");
 
         // Warp into the grace period
         vm.warp(block.timestamp + 365 days + 1);
 
-        // Make Bob the caller
-        vm.prank(users.bob);
-
         // Expect the next call to revert with the {NotSubnameOwner} error
-        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.NotSubnameOwner.selector, address(space2)));
+        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.NotSubnameOwner.selector, users.bob));
 
         // Run the test
-        space2.execute(address(werkRegistrar), 0, _renewCall(space2, "alice"));
+        _renew(users.bob, "alice");
     }
 
     function test_RevertWhen_RegisterDuringGracePeriod() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
+        _claimSubname(address(space), users.alice, "alice");
 
         // Warp into the grace period
         vm.warp(block.timestamp + 366 days);
@@ -538,59 +663,58 @@ contract WerkENSv2Fork_Test is Fork_Test {
         // Assert that the subname still resolves to the space during the grace period
         assertEq(_resolveAddr("alice"), address(space), "subname should resolve during grace period");
 
-        // Make Bob the caller
-        vm.prank(users.bob);
-
         // Expect the next call to revert with the {LabelAlreadyTaken} error
         vm.expectRevert(
-            abi.encodeWithSelector(WerkRegistrar.LabelAlreadyTaken.selector, keccak256(bytes("alice")), address(space))
+            abi.encodeWithSelector(WerkRegistrar.LabelAlreadyTaken.selector, keccak256(bytes("alice")), users.alice)
         );
 
         // Run the test
-        space2.execute(address(werkRegistrar), 0, _registerCall(space2, "alice"));
+        _register(address(space2), users.bob, "alice");
     }
 
     function test_RevertWhen_RenewAfterExpiry() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
+        _claimSubname(address(space), users.alice, "alice");
 
         // Warp past the grace period
         vm.warp(block.timestamp + 395 days);
 
-        // Make Alice the caller
-        vm.prank(users.alice);
-
         // Expect the next call to revert with the {NotSubnameOwner} error as the subname has expired
-        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.NotSubnameOwner.selector, address(space)));
+        vm.expectRevert(abi.encodeWithSelector(WerkRegistrar.NotSubnameOwner.selector, users.alice));
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, _renewCall(space, "alice"));
+        _renew(users.alice, "alice");
     }
 
     function test_ClaimExpiredLabel_ByAnotherSpace() external {
-        // Alice claims a subname, then lets it expire
-        _claimSubname(space, users.alice, "alice");
+        // Alice claims a subname and sets a record, then lets it expire
+        _claimSubname(address(space), users.alice, "alice");
+        _setText(users.alice, "alice", "url", "https://alice.xyz");
         vm.warp(block.timestamp + 395 days);
 
         // Run the test
-        _claimSubname(space2, users.bob, "alice");
+        _claimSubname(address(space2), users.bob, "alice");
 
         // Assert that the label now resolves to the new space and the previous space has no active subname
         assertEq(_resolveAddr("alice"), address(space2), "expired label should resolve to the new space");
         assertEq(werkRegistrar.getSpaceForLabel("alice"), address(space2), "space for label mismatch");
         assertEq(werkRegistrar.getLabelHashForSpace(address(space)), bytes32(0), "previous space should be freed");
+
+        // Assert that the previous owner's records do not carry over to the new space
+        assertEq(_resolveText("alice", "url"), "", "previous owner record should not resolve");
     }
 
     function test_ClaimNewLabel_AfterOwnSubnameExpired() external {
         // Alice claims a subname, then lets it expire
-        _claimSubname(space, users.alice, "alice");
+        _claimSubname(address(space), users.alice, "alice");
         vm.warp(block.timestamp + 395 days);
 
         // Run the test
-        _claimSubname(space, users.alice, "alice-new");
+        _claimSubname(address(space), users.alice, "alice-new");
 
-        // Assert that the space holds its new subname
+        // Assert that the space holds its new subname, on the same resolver as before
         assertEq(_resolveAddr("alice-new"), address(space), "new subname should resolve to space");
+        assertEq(werkRegistry.getResolver("alice-new"), werkRegistrar.resolverOf(users.alice), "resolver mismatch");
         assertEq(
             werkRegistrar.getLabelHashForSpace(address(space)),
             keccak256(bytes("alice-new")),
@@ -604,8 +728,8 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
     function test_ClearLabels() external {
         // Alice and Bob each claim a subname
-        _claimSubname(space, users.alice, "alice");
-        _claimSubname(space2, users.bob, "bob");
+        _claimSubname(address(space), users.alice, "alice");
+        _claimSubname(address(space2), users.bob, "bob");
 
         // Make the owner the caller
         vm.prank(users.admin);
@@ -625,17 +749,17 @@ contract WerkENSv2Fork_Test is Fork_Test {
         assertEq(werkRegistrar.getLabelHashForSpace(address(space)), bytes32(0), "space should be freed");
         assertEq(werkRegistrar.getLabelHashForSpace(address(space2)), bytes32(0), "space2 should be freed");
 
-        // Assert that the default address record was reset on the Werk resolver
-        assertEq(_werkResolverDefaultAddress("alice").length, 0, "default address record should be reset");
+        // Assert that the registry no longer points the label to a resolver
+        assertEq(werkRegistry.getResolver("alice"), address(0), "resolver should be cleared");
 
         // Assert that a cleared space can claim a new subname
-        _claimSubname(space, users.alice, "alice-new");
+        _claimSubname(address(space), users.alice, "alice-new");
         assertEq(_resolveAddr("alice-new"), address(space), "new subname should resolve to space");
     }
 
     function test_RevertWhen_ClearLabelsCallerNotOwner() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
+        _claimSubname(address(space), users.alice, "alice");
 
         // Make Eve the caller
         vm.prank(users.eve);
@@ -650,12 +774,31 @@ contract WerkENSv2Fork_Test is Fork_Test {
     }
 
     /*//////////////////////////////////////////////////////////////////////////
+                                 RESOLVER UPGRADES
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function test_RevertWhen_OwnerUpgradesOwnResolver() external {
+        // Alice claims a subname
+        _claimSubname(address(space), users.alice, "alice");
+        address resolver = werkRegistrar.resolverOf(users.alice);
+
+        // Make Alice the caller
+        vm.prank(users.alice);
+
+        // Expect the next call to revert with the {EACUnauthorizedAccountRoles} error
+        vm.expectPartialRevert(IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector);
+
+        // Run the test
+        UUPSUpgradeable(resolver).upgradeToAndCall(Constants.PERMISSIONED_RESOLVER_IMPL, "");
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
                                     UPGRADEABILITY
     //////////////////////////////////////////////////////////////////////////*/
 
     function test_Upgrade_KeepsState() external {
         // Alice claims a subname
-        _claimSubname(space, users.alice, "alice");
+        _claimSubname(address(space), users.alice, "alice");
 
         // Deploy a new implementation
         address newImplementation = address(new WerkRegistrar());
@@ -672,7 +815,10 @@ contract WerkENSv2Fork_Test is Fork_Test {
 
         // Assert that the configuration and the claims survived the upgrade
         assertEq(address(werkRegistrar.WERK_REGISTRY()), address(werkRegistry), "registry mismatch");
-        assertEq(werkRegistrar.RESOLVER(), werkResolver, "resolver mismatch");
+        assertEq(address(werkRegistrar.VERIFIABLE_FACTORY()), Constants.VERIFIABLE_FACTORY, "factory mismatch");
+        assertEq(
+            werkRegistrar.RESOLVER_IMPLEMENTATION(), Constants.PERMISSIONED_RESOLVER_IMPL, "resolver impl mismatch"
+        );
         assertEq(werkRegistrar.owner(), users.admin, "owner mismatch");
         assertEq(werkRegistrar.signer(), signer, "signer mismatch");
         assertEq(
@@ -680,13 +826,12 @@ contract WerkENSv2Fork_Test is Fork_Test {
         );
 
         // Assert that the space still cannot claim a second subname after the upgrade
-        vm.prank(users.alice);
         vm.expectRevert(
             abi.encodeWithSelector(
                 WerkRegistrar.SpaceAlreadyHasSubname.selector, address(space), keccak256(bytes("alice"))
             )
         );
-        space.execute(address(werkRegistrar), 0, _registerCall(space, "bob"));
+        _register(address(space), users.alice, "bob");
     }
 
     function test_RevertWhen_UpgradeCallerNotOwner() external {
@@ -711,7 +856,13 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
 
         // Run the test
-        implementation.initialize(werkRegistry, werkResolver, users.eve, users.eve);
+        implementation.initialize(
+            werkRegistry,
+            IVerifiableFactory(Constants.VERIFIABLE_FACTORY),
+            Constants.PERMISSIONED_RESOLVER_IMPL,
+            users.eve,
+            users.eve
+        );
     }
 
     function test_RevertWhen_ReinitializeProxy() external {
@@ -719,7 +870,13 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
 
         // Run the test
-        werkRegistrar.initialize(werkRegistry, werkResolver, users.eve, users.eve);
+        werkRegistrar.initialize(
+            werkRegistry,
+            IVerifiableFactory(Constants.VERIFIABLE_FACTORY),
+            Constants.PERMISSIONED_RESOLVER_IMPL,
+            users.eve,
+            users.eve
+        );
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -736,37 +893,33 @@ contract WerkENSv2Fork_Test is Fork_Test {
                                     OTHER HELPERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Claims `label` for `_space` with a fresh signature of the trusted signer
-    function _claimSubname(Space _space, address caller, string memory label) internal {
-        vm.prank(caller);
-        _space.execute(address(werkRegistrar), 0, _registerCall(_space, label));
+    /// @dev Claims `label` for `space` from its admin `owner` with a fresh signature of the trusted signer
+    function _claimSubname(address space, address owner, string memory label) internal {
+        _register(space, owner, label);
     }
 
-    /// @dev Renews `label` for `_space` with a fresh signature of the trusted signer
-    function _renewSubname(Space _space, address caller, string memory label) internal {
-        vm.prank(caller);
-        _space.execute(address(werkRegistrar), 0, _renewCall(_space, label));
-    }
-
-    /// @dev Builds a {WerkRegistrar.register} call for `_space` signed by the trusted signer
-    function _registerCall(Space _space, string memory label) internal view returns (bytes memory) {
+    /// @dev Calls {WerkRegistrar.register} from `owner` for `space` with a fresh signature of the trusted signer
+    /// Note: the signature is built before the prank so that the prank applies to the registrar call
+    function _register(address space, address owner, string memory label) internal {
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
-        bytes memory signature = _sign(_registerAction(), address(_space), label, validUntil, signerKey);
-        return abi.encodeCall(WerkRegistrar.register, (label, validUntil, signature));
+        bytes memory signature = _signRegister(owner, space, label, validUntil, signerKey);
+        vm.prank(owner);
+        werkRegistrar.register(label, space, validUntil, signature);
     }
 
-    /// @dev Builds a {WerkRegistrar.renew} call for `_space` signed by the trusted signer
-    function _renewCall(Space _space, string memory label) internal view returns (bytes memory) {
+    /// @dev Calls {WerkRegistrar.renew} from `owner` with a fresh signature of the trusted signer
+    function _renew(address owner, string memory label) internal {
         uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
-        bytes memory signature = _sign(_renewAction(), address(_space), label, validUntil, signerKey);
-        return abi.encodeCall(WerkRegistrar.renew, (label, validUntil, signature));
+        bytes memory signature = _signRenew(owner, label, validUntil, signerKey);
+        vm.prank(owner);
+        werkRegistrar.renew(label, validUntil, signature);
     }
 
-    /// @dev Signs the payload the {WerkRegistrar} verifies, the way the backend does
+    /// @dev Signs the {WerkRegistrar.register} payload the way the backend does
     /// Note: rebuilt independently from the {WerkRegistrar} so that the test catches a mismatch in either one
-    function _sign(
-        bytes32 action,
-        address _space,
+    function _signRegister(
+        address owner,
+        address space,
         string memory label,
         uint40 validUntil,
         uint256 privateKey
@@ -776,26 +929,54 @@ contract WerkENSv2Fork_Test is Fork_Test {
         returns (bytes memory)
     {
         bytes32 rawHash = keccak256(
-            abi.encode(action, address(werkRegistrar), _space, keccak256(bytes(label)), validUntil, block.chainid)
+            abi.encode(
+                keccak256("WerkRegistrar.register"),
+                address(werkRegistrar),
+                owner,
+                space,
+                keccak256(bytes(label)),
+                validUntil,
+                block.chainid
+            )
         );
+        return _signRaw(rawHash, privateKey);
+    }
+
+    /// @dev Signs the {WerkRegistrar.renew} payload the way the backend does
+    function _signRenew(
+        address owner,
+        string memory label,
+        uint40 validUntil,
+        uint256 privateKey
+    )
+        internal
+        view
+        returns (bytes memory)
+    {
+        bytes32 rawHash = keccak256(
+            abi.encode(
+                keccak256("WerkRegistrar.renew"),
+                address(werkRegistrar),
+                owner,
+                keccak256(bytes(label)),
+                validUntil,
+                block.chainid
+            )
+        );
+        return _signRaw(rawHash, privateKey);
+    }
+
+    /// @dev Produces the EIP-191 signature of `rawHash`
+    function _signRaw(bytes32 rawHash, uint256 privateKey) internal pure returns (bytes memory) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, MessageHashUtils.toEthSignedMessageHash(rawHash));
         return abi.encodePacked(r, s, v);
     }
 
-    /// @dev Action tag of a signed {WerkRegistrar.register} payload
-    function _registerAction() internal pure returns (bytes32) {
-        return keccak256("WerkRegistrar.register");
-    }
-
-    /// @dev Action tag of a signed {WerkRegistrar.renew} payload
-    function _renewAction() internal pure returns (bytes32) {
-        return keccak256("WerkRegistrar.renew");
-    }
-
-    /// @dev Expects claiming `label` from `_space` with the given signature to revert with {InvalidSignature}
+    /// @dev Expects claiming `label` for `space` from `caller` with the given signature to revert with
+    /// {InvalidSignature}
     function _expectInvalidSignatureOnRegister(
-        Space _space,
         address caller,
+        address space,
         string memory label,
         uint40 validUntil,
         bytes memory signature
@@ -804,45 +985,58 @@ contract WerkENSv2Fork_Test is Fork_Test {
     {
         vm.prank(caller);
         vm.expectRevert(WerkRegistrar.InvalidSignature.selector);
-        _space.execute(
-            address(werkRegistrar), 0, abi.encodeCall(WerkRegistrar.register, (label, validUntil, signature))
-        );
+        werkRegistrar.register(label, space, validUntil, signature);
     }
 
-    /// @dev Reads the ENSIP-19 default address record of `<label>.werk.eth` directly from the Werk resolver
-    function _werkResolverDefaultAddress(string memory label) internal view returns (bytes memory) {
-        bytes32 node = keccak256(abi.encodePacked(werkNode, keccak256(bytes(label))));
-        bytes memory data = abi.encodeWithSignature("addr(bytes32,uint256)", node, Constants.COIN_TYPE_DEFAULT);
+    /// @dev Sets the `key` text record of `<label>.werk.eth` as `owner` on its resolver
+    function _setText(address owner, string memory label, string memory key, string memory value) internal {
+        address resolver = werkRegistrar.resolverOf(owner);
+        vm.prank(owner);
+        ITextSetter(resolver).setText(_dnsEncode(label), key, value);
+    }
 
-        return abi.decode(IExtendedResolver(werkResolver).resolve(_dnsEncode(label), data), (bytes));
+    /// @dev Returns the holder of `<label>.werk.eth` on the Werk registry
+    function _ownerOf(string memory label) internal view returns (address) {
+        return werkRegistry.getState(uint256(keccak256(bytes(label)))).latestOwner;
+    }
+
+    /// @dev Resolves `data` for `<label>.werk.eth` through the public Universal Resolver
+    /// Note: asserts that the Universal Resolver used the resolver the Werk registry points the label to
+    function _resolve(string memory label, bytes memory data) internal view returns (bytes memory result) {
+        address resolver;
+        (result, resolver) = IUniversalResolver(Constants.UNIVERSAL_RESOLVER).resolve(_dnsEncode(label), data);
+        assertEq(resolver, werkRegistry.getResolver(label), "universal resolver found a different resolver");
     }
 
     /// @dev Resolves the `coinType` address of `<label>.werk.eth` through the public Universal Resolver
     function _resolveAddress(string memory label, uint256 coinType) internal view returns (bytes memory) {
-        bytes32 node = keccak256(abi.encodePacked(werkNode, keccak256(bytes(label))));
-        bytes memory data = abi.encodeWithSignature("addr(bytes32,uint256)", node, coinType);
-
-        (bytes memory result, address resolver) =
-            IUniversalResolver(Constants.UNIVERSAL_RESOLVER).resolve(_dnsEncode(label), data);
-        assertEq(resolver, werkResolver, "universal resolver found a different resolver");
-
-        return abi.decode(result, (bytes));
+        bytes memory data = abi.encodeWithSignature("addr(bytes32,uint256)", _node(label), coinType);
+        return abi.decode(_resolve(label, data), (bytes));
     }
 
     /// @dev Resolves the ETH address of `<label>.werk.eth` through the public Universal Resolver
     function _resolveAddr(string memory label) internal view returns (address) {
-        bytes32 node = keccak256(abi.encodePacked(werkNode, keccak256(bytes(label))));
-        bytes memory data = abi.encodeWithSignature("addr(bytes32)", node);
+        bytes memory data = abi.encodeWithSignature("addr(bytes32)", _node(label));
+        return abi.decode(_resolve(label, data), (address));
+    }
 
-        (bytes memory result, address resolver) =
-            IUniversalResolver(Constants.UNIVERSAL_RESOLVER).resolve(_dnsEncode(label), data);
-        assertEq(resolver, werkResolver, "universal resolver found a different resolver");
+    /// @dev Resolves the `key` text record of `<label>.werk.eth` through the public Universal Resolver
+    function _resolveText(string memory label, string memory key) internal view returns (string memory) {
+        bytes memory data = abi.encodeWithSignature("text(bytes32,string)", _node(label), key);
+        return abi.decode(_resolve(label, data), (string));
+    }
 
-        return abi.decode(result, (address));
+    /// @dev Returns the namehash of `<label>.werk.eth`
+    function _node(string memory label) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(werkNode, keccak256(bytes(label))));
     }
 
     /// @dev Expects claiming `label` from the space to revert with the registry's `revertData`
     function _expectRegistryLabelRevert(string memory label, bytes memory revertData) internal {
+        // Build the signature before the prank so that the prank applies to the registrar call
+        uint40 validUntil = uint40(block.timestamp + SIGNATURE_TTL);
+        bytes memory signature = _signRegister(users.alice, address(space), label, validUntil, signerKey);
+
         // Make Alice the caller
         vm.prank(users.alice);
 
@@ -850,7 +1044,7 @@ contract WerkENSv2Fork_Test is Fork_Test {
         vm.expectRevert(revertData);
 
         // Run the test
-        space.execute(address(werkRegistrar), 0, _registerCall(space, label));
+        werkRegistrar.register(label, address(space), validUntil, signature);
     }
 
     /// @dev Builds a string of `count` copies of `char`
@@ -858,14 +1052,6 @@ contract WerkENSv2Fork_Test is Fork_Test {
         for (uint256 i; i < count; ++i) {
             result = string.concat(result, char);
         }
-    }
-
-    /// @dev Allowlists the Werk registry in the {ModuleKeeper} so that spaces can call it directly
-    function _allowlistWerkRegistry() internal {
-        address[] memory modules = new address[](1);
-        modules[0] = address(werkRegistry);
-        vm.prank(users.admin);
-        moduleKeeper.addToAllowlist(modules);
     }
 
     /// @dev Builds the DNS-encoded name `<label>.werk.eth` with the ENS `NameCoder`
