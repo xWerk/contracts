@@ -8,10 +8,11 @@ import { IVerifiableFactory } from "./../../src/peripherals/ensv2/interfaces/IVe
 import { IPermissionedRegistry } from "@ensv2/registry/interfaces/IPermissionedRegistry.sol";
 
 /// @notice Deploys the Werk ENSv2 infrastructure: the Werk registry as an ENSv2 proxy and the {WerkRegistrar},
-///  then grants the registrar its roles and links the registry to "werk.eth" in both directions
+///  then grants the registrar its roles and links the registry to "werk.eth"
 /// The subname owners' resolvers are deployed later by the {WerkRegistrar}, from `permissionedResolverImpl`
 /// @dev Broadcasts explicitly from `DEFAULT_PROTOCOL_ADMIN` as it holds the roles needed by the post-deployment calls
-/// Requires `DEFAULT_PROTOCOL_ADMIN` to own "werk.eth" on the ETH registry
+/// Points "werk.eth" to the Werk registry only if `DEFAULT_PROTOCOL_ADMIN` owns it on the ETH registry; otherwise its
+/// owner sets the subregistry itself
 contract DeployWerkENSv2Core is BaseScript {
     /// @notice Thrown when there is no ENSv2 `ETHRegistry` deployment known for the current chain
     error UnsupportedChain(uint256 chainId);
@@ -47,7 +48,11 @@ contract DeployWerkENSv2Core is BaseScript {
         WerkENSv2Deployer.configure(werkRegistry, address(werkRegistrar), ethRegistry);
 
         // Step 4: Point "werk.eth" on the ETH registry to the Werk registry so that its subnames resolve
-        ethRegistry.setSubregistry(uint256(keccak256("werk")), werkRegistry);
+        // Note: skipped if another account holds "werk.eth", e.g. the mainnet Safe
+        uint256 werkLabelId = uint256(keccak256("werk"));
+        if (ethRegistry.getState(werkLabelId).latestOwner == DEFAULT_PROTOCOL_ADMIN) {
+            ethRegistry.setSubregistry(werkLabelId, werkRegistry);
+        }
 
         vm.stopBroadcast();
     }
