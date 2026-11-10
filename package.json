@@ -21,6 +21,7 @@
     "@sablier/flow": "^2.0.1",
     "@sablier/lockup": "^3.0.1",
     "@thirdweb-dev/contracts": "^3.15.0",
+    "contracts-v2": "github:ensdomains/contracts-v2#62778d80038e50cb23514eab1b7d66ceb8a41e1c",
     "solady": "^0.1.26"
   }
 }

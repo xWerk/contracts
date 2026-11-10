@@ -19,6 +19,7 @@ out = "out-optimized"
 optimizer = true
 optimizer_runs = 1000
 via_ir = true
+no_match_path = "test/fork/**"
 
 [fmt]
 bracket_spacing = true

@@ -7,6 +7,11 @@ contract BaseScript is Script {
     /// @dev The address of the default protocol admin
     address internal constant DEFAULT_PROTOCOL_ADMIN = 0xcaE83b7162d64022f7Da3D011fc96761cB14116a;
 
+    /// @dev The trusted backend signer: the AWS KMS key the backend uses to authorize protocol actions (e.g.
+    /// {WerkRegistrar} claims), the same address across all chains
+    /// Note: also the relayer of the {SubscriptionModule} deployed on Base Sepolia
+    address internal constant DEFAULT_BACKEND_SIGNER = 0x2D3adA8aC2bbe5839e869D209AB58C5E4713EAcE;
+
     /// @dev The address of the Entrypoint v6 deployment
     address internal constant ENTRYPOINT_V6 = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
 
@@ -28,6 +33,9 @@ contract BaseScript is Script {
     /// @dev Werk ENS Subdomain Registrar deployments mapped by the chain ID
     mapping(uint256 chainId => address registrar) internal ensSubdomainRegistrarMap;
 
+    /// @dev ENSv2 `ETHRegistry` deployments mapped by the chain ID
+    mapping(uint256 chainId => address ethRegistry) internal ensv2EthRegistryMap;
+
     constructor() {
         // Populate the Sablier Lockup deployments map
         populateSablierLockupMap();
@@ -48,6 +56,11 @@ contract BaseScript is Script {
         // Note: ENS subdomains are issued only on either Base or Base Sepolia
         ensSubdomainRegistrarMap[8453] = 0x959f784aa89311930871545A662F430CCb6DD0Bb;
         ensSubdomainRegistrarMap[84_532] = 0xfd35d5B15780CC6B8ccd8f1Cded4319aC5a63042;
+
+        // Populate the ENSv2 `ETHRegistry` deployments map
+        // See https://docs.ens.domains/learn/deployments
+        ensv2EthRegistryMap[1] = 0xf60aba43E1f7F3DAB1186Ff03B561401C9Df85E2;
+        ensv2EthRegistryMap[11_155_111] = 0xD4eBcbBdF463C9c45784603Db0dDD499BC44A8B4;
     }
 
     modifier broadcast() {
@@ -173,14 +186,7 @@ contract BaseScript is Script {
 
     /// @notice Generates a salt used for deterministic deployments based on the contract name and a given input salt
     /// @dev ABI encodes the given `contractName` and `inputSalt` strings into a `bytes32` value
-    function constructCreate3Salt(
-        string memory contractName,
-        string memory inputSalt
-    )
-        internal
-        pure
-        returns (bytes32)
-    {
+    function constructCreate3Salt(string memory contractName, string memory inputSalt) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(contractName, inputSalt));
     }
 }
